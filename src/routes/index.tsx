@@ -3,6 +3,7 @@ import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { memberStyles, type MemberName } from "@/lib/family";
+import { useHubStore } from "@/lib/hub-store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -43,6 +44,7 @@ const upcoming: { date: string; who: MemberName; what: string }[] = [
 
 function Danas() {
   const [done, setDone] = useState<string[]>([]);
+  const { confirmed } = useHubStore();
 
   return (
     <AppShell>
@@ -118,6 +120,29 @@ function Danas() {
           })}
         </ul>
       </section>
+
+      {confirmed.length > 0 ? (
+        <section className="mb-8">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Dodano iz AI analize
+          </h2>
+          <div className="card-soft divide-y divide-border">
+            {confirmed.map((c) => (
+              <div key={c.id} className="flex items-center gap-4 px-5 py-4">
+                <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
+                  {c.time || "—"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[15px] font-semibold">{c.title || "Bez naziva"}</p>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {[c.person, c.date || c.notes].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
