@@ -31,7 +31,7 @@ const found: { id: string; who: MemberName; subject: string; type: string; date:
     id: "4",
     who: "Korina",
     subject: "Izlet",
-    type: "izlet",
+    type: "izlet s razredom",
     date: "22. rujna",
     note: "Ponijeti 12 €, bocu vode i kapu",
   },
