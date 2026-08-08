@@ -1,7 +1,9 @@
 import { useSyncExternalStore } from "react";
+import { resolveAssignee } from "./family";
 
 export type ExtractedItem = {
   person: string;
+  assignee: string;
   title: string;
   category: string;
   date: string;
@@ -42,6 +44,7 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
   const conf = Number(raw.confidence);
   return {
     person: String(raw.person ?? ""),
+    assignee: raw.assignee ? String(raw.assignee) : resolveAssignee(String(raw.person ?? "")),
     title: String(raw.title ?? ""),
     category: String(raw.category ?? ""),
     date: String(raw.date ?? ""),
