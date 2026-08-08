@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { memberStyles, type MemberName } from "@/lib/family";
+import { assigneeStyle, memberStyles, type MemberName } from "@/lib/family";
 import { useHubStore } from "@/lib/hub-store";
 
 export const Route = createFileRoute("/")({
@@ -135,9 +135,16 @@ function Danas() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-semibold">{c.title || "Bez naziva"}</p>
                   <p className="truncate text-sm text-muted-foreground">
-                    {[c.person, c.date || c.notes].filter(Boolean).join(" · ")}
+                    {[c.date || c.notes].filter(Boolean).join(" · ")}
                   </p>
                 </div>
+                {c.assignee ? (
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${assigneeStyle(c.assignee).chip}`}
+                  >
+                    {c.assignee}
+                  </span>
+                ) : null}
               </div>
             ))}
           </div>

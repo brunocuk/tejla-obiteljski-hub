@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { memberStyles, type MemberName } from "@/lib/family";
+import { assigneeStyle, memberStyles, type MemberName } from "@/lib/family";
 import { useHubStore } from "@/lib/hub-store";
 
 export const Route = createFileRoute("/kalendar")({
@@ -88,11 +88,11 @@ function KalendarPage() {
                 <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
                   {c.time || "—"}
                 </span>
-                <span className="h-8 w-1 rounded-full bg-primary" />
-                <div className="min-w-0">
+                <span className={`h-8 w-1 rounded-full ${assigneeStyle(c.assignee).dot}`} />
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-semibold">{c.title || "Bez naziva"}</p>
                   <p className="text-xs font-medium text-muted-foreground">
-                    {[c.person, c.date || c.notes].filter(Boolean).join(" · ")}
+                    {[c.assignee, c.date || c.notes].filter(Boolean).join(" · ")}
                   </p>
                 </div>
               </div>
