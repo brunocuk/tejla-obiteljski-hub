@@ -115,7 +115,6 @@ function AnalizaPage() {
                     placeholder="Naziv obveze"
                     className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-[15px] font-semibold outline-none focus:ring-1 focus:ring-primary/40"
                   />
-                  <input
                   <div className="space-y-1">
                     <label className="block text-xs font-semibold text-muted-foreground">
                       Kome pripada?
