@@ -7,7 +7,3 @@ export const memberStyles: Record<MemberName, { dot: string; chip: string; initi
   Lucija: { dot: "bg-member-lucija", chip: "bg-member-lucija/12 text-member-lucija", initials: "LU" },
   Korina: { dot: "bg-member-korina", chip: "bg-member-korina/12 text-member-korina", initials: "KO" },
 };
-
-export function MemberChip({ name }: { name: MemberName }) {
-  return null;
-}
