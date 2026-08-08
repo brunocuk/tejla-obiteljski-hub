@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AlertTriangle, Check, Sparkles } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
+import { assigneeOptions } from "@/lib/family";
 import { addConfirmed, useHubStore, type ExtractedItem } from "@/lib/hub-store";
 
 export const Route = createFileRoute("/analiza")({
@@ -28,11 +29,13 @@ function AnalizaPage() {
   const [items, setItems] = useState<ExtractedItem[]>(analysis);
   const [selected, setSelected] = useState<number[]>(analysis.map((_, i) => i));
   const [added, setAdded] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setItems(analysis);
     setSelected(analysis.map((_, i) => i));
     setAdded(false);
+    setError("");
   }, [analysis]);
 
   const update = (idx: number, field: keyof ExtractedItem, value: string) =>
@@ -113,11 +116,28 @@ function AnalizaPage() {
                     className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-[15px] font-semibold outline-none focus:ring-1 focus:ring-primary/40"
                   />
                   <input
-                    value={it.person}
-                    onChange={(e) => update(idx, "person", e.target.value)}
-                    placeholder="Osoba"
-                    className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
-                  />
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">
+                      Kome pripada?
+                    </label>
+                    <select
+                      value={it.assignee}
+                      onChange={(e) => {
+                        update(idx, "assignee", e.target.value);
+                        setError("");
+                      }}
+                      className={`w-full appearance-none rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/40 ${
+                        it.assignee ? "bg-secondary/60" : "bg-warm text-warm-foreground font-semibold"
+                      }`}
+                    >
+                      <option value="">Odaberi člana obitelji</option>
+                      {assigneeOptions.map((o) => (
+                        <option key={o} value={o}>
+                          {o}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="flex gap-2">
                     <input
                       value={it.date}
@@ -160,10 +180,21 @@ function AnalizaPage() {
       </ul>
 
       <div className="fixed inset-x-0 bottom-[84px] z-10 mx-auto max-w-md px-5">
+        {error ? (
+          <p className="mb-2 rounded-2xl bg-warm px-4 py-2.5 text-center text-sm font-semibold text-warm-foreground">
+            {error}
+          </p>
+        ) : null}
         <button
           type="button"
           onClick={() => {
-            addConfirmed(items.filter((_, i) => selected.includes(i)));
+            const chosen = items.filter((_, i) => selected.includes(i));
+            if (chosen.some((c) => !c.assignee)) {
+              setError("Odaberi kome pripada ova obaveza.");
+              return;
+            }
+            setError("");
+            addConfirmed(chosen);
             setAdded(true);
           }}
           disabled={selected.length === 0}
