@@ -10,33 +10,73 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AnalizaRouteImport } from './routes/analiza'
+import { Route as InboxRouteImport } from './routes/inbox'
+import { Route as KalendarRouteImport } from './routes/kalendar'
+import { Route as ObiteljRouteImport } from './routes/obitelj'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AnalizaRoute = AnalizaRouteImport.update({
+  id: '/analiza',
+  path: '/analiza',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InboxRoute = InboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KalendarRoute = KalendarRouteImport.update({
+  id: '/kalendar',
+  path: '/kalendar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObiteljRoute = ObiteljRouteImport.update({
+  id: '/obitelj',
+  path: '/obitelj',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/analiza': typeof AnalizaRoute
+  '/inbox': typeof InboxRoute
+  '/kalendar': typeof KalendarRoute
+  '/obitelj': typeof ObiteljRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/analiza': typeof AnalizaRoute
+  '/inbox': typeof InboxRoute
+  '/kalendar': typeof KalendarRoute
+  '/obitelj': typeof ObiteljRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/analiza': typeof AnalizaRoute
+  '/inbox': typeof InboxRoute
+  '/kalendar': typeof KalendarRoute
+  '/obitelj': typeof ObiteljRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/analiza' | '/inbox' | '/kalendar' | '/obitelj'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/analiza' | '/inbox' | '/kalendar' | '/obitelj'
+  id: '__root__' | '/' | '/analiza' | '/inbox' | '/kalendar' | '/obitelj'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AnalizaRoute: typeof AnalizaRoute
+  InboxRoute: typeof InboxRoute
+  KalendarRoute: typeof KalendarRoute
+  ObiteljRoute: typeof ObiteljRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,22 +88,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/analiza': {
+      id: '/analiza'
+      path: '/analiza'
+      fullPath: '/analiza'
+      preLoaderRoute: typeof AnalizaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inbox': {
+      id: '/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof InboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kalendar': {
+      id: '/kalendar'
+      path: '/kalendar'
+      fullPath: '/kalendar'
+      preLoaderRoute: typeof KalendarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/obitelj': {
+      id: '/obitelj'
+      path: '/obitelj'
+      fullPath: '/obitelj'
+      preLoaderRoute: typeof ObiteljRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AnalizaRoute: AnalizaRoute,
+  InboxRoute: InboxRoute,
+  KalendarRoute: KalendarRoute,
+  ObiteljRoute: ObiteljRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
