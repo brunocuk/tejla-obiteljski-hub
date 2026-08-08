@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { memberStyles, type MemberName } from "@/lib/family";
+import { useHubStore } from "@/lib/hub-store";
 
 export const Route = createFileRoute("/kalendar")({
   head: () => ({
@@ -59,6 +60,7 @@ const days: { label: string; sub: string; items: { time: string; who: MemberName
 ];
 
 function KalendarPage() {
+  const { confirmed } = useHubStore();
   return (
     <AppShell>
       <PageHeader title="Kalendar" subtitle="Rujan 2025 · cijela obitelj" />
@@ -74,6 +76,30 @@ function KalendarPage() {
           </span>
         ))}
       </div>
+
+      {confirmed.length > 0 ? (
+        <section className="mb-7">
+          <div className="mb-3 flex items-baseline gap-2">
+            <h2 className="text-[15px] font-bold tracking-tight">Dodano iz AI analize</h2>
+          </div>
+          <div className="card-soft divide-y divide-border">
+            {confirmed.map((c) => (
+              <div key={c.id} className="flex items-center gap-4 px-5 py-4">
+                <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
+                  {c.time || "—"}
+                </span>
+                <span className="h-8 w-1 rounded-full bg-primary" />
+                <div className="min-w-0">
+                  <p className="truncate text-[15px] font-semibold">{c.title || "Bez naziva"}</p>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {[c.person, c.date || c.notes].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <div className="space-y-7">
         {days.map((d) => (

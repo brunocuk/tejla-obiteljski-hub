@@ -1,7 +1,17 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Camera, FileText, Image, Keyboard, Plus, ClipboardPaste } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
+import { normalizeItem, setAnalysis, type ExtractedItem } from "@/lib/hub-store";
+
+function readAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("read error"));
+    reader.readAsDataURL(file);
+  });
+}
 
 export const Route = createFileRoute("/inbox")({
   head: () => ({
@@ -33,7 +43,10 @@ const options = [
 function InboxPage() {
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
-  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
+  const [preview, setPreview] = useState<{ url: string; name: string; file: File } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview.url);
@@ -42,8 +55,31 @@ function InboxPage() {
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setPreview({ url: URL.createObjectURL(file), name: file.name });
+    setError(null);
+    setPreview({ url: URL.createObjectURL(file), name: file.name, file });
     e.target.value = "";
+  };
+
+  const analyze = async () => {
+    if (!preview) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const dataUrl = await readAsDataUrl(preview.file);
+      const res = await fetch("/api/analyze-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: dataUrl, mimeType: preview.file.type }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as { items?: Partial<ExtractedItem>[] };
+      setAnalysis((data.items ?? []).map(normalizeItem));
+      await navigate({ to: "/analiza" });
+    } catch {
+      setError("Analiza nije uspjela. Pokušaj ponovno.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openPicker = (label: string) => {
@@ -77,13 +113,18 @@ function InboxPage() {
             <img src={preview.url} alt="Odabrana slika" className="max-h-80 w-full object-contain" />
             <p className="truncate px-4 py-3 text-sm text-muted-foreground">{preview.name}</p>
           </div>
-          <Link
-            to="/analiza"
-            className="mt-4 flex w-full items-center justify-center rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground"
+          <button
+            type="button"
+            onClick={analyze}
+            disabled={loading}
+            className="mt-4 flex w-full items-center justify-center rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground disabled:opacity-60"
             style={{ backgroundImage: "var(--gradient-primary)", boxShadow: "var(--shadow-float)" }}
           >
-            Analiziraj
-          </Link>
+            {loading ? "Analiziram…" : "Analiziraj"}
+          </button>
+          {error ? (
+            <p className="mt-3 text-center text-sm font-medium text-destructive">{error}</p>
+          ) : null}
           <button
             type="button"
             onClick={() => setPreview(null)}
