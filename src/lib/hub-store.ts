@@ -22,7 +22,7 @@ export type ConfirmedItem = ExtractedItem & { id: string };
 
 type State = { analysis: ExtractedItem[]; confirmed: ConfirmedItem[] };
 
-let state: State = { analysis: [], confirmed: [] };
+let state: State & { focusMonth: string } = { analysis: [], confirmed: [], focusMonth: "" };
 const listeners = new Set<() => void>();
 
 const emit = () => listeners.forEach((l) => l());
@@ -66,8 +66,10 @@ export function setAnalysis(items: ExtractedItem[]) {
 }
 
 export function addConfirmed(items: ExtractedItem[]) {
+  const withDate = items.find((i) => /^\d{4}-\d{2}-\d{2}$/.test(i.date.trim()));
   state = {
     ...state,
+    focusMonth: withDate ? withDate.date.trim().slice(0, 7) : state.focusMonth,
     confirmed: [
       ...state.confirmed,
       ...items.map((i, idx) => ({ ...i, id: `${Date.now()}-${idx}` })),
