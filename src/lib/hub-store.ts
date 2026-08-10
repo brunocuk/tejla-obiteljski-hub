@@ -1,5 +1,7 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { resolveAssignee } from "./family";
+
+const EVENTS_STORAGE_KEY = "family-hub-events";
 
 export type ExtractedItem = {
   person: string;
@@ -23,6 +25,7 @@ export type ConfirmedItem = ExtractedItem & { id: string };
 type State = { analysis: ExtractedItem[]; confirmed: ConfirmedItem[] };
 
 let state: State & { focusMonth: string } = { analysis: [], confirmed: [], focusMonth: "" };
+let hydrated = false;
 const listeners = new Set<() => void>();
 
 const emit = () => listeners.forEach((l) => l());
@@ -36,8 +39,48 @@ function subscribe(l: () => void) {
 
 const getSnapshot = () => state;
 
+function readSavedEvents(): ConfirmedItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const saved = window.localStorage.getItem(EVENTS_STORAGE_KEY);
+    if (!saved) return [];
+    const parsed: unknown = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is Partial<ConfirmedItem> & { id: string } =>
+        Boolean(item && typeof item === "object" && "id" in item && typeof item.id === "string"),
+      )
+      .map((item) => ({ ...normalizeItem(item), id: item.id }));
+  } catch {
+    return [];
+  }
+}
+
+function hydrateConfirmed() {
+  if (hydrated || typeof window === "undefined") return;
+  hydrated = true;
+  const confirmed = readSavedEvents();
+  if (confirmed.length > 0) {
+    state = { ...state, confirmed };
+    emit();
+  }
+}
+
+function saveConfirmed(items: ConfirmedItem[]) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(items));
+  } catch {
+    // The in-memory session still works when browser storage is unavailable.
+  }
+}
+
 export function useHubStore() {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  useEffect(() => {
+    hydrateConfirmed();
+  }, []);
+  return snapshot;
 }
 
 export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
@@ -66,14 +109,39 @@ export function setAnalysis(items: ExtractedItem[]) {
 }
 
 export function addConfirmed(items: ExtractedItem[]) {
+  hydrateConfirmed();
   const withDate = items.find((i) => /^\d{4}-\d{2}-\d{2}$/.test(i.date.trim()));
+  const fingerprint = (item: ExtractedItem) =>
+    JSON.stringify([
+      item.title.trim(),
+      item.date.trim(),
+      item.time.trim(),
+      item.assignee.trim(),
+      item.category.trim(),
+      item.notes.trim(),
+      item.deadline.trim(),
+      item.amount.trim(),
+      item.things_to_bring,
+    ]);
+  const existing = new Set(state.confirmed.map(fingerprint));
+  const additions = items
+    .map((item, idx) => ({
+      ...item,
+      person: item.assignee || item.person,
+      id: `${Date.now()}-${idx}`,
+    }))
+    .filter((item) => {
+      const key = fingerprint(item);
+      if (existing.has(key)) return false;
+      existing.add(key);
+      return true;
+    });
+  const confirmed = [...state.confirmed, ...additions];
   state = {
     ...state,
     focusMonth: withDate ? withDate.date.trim().slice(0, 7) : state.focusMonth,
-    confirmed: [
-      ...state.confirmed,
-      ...items.map((i, idx) => ({ ...i, id: `${Date.now()}-${idx}` })),
-    ],
+    confirmed,
   };
+  saveConfirmed(confirmed);
   emit();
 }
