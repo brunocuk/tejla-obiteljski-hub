@@ -25,7 +25,6 @@ export type ConfirmedItem = ExtractedItem & { id: string };
 type State = { analysis: ExtractedItem[]; confirmed: ConfirmedItem[] };
 
 let state: State & { focusMonth: string } = { analysis: [], confirmed: [], focusMonth: "" };
-let hydrated = false;
 const listeners = new Set<() => void>();
 
 const emit = () => listeners.forEach((l) => l());
@@ -57,10 +56,9 @@ function readSavedEvents(): ConfirmedItem[] {
 }
 
 function hydrateConfirmed() {
-  if (hydrated || typeof window === "undefined") return;
-  hydrated = true;
+  if (typeof window === "undefined") return;
   const confirmed = readSavedEvents();
-  if (confirmed.length > 0) {
+  if (JSON.stringify(confirmed) !== JSON.stringify(state.confirmed)) {
     state = { ...state, confirmed };
     emit();
   }
