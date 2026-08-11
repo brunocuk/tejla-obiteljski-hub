@@ -13,7 +13,7 @@ function readAsDataUrl(file: File) {
   });
 }
 
-export const Route = createFileRoute("/inbox")({
+export const Route = createFileRoute("/_authenticated/inbox")({
   head: () => ({
     meta: [
       { title: "Inbox — Family Hub" },
