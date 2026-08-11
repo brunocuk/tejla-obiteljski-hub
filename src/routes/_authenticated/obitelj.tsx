@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { Check, UserPlus } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Check, LogOut, UserPlus } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
+import { supabase } from "@/integrations/supabase/client";
 import { memberStyles, type MemberName } from "@/lib/family";
 
 export const Route = createFileRoute("/_authenticated/obitelj")({
@@ -50,6 +51,13 @@ function Row({ name, role }: { name: MemberName; role: string }) {
 }
 
 function ObiteljPage() {
+  const navigate = useNavigate();
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
+
   return (
     <AppShell>
       <PageHeader title="Obitelj" subtitle="Obitelj Horvat · zajednički prostor" />
@@ -87,6 +95,15 @@ function ObiteljPage() {
       >
         <UserPlus className="size-5" strokeWidth={2} />
         Pozovi roditelja
+      </button>
+
+      <button
+        type="button"
+        onClick={handleSignOut}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-3xl border border-border px-6 py-3 text-sm font-semibold text-muted-foreground"
+      >
+        <LogOut className="size-4" strokeWidth={2} />
+        Odjavi se
       </button>
     </AppShell>
   );

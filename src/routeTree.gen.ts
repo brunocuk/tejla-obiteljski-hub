@@ -9,6 +9,8 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAnalizaRouteImport } from './routes/_authenticated/analiza'
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated/inbox'
@@ -16,30 +18,39 @@ import { Route as AuthenticatedKalendarRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedObiteljRouteImport } from './routes/_authenticated/obitelj'
 import { Route as ApiAnalyzeImageRouteImport } from './routes/api/analyze-image'
 
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
-  id: '/_authenticated/',
-  path: '/',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAnalizaRoute = AuthenticatedAnalizaRouteImport.update({
-  id: '/_authenticated/analiza',
+  id: '/analiza',
   path: '/analiza',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedInboxRoute = AuthenticatedInboxRouteImport.update({
-  id: '/_authenticated/inbox',
+  id: '/inbox',
   path: '/inbox',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedKalendarRoute = AuthenticatedKalendarRouteImport.update({
-  id: '/_authenticated/kalendar',
+  id: '/kalendar',
   path: '/kalendar',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedObiteljRoute = AuthenticatedObiteljRouteImport.update({
-  id: '/_authenticated/obitelj',
+  id: '/obitelj',
   path: '/obitelj',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const ApiAnalyzeImageRoute = ApiAnalyzeImageRouteImport.update({
   id: '/api/analyze-image',
@@ -48,14 +59,16 @@ const ApiAnalyzeImageRoute = ApiAnalyzeImageRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthRoute
   '/analiza': typeof AuthenticatedAnalizaRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/kalendar': typeof AuthenticatedKalendarRoute
   '/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
-  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesByTo {
+  '/auth': typeof AuthRoute
   '/analiza': typeof AuthenticatedAnalizaRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/kalendar': typeof AuthenticatedKalendarRoute
@@ -65,6 +78,8 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/_authenticated/analiza': typeof AuthenticatedAnalizaRoute
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/kalendar': typeof AuthenticatedKalendarRoute
@@ -75,14 +90,16 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
+    | '/auth'
     | '/analiza'
     | '/inbox'
     | '/kalendar'
     | '/obitelj'
     | '/api/analyze-image'
-    | '/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/auth'
     | '/analiza'
     | '/inbox'
     | '/kalendar'
@@ -91,6 +108,8 @@ export interface FileRouteTypes {
     | '/'
   id:
     | '__root__'
+    | '/_authenticated'
+    | '/auth'
     | '/_authenticated/analiza'
     | '/_authenticated/inbox'
     | '/_authenticated/kalendar'
@@ -100,50 +119,61 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  AuthenticatedAnalizaRoute: typeof AuthenticatedAnalizaRoute
-  AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
-  AuthenticatedKalendarRoute: typeof AuthenticatedKalendarRoute
-  AuthenticatedObiteljRoute: typeof AuthenticatedObiteljRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
   ApiAnalyzeImageRoute: typeof ApiAnalyzeImageRoute
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/': {
       id: '/_authenticated/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/analiza': {
       id: '/_authenticated/analiza'
       path: '/analiza'
       fullPath: '/analiza'
       preLoaderRoute: typeof AuthenticatedAnalizaRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/inbox': {
       id: '/_authenticated/inbox'
       path: '/inbox'
       fullPath: '/inbox'
       preLoaderRoute: typeof AuthenticatedInboxRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/kalendar': {
       id: '/_authenticated/kalendar'
       path: '/kalendar'
       fullPath: '/kalendar'
       preLoaderRoute: typeof AuthenticatedKalendarRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/obitelj': {
       id: '/_authenticated/obitelj'
       path: '/obitelj'
       fullPath: '/obitelj'
       preLoaderRoute: typeof AuthenticatedObiteljRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/analyze-image': {
       id: '/api/analyze-image'
@@ -155,13 +185,29 @@ declare module '@tanstack/react-router' {
   }
 }
 
-const rootRouteChildren: RootRouteChildren = {
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAnalizaRoute: typeof AuthenticatedAnalizaRoute
+  AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
+  AuthenticatedKalendarRoute: typeof AuthenticatedKalendarRoute
+  AuthenticatedObiteljRoute: typeof AuthenticatedObiteljRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalizaRoute: AuthenticatedAnalizaRoute,
   AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedKalendarRoute: AuthenticatedKalendarRoute,
   AuthenticatedObiteljRoute: AuthenticatedObiteljRoute,
-  ApiAnalyzeImageRoute: ApiAnalyzeImageRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+const rootRouteChildren: RootRouteChildren = {
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
+  ApiAnalyzeImageRoute: ApiAnalyzeImageRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
