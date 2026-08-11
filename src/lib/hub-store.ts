@@ -18,6 +18,8 @@ export type ExtractedItem = {
   subject: string;
   notes: string;
   confidence: number;
+  dayMonth: string;
+  needsYear: boolean;
 };
 
 export type ConfirmedItem = ExtractedItem & { id: string };
@@ -83,12 +85,17 @@ export function useHubStore() {
 
 export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
   const conf = Number(raw.confidence);
+  const rawDate = String(raw.date ?? "").trim();
+  const rawNotes = String(raw.notes ?? "");
+  const parsed = parseDate(rawDate, rawNotes, String(raw.title ?? ""), String(raw.deadline ?? ""));
   return {
     person: String(raw.person ?? ""),
     assignee: raw.assignee ? String(raw.assignee) : resolveAssignee(String(raw.person ?? "")),
     title: String(raw.title ?? ""),
     category: String(raw.category ?? ""),
-    date: String(raw.date ?? ""),
+    date: parsed.date,
+    dayMonth: parsed.dayMonth,
+    needsYear: parsed.needsYear,
     time: String(raw.time ?? ""),
     location: String(raw.location ?? ""),
     deadline: String(raw.deadline ?? ""),
@@ -96,9 +103,67 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
     things_to_bring: Array.isArray(raw.things_to_bring) ? raw.things_to_bring.map(String) : [],
     action_required: String(raw.action_required ?? ""),
     subject: String(raw.subject ?? ""),
-    notes: String(raw.notes ?? ""),
+    notes: parsed.notes,
     confidence: Number.isFinite(conf) ? Math.min(1, Math.max(0, conf)) : 0,
   };
+}
+
+const MONTHS: Record<string, number> = {
+  sijecanj: 1, sijecnja: 1, veljaca: 2, veljace: 2, ozujak: 3, ozujka: 3, travanj: 4, travnja: 4,
+  svibanj: 5, svibnja: 5, lipanj: 6, lipnja: 6, srpanj: 7, srpnja: 7, kolovoz: 8, kolovoza: 8,
+  rujan: 9, rujna: 9, listopad: 10, listopada: 10, studeni: 11, studenog: 11, prosinac: 12, prosinca: 12,
+};
+
+const pad = (n: number) => String(n).padStart(2, "0");
+const deaccent = (s: string) =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
+
+function parseDate(rawDate: string, rawNotes: string, title: string, deadline: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
+    return { date: rawDate, dayMonth: rawDate.slice(5), needsYear: false, notes: rawNotes };
+  }
+
+  const sources: { text: string; isNotes: boolean }[] = [
+    { text: rawDate, isNotes: false },
+    { text: rawNotes, isNotes: true },
+    { text: title, isNotes: false },
+    { text: deadline, isNotes: false },
+  ];
+
+  for (const src of sources) {
+    if (!src.text) continue;
+    let day = 0;
+    let month = 0;
+    let year = 0;
+    let matched = "";
+
+    const numeric = src.text.match(/(\d{1,2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{4})?/);
+    if (numeric) {
+      matched = numeric[0];
+      day = Number(numeric[1]);
+      month = Number(numeric[2]);
+      year = numeric[3] ? Number(numeric[3]) : 0;
+    } else {
+      const named = deaccent(src.text).match(/(\d{1,2})\s*\.?\s*([a-z]+)\s*(\d{4})?/);
+      const monthName = named?.[2] ?? "";
+      if (named && MONTHS[monthName]) {
+        matched = named[0];
+        day = Number(named[1]);
+        month = MONTHS[monthName]!;
+        year = named[3] ? Number(named[3]) : 0;
+      }
+    }
+
+    if (!day || !month || day > 31 || month > 12) continue;
+
+    const dayMonth = `${pad(month)}-${pad(day)}`;
+    const notes = src.isNotes ? rawNotes.replace(matched, "").replace(/^[\s.,;:–-]+/, "").trim() : rawNotes;
+    return year
+      ? { date: `${year}-${dayMonth}`, dayMonth, needsYear: false, notes }
+      : { date: "", dayMonth, needsYear: true, notes };
+  }
+
+  return { date: "", dayMonth: "", needsYear: false, notes: rawNotes };
 }
 
 export function setAnalysis(items: ExtractedItem[]) {

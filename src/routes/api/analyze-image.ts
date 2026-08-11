@@ -6,7 +6,9 @@ Return STRICT JSON only, matching exactly:
 Rules:
 - Never invent information that is not visible in the image.
 - Unknown field => empty string, or empty array for things_to_bring.
-- Dates in YYYY-MM-DD when the year is known. If the year is not visible, keep the visible date text in notes and leave date empty. Do not guess the year.
+- Dates in YYYY-MM-DD when the year is visible. If the day and month are visible but the year is NOT, put the visible date into the "date" field exactly as written (for example "8.6." or "8. lipnja") and do NOT guess the year.
+- A month heading in the image (for example "Lipanj") confirms the month for the items listed under it.
+- Never leave a recognizable event date only inside notes; notes are for additional descriptive information only.
 - category must be one of: ispit, termin, trening, izlet, uplata, zadatak, rodendan, ostalo.
 - confidence is a number between 0 and 1.
 - Never make medical or legal interpretations; only extract scheduling and task information.

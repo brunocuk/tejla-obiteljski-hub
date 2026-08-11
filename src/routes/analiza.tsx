@@ -41,6 +41,20 @@ function AnalizaPage() {
   const update = (idx: number, field: keyof ExtractedItem, value: string) =>
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
 
+  const [years, setYears] = useState<Record<number, string>>({});
+  const currentYear = String(new Date().getFullYear());
+
+  const confirmYear = (idx: number) => {
+    const year = (years[idx] ?? currentYear).trim();
+    if (!/^\d{4}$/.test(year)) return;
+    setItems((prev) =>
+      prev.map((it, i) =>
+        i === idx ? { ...it, date: `${year}-${it.dayMonth}`, needsYear: false } : it,
+      ),
+    );
+    setError("");
+  };
+
   const toggle = (idx: number) =>
     setSelected((s) => (s.includes(idx) ? s.filter((x) => x !== idx) : [...s, idx]));
 
@@ -151,6 +165,31 @@ function AnalizaPage() {
                       className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
                     />
                   </div>
+                  {it.needsYear && it.dayMonth ? (
+                    <div className="space-y-1 rounded-xl bg-warm px-3 py-2.5">
+                      <p className="text-[11px] font-semibold text-warm-foreground">
+                        Potvrdi godinu · prepoznat datum {Number(it.dayMonth.slice(3))}.
+                        {Number(it.dayMonth.slice(0, 2))}.
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          inputMode="numeric"
+                          aria-label="Godina"
+                          value={years[idx] ?? currentYear}
+                          onChange={(e) => setYears((y) => ({ ...y, [idx]: e.target.value }))}
+                          placeholder="Godina"
+                          className="w-24 rounded-lg bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => confirmYear(idx)}
+                          className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground"
+                        >
+                          Potvrdi godinu
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
                   <textarea
                     value={it.notes}
                     onChange={(e) => update(idx, "notes", e.target.value)}
@@ -190,6 +229,10 @@ function AnalizaPage() {
             const chosen = items.filter((_, i) => selected.includes(i));
             if (chosen.some((c) => !c.assignee)) {
               setError("Odaberi kome pripada ova obaveza.");
+              return;
+            }
+            if (chosen.some((c) => c.needsYear)) {
+              setError("Potvrdi godinu za odabrane obveze.");
               return;
             }
             setError("");
