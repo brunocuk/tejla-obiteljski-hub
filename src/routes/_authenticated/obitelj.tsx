@@ -3,7 +3,7 @@ import { Check, UserPlus } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { memberStyles, type MemberName } from "@/lib/family";
 
-export const Route = createFileRoute("/obitelj")({
+export const Route = createFileRoute("/_authenticated/obitelj")({
   head: () => ({
     meta: [
       { title: "Obitelj — Family Hub" },

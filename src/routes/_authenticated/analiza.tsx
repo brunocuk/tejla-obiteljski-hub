@@ -5,7 +5,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { assigneeOptions } from "@/lib/family";
 import { addConfirmed, useHubStore, type ExtractedItem } from "@/lib/hub-store";
 
-export const Route = createFileRoute("/analiza")({
+export const Route = createFileRoute("/_authenticated/analiza")({
   head: () => ({
     meta: [
       { title: "AI analiza — Family Hub" },

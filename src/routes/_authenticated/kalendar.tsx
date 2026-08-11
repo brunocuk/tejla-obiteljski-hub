@@ -5,7 +5,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { assigneeStyle, memberStyles, WHOLE_FAMILY, type MemberName } from "@/lib/family";
 import { useHubStore } from "@/lib/hub-store";
 
-export const Route = createFileRoute("/kalendar")({
+export const Route = createFileRoute("/_authenticated/kalendar")({
   head: () => ({
     meta: [
       { title: "Kalendar — Family Hub" },
