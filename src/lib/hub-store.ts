@@ -145,10 +145,11 @@ function parseDate(rawDate: string, rawNotes: string, title: string, deadline: s
       year = numeric[3] ? Number(numeric[3]) : 0;
     } else {
       const named = deaccent(src.text).match(/(\d{1,2})\s*\.?\s*([a-z]+)\s*(\d{4})?/);
-      if (named && MONTHS[named[2]]) {
+      const monthName = named?.[2] ?? "";
+      if (named && MONTHS[monthName]) {
         matched = named[0];
         day = Number(named[1]);
-        month = MONTHS[named[2]];
+        month = MONTHS[monthName]!;
         year = named[3] ? Number(named[3]) : 0;
       }
     }
