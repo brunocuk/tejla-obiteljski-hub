@@ -24,10 +24,26 @@ type ReminderRow = {
 
 const HH = (t: string | null) => (t ? t.slice(0, 5) : "");
 
+const TZ = "Europe/Zagreb";
+
+/** Converts a Zagreb-local date/time into a real UTC instant. */
+function zagrebToUtc(dateStr: string, timeStr: string | null): Date {
+  const naive = new Date(`${dateStr}T${timeStr ? timeStr.slice(0, 8) : "09:00:00"}Z`);
+  // Offset of that instant in Zagreb, derived by reformatting it in the zone.
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(naive);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  const asZagreb = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour") % 24, get("minute"), get("second"));
+  return new Date(naive.getTime() - (asZagreb - naive.getTime()));
+}
+
 function whenLabel(eventDate: string | null, eventTime: string | null, remindAt: string) {
   if (!eventDate) return "";
   const now = new Date(remindAt);
-  const target = new Date(`${eventDate}T${eventTime ? eventTime.slice(0, 8) : "09:00:00"}Z`);
+  const target = zagrebToUtc(eventDate, eventTime);
   const diffMs = target.getTime() - now.getTime();
   const hours = Math.round(diffMs / 3_600_000);
   if (hours <= 0) return "Sada";
