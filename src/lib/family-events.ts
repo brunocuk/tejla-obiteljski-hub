@@ -100,6 +100,46 @@ export function useFamilyEvents(familyId: string | null | undefined) {
 
 type MemberRow = { id: string; name: string };
 
+/** Saves one manually entered event plus its member links. */
+export async function saveManualEvent(
+  familyId: string,
+  input: {
+    title: string;
+    date: string;
+    time: string;
+    location: string;
+    notes: string;
+  },
+  memberIds: string[],
+) {
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) throw new Error("Nisi prijavljen.");
+
+  const { data: inserted, error } = await supabase
+    .from("family_events")
+    .insert({
+      family_id: familyId,
+      title: input.title.trim(),
+      date: toDbDate(input.date),
+      time: input.time.trim() ? toDbTime(input.time) : null,
+      location: emptyToNull(input.location),
+      notes: emptyToNull(input.notes),
+      things_to_bring: [],
+      created_by: uid,
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+
+  if (memberIds.length > 0) {
+    const { error: linkError } = await supabase
+      .from("event_members")
+      .insert(memberIds.map((id) => ({ event_id: inserted.id, family_member_id: id })));
+    if (linkError) throw linkError;
+  }
+}
+
 /** Saves confirmed AI items as family events plus their member links. */
 export async function saveFamilyEvents(
   familyId: string,
