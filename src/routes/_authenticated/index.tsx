@@ -3,7 +3,8 @@ import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { assigneeStyle, memberStyles, type MemberName } from "@/lib/family";
-import { useFamilyEvents } from "@/lib/family-events";
+import { useFamilyEvents, type FamilyEvent } from "@/lib/family-events";
+import { EventDetailSheet } from "@/components/EventDetailSheet";
 import { useMyFamilyId } from "@/lib/family-workspace";
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -42,6 +43,7 @@ const isoDay = (d: Date) =>
 
 function Danas() {
   const [done, setDone] = useState<string[]>([]);
+  const [openId, setOpenId] = useState<string | null>(null);
   const { data: familyId } = useMyFamilyId();
   const { data: events, isPending } = useFamilyEvents(familyId);
 
@@ -79,7 +81,12 @@ function Danas() {
             </p>
           ) : (
             todayEvents.map((e) => (
-              <div key={e.id} className="flex items-center gap-4 px-5 py-4">
+              <button
+                key={e.id}
+                type="button"
+                onClick={() => setOpenId(e.id)}
+                className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
+              >
                 <span className="w-12 text-sm font-semibold tabular-nums text-foreground">
                   {e.time || "—"}
                 </span>
@@ -90,7 +97,7 @@ function Danas() {
                   </p>
                   <p className="truncate text-sm text-muted-foreground">{e.title}</p>
                 </div>
-              </div>
+              </button>
             ))
           )}
         </div>
@@ -151,7 +158,12 @@ function Danas() {
           </h2>
           <div className="card-soft divide-y divide-border">
             {undated.map((c) => (
-              <div key={c.id} className="flex items-center gap-4 px-5 py-4">
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setOpenId(c.id)}
+                className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
+              >
                 <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
                   {c.time || "—"}
                 </span>
@@ -168,7 +180,7 @@ function Danas() {
                     {c.members.join(", ")}
                   </span>
                 ) : null}
-              </div>
+              </button>
             ))}
           </div>
         </section>
