@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { Bell, X } from "lucide-react";
 import {
   deleteFamilyEvent,
   updateFamilyEvent,
@@ -10,6 +10,7 @@ import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-works
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
   EVENT_CATEGORIES,
+  RECIPIENT_LABELS,
   defaultRecipient,
   formatReminder,
   replaceReminders,
@@ -111,6 +112,7 @@ export function EventDetailSheet({
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ["family-events", familyId] }),
       queryClient.invalidateQueries({ queryKey: ["event-reminders", event.id] }),
+      queryClient.invalidateQueries({ queryKey: ["family-reminders", familyId] }),
     ]);
 
   const save = async () => {
@@ -121,8 +123,11 @@ export function EventDetailSheet({
       if (userId) await replaceReminders(event.id, reminders, userId);
       await refresh();
       setEditing(false);
-    } catch {
-      setError("Promjene nije bilo moguće spremiti. Pokušaj ponovno.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      setError(
+        `Promjene nije bilo moguće spremiti${msg ? ` (${msg})` : ""}. Pokušaj ponovno.`,
+      );
     } finally {
       setBusy(false);
     }
@@ -278,10 +283,24 @@ export function EventDetailSheet({
             <Row label="Rok" value={event.deadline} />
             <Row label="Iznos" value={event.amount} />
             <Row label="Što ponijeti" value={event.things_to_bring.join(", ")} />
-            <Row
-              label="Podsjetnici"
-              value={pending.map((r) => formatReminder(r.remind_at)).join(" · ")}
-            />
+            {pending.length > 0 ? (
+              <div className="flex gap-3 py-2">
+                <span className="w-28 shrink-0 text-sm text-muted-foreground">Podsjetnici</span>
+                <ul className="min-w-0 flex-1 space-y-1">
+                  {pending.map((r) => (
+                    <li key={r.id} className="flex items-center gap-2 text-[15px] font-medium">
+                      <Bell className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={2} />
+                      <span className="min-w-0 flex-1">{formatReminder(r.remind_at)}</span>
+                      <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">
+                        {RECIPIENT_LABELS[r.recipient_mode]}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <Row label="Podsjetnici" value="Nema spremljenih podsjetnika" />
+            )}
           </div>
         )}
 
