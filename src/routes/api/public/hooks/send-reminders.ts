@@ -105,6 +105,8 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
         for (const reminder of reminders) {
           if (!reminder.family_events) continue;
           const message = buildMessage(reminder);
+          let rSent = 0;
+          let rAttempted = 0;
 
           let userIds: string[] = [reminder.created_by];
           if (reminder.recipient_mode === "all_parents") {
@@ -123,6 +125,7 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
 
             for (const sub of subs ?? []) {
               attempted += 1;
+              rAttempted += 1;
               try {
                 const payload = await buildPushPayload(
                   { data: JSON.stringify({ ...message, tag: reminder.id }), options: { ttl: 3600 } },
@@ -140,6 +143,7 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
                   console.warn(`[send-reminders] removed expired subscription ${sub.id}`);
                 } else if (res.ok) {
                   sent += 1;
+                  rSent += 1;
                 } else {
                   failed += 1;
                   console.error(`[send-reminders] push rejected ${res.status} for sub ${sub.id}`);
@@ -153,7 +157,7 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
 
           // Only mark as sent when at least one push went out, or when there was
           // nothing to deliver to (no subscriptions) - otherwise retry next run.
-          if (sent > 0 || attempted === 0) {
+          if (rSent > 0 || rAttempted === 0) {
             await supabaseAdmin
               .from("event_reminders")
               .update({ sent_at: new Date().toISOString() })
