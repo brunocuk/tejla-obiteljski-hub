@@ -4,8 +4,17 @@ import { Camera, FileText, Image, Keyboard, Plus, ClipboardPaste } from "lucide-
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { normalizeItem, setAnalysis, type ExtractedItem } from "@/lib/hub-store";
 import { useQueryClient } from "@tanstack/react-query";
-import { useFamilyMembers, useMyFamilyId } from "@/lib/family-workspace";
+import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
 import { saveManualEvent } from "@/lib/family-events";
+import { ReminderEditor } from "@/components/ReminderEditor";
+import {
+  EVENT_CATEGORIES,
+  defaultRecipient,
+  insertReminders,
+  suggestReminders,
+  type RecipientMode,
+  type ReminderDraft,
+} from "@/lib/reminders";
 
 const fieldClass =
   "mt-1 w-full rounded-2xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary";
@@ -14,12 +23,42 @@ function ManualEventForm({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
   const { data: familyId } = useMyFamilyId();
   const { data: members = [] } = useFamilyMembers(familyId);
-  const [form, setForm] = useState({ title: "", date: "", time: "", location: "", notes: "" });
+  const { data: userId } = useMyUserId();
+  const [form, setForm] = useState({
+    title: "",
+    date: "",
+    time: "",
+    location: "",
+    notes: "",
+    category: "",
+  });
   const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reminders, setReminders] = useState<ReminderDraft[]>([]);
+  const [recipient, setRecipient] = useState<RecipientMode>("all_parents");
+  const [touched, setTouched] = useState(false);
 
-  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const onlyMe =
+    selected.length === 1 &&
+    members.some((m) => m.id === selected[0] && m.linked_user_id === userId);
+
+  // Suggested reminders follow the category/date/time until the user edits them.
+  useEffect(() => {
+    if (touched) return;
+    const mode = defaultRecipient(form.category, onlyMe);
+    setRecipient(mode);
+    setReminders(
+      suggestReminders(
+        { category: form.category, date: form.date, time: form.time, things_to_bring: [] },
+        mode,
+      ),
+    );
+  }, [form.category, form.date, form.time, onlyMe, touched]);
+
+  const set =
+    (key: keyof typeof form) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
   const toggle = (id: string) =>
@@ -42,7 +81,8 @@ function ManualEventForm({ onClose }: { onClose: () => void }) {
     }
     setSaving(true);
     try {
-      await saveManualEvent(familyId, form, selected);
+      const eventId = await saveManualEvent(familyId, form, selected);
+      if (userId) await insertReminders(eventId, reminders, userId);
       await queryClient.invalidateQueries({ queryKey: ["family-events", familyId] });
       onClose();
     } catch {
@@ -73,6 +113,17 @@ function ManualEventForm({ onClose }: { onClose: () => void }) {
         <input value={form.location} onChange={set("location")} className={fieldClass} />
       </label>
       <label className="block text-sm font-semibold">
+        Kategorija <span className="font-normal text-muted-foreground">(neobavezno)</span>
+        <select value={form.category} onChange={set("category")} className={fieldClass}>
+          <option value="">Bez kategorije</option>
+          {EVENT_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block text-sm font-semibold">
         Napomena
         <textarea value={form.notes} onChange={set("notes")} rows={3} className={fieldClass} />
       </label>
@@ -101,6 +152,20 @@ function ManualEventForm({ onClose }: { onClose: () => void }) {
       </div>
 
       {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
+
+      <ReminderEditor
+        input={{ category: form.category, date: form.date, time: form.time }}
+        reminders={reminders}
+        onChange={(next) => {
+          setTouched(true);
+          setReminders(next);
+        }}
+        recipient={recipient}
+        onRecipientChange={(mode) => {
+          setTouched(true);
+          setRecipient(mode);
+        }}
+      />
 
       <button
         type="submit"

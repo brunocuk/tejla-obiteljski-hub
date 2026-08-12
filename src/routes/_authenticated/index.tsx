@@ -6,6 +6,7 @@ import { assigneeStyle, memberStyles, type MemberName } from "@/lib/family";
 import { useFamilyEvents, type FamilyEvent } from "@/lib/family-events";
 import { EventDetailSheet } from "@/components/EventDetailSheet";
 import { useMyFamilyId } from "@/lib/family-workspace";
+import { NotificationOptIn } from "@/components/NotificationOptIn";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -60,6 +61,28 @@ function Danas() {
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
   const undated = all.filter((e) => !e.date);
 
+  const dayDiff = (iso: string) =>
+    Math.round(
+      (new Date(`${iso}T00:00:00`).getTime() -
+        new Date(`${today}T00:00:00`).getTime()) /
+        86_400_000,
+    );
+  const soon = all
+    .filter((e) => {
+      const d = e.deadline || e.date;
+      if (!d || d <= today) return false;
+      const diff = dayDiff(d);
+      return diff >= 1 && diff <= 3;
+    })
+    .sort((a, b) => (a.deadline || a.date).localeCompare(b.deadline || b.date))
+    .slice(0, 4);
+
+  const soonLabel = (e: FamilyEvent) => {
+    const diff = dayDiff(e.deadline || e.date);
+    if (e.deadline && (!e.date || e.deadline <= e.date)) return diff === 1 ? "Rok sutra" : `Rok za ${diff} dana`;
+    return diff === 1 ? "Sutra" : `Za ${diff} dana`;
+  };
+
   return (
     <AppShell>
       <header className="mb-7">
@@ -68,6 +91,8 @@ function Danas() {
         </p>
         <h1 className="mt-1 text-[30px] font-bold leading-tight tracking-tight">Dobro jutro</h1>
       </header>
+
+      <NotificationOptIn />
 
       <section className="mb-8">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -103,6 +128,36 @@ function Danas() {
           )}
         </div>
       </section>
+
+      {soon.length > 0 ? (
+        <section className="mb-8">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Uskoro
+          </h2>
+          <div className="card-soft divide-y divide-border">
+            {soon.map((e) => (
+              <button
+                key={`soon-${e.id}`}
+                type="button"
+                onClick={() => setOpenId(e.id)}
+                className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
+              >
+                <span className="w-24 shrink-0 text-xs font-semibold text-muted-foreground">
+                  {soonLabel(e)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[15px] font-semibold">
+                    {[e.members.join(", "), e.title].filter(Boolean).join(" · ")}
+                  </p>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {[e.category, e.time, e.amount].filter(Boolean).join(" · ")}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="mb-8">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">

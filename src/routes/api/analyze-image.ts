@@ -9,7 +9,7 @@ Rules:
 - Dates in YYYY-MM-DD when the year is visible. If the day and month are visible but the year is NOT, put the visible date into the "date" field exactly as written (for example "8.6." or "8. lipnja") and do NOT guess the year.
 - A month heading in the image (for example "Lipanj") confirms the month for the items listed under it.
 - Never leave a recognizable event date only inside notes; notes are for additional descriptive information only.
-- category must be one of: ispit, termin, trening, izlet, uplata, zadatak, rodendan, ostalo.
+- category must be exactly one of: Škola, Ispit, Pregled, Zubar, Frizer, Kozmetičar, Trening, Izlet, Putovanje, Rođendan, Uplata, Rok, Servis, Osobno, Obitelj, Ostalo. Pick the closest match; use "Ostalo" when unclear.
 - confidence is a number between 0 and 1.
 - Never make medical or legal interpretations; only extract scheduling and task information.
 - Text values must be in Croatian, as written in the image.

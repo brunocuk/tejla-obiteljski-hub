@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { resolveAssignee } from "./family";
+import { normalizeCategory } from "./reminders";
 
 const EVENTS_STORAGE_KEY = "family-hub-events";
 
@@ -92,7 +93,7 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
     person: String(raw.person ?? ""),
     assignee: raw.assignee ? String(raw.assignee) : resolveAssignee(String(raw.person ?? "")),
     title: String(raw.title ?? ""),
-    category: String(raw.category ?? ""),
+    category: normalizeCategory(String(raw.category ?? "")) || String(raw.category ?? ""),
     date: parsed.date,
     dayMonth: parsed.dayMonth,
     needsYear: parsed.needsYear,

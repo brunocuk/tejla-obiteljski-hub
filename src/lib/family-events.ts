@@ -106,13 +106,21 @@ type MemberRow = { id: string; name: string };
 /** Saves one manually entered event plus its member links. */
 export async function updateFamilyEvent(
   eventId: string,
-  input: { title: string; date: string; time: string; location: string; notes: string },
+  input: {
+    title: string;
+    date: string;
+    time: string;
+    location: string;
+    notes: string;
+    category?: string;
+  },
   memberIds: string[],
 ) {
   const { error } = await supabase
     .from("family_events")
     .update({
       title: input.title.trim() || "Bez naziva",
+      category: emptyToNull(input.category ?? ""),
       date: toDbDate(input.date),
       time: input.time.trim() ? toDbTime(input.time) : null,
       location: emptyToNull(input.location),
@@ -149,6 +157,7 @@ export async function saveManualEvent(
     time: string;
     location: string;
     notes: string;
+    category?: string;
   },
   memberIds: string[],
 ) {
@@ -161,6 +170,7 @@ export async function saveManualEvent(
     .insert({
       family_id: familyId,
       title: input.title.trim(),
+      category: emptyToNull(input.category ?? ""),
       date: toDbDate(input.date),
       time: input.time.trim() ? toDbTime(input.time) : null,
       location: emptyToNull(input.location),
@@ -178,6 +188,8 @@ export async function saveManualEvent(
       .insert(memberIds.map((id) => ({ event_id: inserted.id, family_member_id: id })));
     if (linkError) throw linkError;
   }
+
+  return inserted.id as string;
 }
 
 /** Saves confirmed AI items as family events plus their member links. */
@@ -189,6 +201,8 @@ export async function saveFamilyEvents(
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
   if (!uid) throw new Error("Nisi prijavljen.");
+
+  const createdIds: string[] = [];
 
   for (const item of items) {
     const { data: inserted, error } = await supabase
@@ -221,5 +235,8 @@ export async function saveFamilyEvents(
         .insert(targets.map((m) => ({ event_id: inserted.id, family_member_id: m.id })));
       if (linkError) throw linkError;
     }
+    createdIds.push(inserted.id as string);
   }
+
+  return createdIds;
 }

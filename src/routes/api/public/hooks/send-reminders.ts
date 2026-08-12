@@ -1,0 +1,154 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { buildPushPayload } from "@block65/webcrypto-web-push";
+
+type EventRow = {
+  id: string;
+  family_id: string;
+  title: string;
+  category: string | null;
+  date: string | null;
+  time: string | null;
+  things_to_bring: unknown;
+  amount: string | null;
+  deadline: string | null;
+  event_members: { family_members: { name: string } | null }[] | null;
+};
+
+type ReminderRow = {
+  id: string;
+  remind_at: string;
+  recipient_mode: string;
+  created_by: string;
+  family_events: EventRow | null;
+};
+
+const HH = (t: string | null) => (t ? t.slice(0, 5) : "");
+
+function whenLabel(eventDate: string | null, eventTime: string | null, remindAt: string) {
+  if (!eventDate) return "";
+  const now = new Date(remindAt);
+  const target = new Date(`${eventDate}T${eventTime ? eventTime.slice(0, 8) : "09:00:00"}Z`);
+  const diffMs = target.getTime() - now.getTime();
+  const hours = Math.round(diffMs / 3_600_000);
+  if (hours <= 0) return "Sada";
+  if (hours < 24) return hours <= 1 ? "Za 1 sat" : `Za ${hours} sata/sati`.replace("sata/sati", hours < 5 ? "sata" : "sati");
+  const days = Math.round(hours / 24);
+  if (days === 1) return "Sutra";
+  return `Za ${days} dana`;
+}
+
+function buildMessage(reminder: ReminderRow) {
+  const e = reminder.family_events!;
+  const names = (e.event_members ?? [])
+    .map((m) => m.family_members?.name?.trim())
+    .filter(Boolean)
+    .join(", ");
+  const when = whenLabel(e.date, e.time, reminder.remind_at);
+  const time = HH(e.time);
+  const bring = Array.isArray(e.things_to_bring) ? e.things_to_bring.map(String).filter(Boolean) : [];
+
+  const head = [when, names, e.title.trim()].filter(Boolean).join(" · ");
+  const parts = [head];
+  if (time) parts.push(`u ${time}`);
+  if (e.amount) parts.push(String(e.amount));
+  let body = parts.filter(Boolean).join(" ");
+  if (bring.length > 0) body += `. Ponijeti: ${bring.join(", ")}`;
+
+  return { title: "Family Hub podsjetnik", body: body.slice(0, 160), url: "/" };
+}
+
+export const Route = createFileRoute("/api/public/hooks/send-reminders")({
+  server: {
+    handlers: {
+      POST: async ({ request }) => {
+        const apiKey = request.headers.get("apikey");
+        const expected =
+          process.env["SUPABASE_ANON_KEY"] ?? process.env["SUPABASE_PUBLISHABLE_KEY"] ?? "";
+        if (!expected || apiKey !== expected) {
+          return new Response("Unauthorized", { status: 401 });
+        }
+
+        const vapid = {
+          subject: process.env["VAPID_SUBJECT"] ?? "mailto:noreply@example.com",
+          publicKey: process.env["VAPID_PUBLIC_KEY"] ?? "",
+          privateKey: process.env["VAPID_PRIVATE_KEY"] ?? "",
+        };
+        if (!vapid.publicKey || !vapid.privateKey) {
+          return Response.json({ error: "Missing VAPID keys" }, { status: 500 });
+        }
+
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const nowIso = new Date().toISOString();
+        const windowStart = new Date(Date.now() - 6 * 3_600_000).toISOString();
+
+        const { data, error } = await supabaseAdmin
+          .from("event_reminders")
+          .select(
+            "id, remind_at, recipient_mode, created_by, family_events!inner(id, family_id, title, category, date, time, things_to_bring, amount, deadline, event_members(family_members(name)))",
+          )
+          .is("sent_at", null)
+          .lte("remind_at", nowIso)
+          .gte("remind_at", windowStart)
+          .limit(100);
+
+        if (error) {
+          console.error("reminder fetch failed", error.message);
+          return Response.json({ error: "fetch failed" }, { status: 500 });
+        }
+
+        const reminders = (data ?? []) as unknown as ReminderRow[];
+        let sent = 0;
+
+        for (const reminder of reminders) {
+          if (!reminder.family_events) continue;
+          const message = buildMessage(reminder);
+
+          let userIds: string[] = [reminder.created_by];
+          if (reminder.recipient_mode === "all_parents") {
+            const { data: members } = await supabaseAdmin
+              .from("family_users")
+              .select("user_id")
+              .eq("family_id", reminder.family_events.family_id);
+            userIds = (members ?? []).map((m) => m.user_id);
+          }
+
+          if (userIds.length > 0) {
+            const { data: subs } = await supabaseAdmin
+              .from("push_subscriptions")
+              .select("id, endpoint, p256dh, auth")
+              .in("user_id", userIds);
+
+            for (const sub of subs ?? []) {
+              try {
+                const payload = await buildPushPayload(
+                  { data: JSON.stringify({ ...message, tag: reminder.id }), options: { ttl: 3600 } },
+                  {
+                    endpoint: sub.endpoint,
+                    expirationTime: null,
+                    keys: { p256dh: sub.p256dh, auth: sub.auth },
+                  },
+                  vapid,
+                );
+                const res = await fetch(sub.endpoint, payload as unknown as RequestInit);
+                if (res.status === 404 || res.status === 410) {
+                  await supabaseAdmin.from("push_subscriptions").delete().eq("id", sub.id);
+                } else if (res.ok) {
+                  sent += 1;
+                }
+              } catch (err) {
+                console.error("push failed", err);
+              }
+            }
+          }
+
+          await supabaseAdmin
+            .from("event_reminders")
+            .update({ sent_at: new Date().toISOString() })
+            .eq("id", reminder.id);
+        }
+
+        return Response.json({ processed: reminders.length, sent });
+      },
+    },
+  },
+});
