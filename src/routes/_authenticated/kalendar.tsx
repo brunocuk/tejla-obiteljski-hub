@@ -6,6 +6,8 @@ import { assigneeStyle } from "@/lib/family";
 import { useFamilyEvents, type FamilyEvent } from "@/lib/family-events";
 import { EventDetailSheet } from "@/components/EventDetailSheet";
 import { useFamilyMembers, useMyFamilyId } from "@/lib/family-workspace";
+import { ReminderBadge } from "@/components/ReminderBadge";
+import { useFamilyReminders } from "@/lib/reminders";
 
 export const Route = createFileRoute("/_authenticated/kalendar")({
   head: () => ({
@@ -57,6 +59,7 @@ function KalendarPage() {
   const { data: familyId } = useMyFamilyId();
   const { data: members } = useFamilyMembers(familyId);
   const { data: events, isPending } = useFamilyEvents(familyId);
+  const { data: reminderMap = {} } = useFamilyReminders(familyId);
   const [cursor, setCursor] = useState(currentMonth);
   const [filter, setFilter] = useState("Svi");
   const [openId, setOpenId] = useState<string | null>(null);
