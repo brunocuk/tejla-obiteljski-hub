@@ -97,7 +97,10 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
         }
 
         const reminders = (data ?? []) as unknown as ReminderRow[];
+        console.log(`[send-reminders] run started at ${nowIso}; due reminders: ${reminders.length}`);
         let sent = 0;
+        let attempted = 0;
+        let failed = 0;
 
         for (const reminder of reminders) {
           if (!reminder.family_events) continue;
@@ -119,6 +122,7 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
               .in("user_id", userIds);
 
             for (const sub of subs ?? []) {
+              attempted += 1;
               try {
                 const payload = await buildPushPayload(
                   { data: JSON.stringify({ ...message, tag: reminder.id }), options: { ttl: 3600 } },
@@ -132,22 +136,35 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
                 const res = await fetch(sub.endpoint, payload as unknown as RequestInit);
                 if (res.status === 404 || res.status === 410) {
                   await supabaseAdmin.from("push_subscriptions").delete().eq("id", sub.id);
+                  failed += 1;
+                  console.warn(`[send-reminders] removed expired subscription ${sub.id}`);
                 } else if (res.ok) {
                   sent += 1;
+                } else {
+                  failed += 1;
+                  console.error(`[send-reminders] push rejected ${res.status} for sub ${sub.id}`);
                 }
               } catch (err) {
-                console.error("push failed", err);
+                failed += 1;
+                console.error("[send-reminders] push failed", err);
               }
             }
           }
 
-          await supabaseAdmin
-            .from("event_reminders")
-            .update({ sent_at: new Date().toISOString() })
-            .eq("id", reminder.id);
+          // Only mark as sent when at least one push went out, or when there was
+          // nothing to deliver to (no subscriptions) - otherwise retry next run.
+          if (sent > 0 || attempted === 0) {
+            await supabaseAdmin
+              .from("event_reminders")
+              .update({ sent_at: new Date().toISOString() })
+              .eq("id", reminder.id);
+          }
         }
 
-        return Response.json({ processed: reminders.length, sent });
+        console.log(
+          `[send-reminders] done: due=${reminders.length} attempted=${attempted} sent=${sent} failed=${failed}`,
+        );
+        return Response.json({ processed: reminders.length, attempted, sent, failed });
       },
     },
   },
