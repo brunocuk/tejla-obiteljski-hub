@@ -4,8 +4,17 @@ import { AlertTriangle, Check, Sparkles } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { WHOLE_FAMILY } from "@/lib/family";
 import { useHubStore, type ExtractedItem } from "@/lib/hub-store";
-import { useFamilyMembers, useMyFamilyId } from "@/lib/family-workspace";
+import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
 import { saveFamilyEvents } from "@/lib/family-events";
+import { ReminderEditor } from "@/components/ReminderEditor";
+import {
+  defaultRecipient,
+  insertReminders,
+  normalizeCategory,
+  suggestReminders,
+  type RecipientMode,
+  type ReminderDraft,
+} from "@/lib/reminders";
 
 export const Route = createFileRoute("/_authenticated/analiza")({
   head: () => ({
@@ -35,8 +44,12 @@ function AnalizaPage() {
   const [saving, setSaving] = useState(false);
   const { data: familyId } = useMyFamilyId();
   const { data: members } = useFamilyMembers(familyId);
+  const { data: userId } = useMyUserId();
   const memberRows = (members ?? []).map((m) => ({ id: m.id, name: m.name }));
   const assigneeOptions = [...memberRows.map((m) => m.name), WHOLE_FAMILY];
+  const [reminders, setReminders] = useState<Record<number, ReminderDraft[]>>({});
+  const [recipients, setRecipients] = useState<Record<number, RecipientMode>>({});
+  const [openReminders, setOpenReminders] = useState<number | null>(null);
 
   useEffect(() => {
     setItems(analysis);
@@ -44,6 +57,31 @@ function AnalizaPage() {
     setAdded(false);
     setError("");
   }, [analysis]);
+
+  // Suggest reminders from the AI-detected category, date and time.
+  useEffect(() => {
+    const nextR: Record<number, ReminderDraft[]> = {};
+    const nextM: Record<number, RecipientMode> = {};
+    items.forEach((it, i) => {
+      const mode = recipients[i] ?? defaultRecipient(it.category, false);
+      nextM[i] = mode;
+      nextR[i] =
+        reminders[i] ??
+        suggestReminders(
+          {
+            category: it.category,
+            date: it.date,
+            time: it.time,
+            deadline: it.deadline,
+            things_to_bring: it.things_to_bring,
+          },
+          mode,
+        );
+    });
+    setReminders(nextR);
+    setRecipients(nextM);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
 
   const handleAddAll = async () => {
     const chosen = items.filter((_, i) => selected.includes(i));
@@ -62,7 +100,15 @@ function AnalizaPage() {
     setError("");
     setSaving(true);
     try {
-      await saveFamilyEvents(familyId, chosen, memberRows);
+      const chosenIdx = items.map((_, i) => i).filter((i) => selected.includes(i));
+      const ids = await saveFamilyEvents(familyId, chosen, memberRows);
+      if (userId) {
+        for (let i = 0; i < ids.length; i += 1) {
+          const idx = chosenIdx[i];
+          const drafts = idx === undefined ? [] : (reminders[idx] ?? []);
+          await insertReminders(ids[i]!, drafts, userId);
+        }
+      }
       setAdded(true);
     } catch {
       setError("Obavezu nije bilo moguće spremiti. Pokušaj ponovno.");
