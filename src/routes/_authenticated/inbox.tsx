@@ -82,11 +82,27 @@ function ManualEventForm({ onClose }: { onClose: () => void }) {
     setSaving(true);
     try {
       const eventId = await saveManualEvent(familyId, form, selected);
-      if (userId) await insertReminders(eventId, reminders, userId);
-      await queryClient.invalidateQueries({ queryKey: ["family-events", familyId] });
+      let skipped = 0;
+      if (userId && reminders.length > 0) {
+        const res = await insertReminders(eventId, reminders, userId);
+        skipped = res.skipped;
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["family-events", familyId] }),
+        queryClient.invalidateQueries({ queryKey: ["family-reminders", familyId] }),
+        queryClient.invalidateQueries({ queryKey: ["event-reminders", eventId] }),
+      ]);
+      if (skipped > 0) {
+        setError(
+          `Obaveza je spremljena, ali ${skipped} podsjetnik(a) nije spremljeno jer je vrijeme već prošlo.`,
+        );
+        setSaving(false);
+        return;
+      }
       onClose();
-    } catch {
-      setError("Obavezu nije bilo moguće spremiti. Pokušaj ponovno.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      setError(`Obavezu nije bilo moguće spremiti${msg ? ` (${msg})` : ""}. Pokušaj ponovno.`);
     } finally {
       setSaving(false);
     }

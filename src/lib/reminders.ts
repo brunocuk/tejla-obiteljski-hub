@@ -271,8 +271,9 @@ export function useEventReminders(eventId: string | null | undefined) {
 export async function insertReminders(eventId: string, drafts: ReminderDraft[], userId: string) {
   const now = Date.now();
   const future = drafts.filter((d) => new Date(d.remind_at).getTime() > now);
-  if (future.length < drafts.length) {
-    console.warn(`[reminders] skipped ${drafts.length - future.length} reminder(s) already in the past`);
+  const skipped = drafts.length - future.length;
+  if (skipped > 0) {
+    console.warn(`[reminders] skipped ${skipped} reminder(s) already in the past`);
   }
   const rows = future.map((d) => ({
       event_id: eventId,
@@ -280,12 +281,16 @@ export async function insertReminders(eventId: string, drafts: ReminderDraft[], 
       recipient_mode: d.recipient_mode,
       created_by: userId,
     }));
-  if (rows.length === 0) return;
-  const { error } = await supabase.from("event_reminders").insert(rows);
+  if (rows.length === 0) return { inserted: 0, skipped };
+  const { data, error } = await supabase.from("event_reminders").insert(rows).select("id");
   if (error) {
     console.error("[reminders] insert failed", error.message);
     throw error;
   }
+  if (!data || data.length === 0) {
+    throw new Error("Podsjetnik nije spremljen.");
+  }
+  return { inserted: data.length, skipped };
 }
 
 /** Replaces all not-yet-sent reminders of an event with the given drafts. */
