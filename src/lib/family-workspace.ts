@@ -45,28 +45,13 @@ export function useFamilyMembers(familyId: string | null | undefined) {
 }
 
 export async function createFamily(familyName: string, myName: string) {
-  const { data: userData } = await supabase.auth.getUser();
-  const uid = userData.user?.id;
-  if (!uid) throw new Error("Niste prijavljeni.");
-
-  const { data: family, error: familyError } = await supabase
-    .from("families")
-    .insert({ name: familyName, created_by: uid })
-    .select("id")
-    .single();
-  if (familyError) throw familyError;
-
-  const { error: userError } = await supabase
-    .from("family_users")
-    .insert({ family_id: family.id, user_id: uid, role: "owner" });
-  if (userError) throw userError;
-
-  const { error: memberError } = await supabase
-    .from("family_members")
-    .insert({ family_id: family.id, name: myName, member_type: "parent", linked_user_id: uid });
-  if (memberError) throw memberError;
-
-  return family.id;
+  // Atomic, RLS-safe creation of family + owner membership + parent member.
+  const { data, error } = await supabase.rpc("create_family", {
+    _family_name: familyName,
+    _my_name: myName,
+  });
+  if (error) throw new Error(error.message);
+  return data as string;
 }
 
 export async function addFamilyMember(
