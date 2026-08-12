@@ -14,6 +14,94 @@ export type Database = {
   }
   public: {
     Tables: {
+      families: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      family_members: {
+        Row: {
+          created_at: string
+          family_id: string
+          id: string
+          linked_user_id: string | null
+          member_type: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          id?: string
+          linked_user_id?: string | null
+          member_type?: string
+          name?: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          id?: string
+          linked_user_id?: string | null
+          member_type?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_users: {
+        Row: {
+          created_at: string
+          family_id: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          family_id: string
+          id?: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          family_id?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_users_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -40,7 +128,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_family_member: { Args: { _family_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
