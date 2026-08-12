@@ -35,6 +35,47 @@ export type Database = {
         }
         Relationships: []
       }
+      family_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          family_id: string
+          id: string
+          invited_by: string | null
+          role: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          family_id: string
+          id?: string
+          invited_by?: string | null
+          role?: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          family_id?: string
+          id?: string
+          invited_by?: string | null
+          role?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_invitations_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_members: {
         Row: {
           created_at: string
@@ -128,11 +169,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_family_invitation: { Args: never; Returns: string }
       create_family: {
         Args: { _family_name: string; _my_name: string }
         Returns: string
       }
       is_family_member: { Args: { _family_id: string }; Returns: boolean }
+      is_family_owner: { Args: { _family_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
