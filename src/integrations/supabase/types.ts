@@ -392,6 +392,11 @@ export type Database = {
     Functions: {
       accept_family_invitation: { Args: never; Returns: string }
       can_access_event: { Args: { _event_id: string }; Returns: boolean }
+      can_edit_event: { Args: { _event_id: string }; Returns: boolean }
+      can_edit_event_row: {
+        Args: { _event_id: string; _family_id: string }
+        Returns: boolean
+      }
       can_view_event: { Args: { _event_id: string }; Returns: boolean }
       can_view_event_row: {
         Args: { _event_id: string; _family_id: string }
