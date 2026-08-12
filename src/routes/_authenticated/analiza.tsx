@@ -192,7 +192,7 @@ function AnalizaPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     {it.category ? (
                       <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-secondary-foreground">
-                        {it.category}
+                        {normalizeCategory(it.category) || it.category}
                       </span>
                     ) : null}
                     {lowConfidence ? (
@@ -288,6 +288,32 @@ function AnalizaPage() {
                         .filter(Boolean)
                         .join(" · ")}
                     </p>
+                  ) : null}
+
+                  <button
+                    type="button"
+                    onClick={() => setOpenReminders(openReminders === idx ? null : idx)}
+                    className="text-xs font-semibold text-accent-foreground"
+                  >
+                    Podsjetnici ({(reminders[idx] ?? []).length}){" "}
+                    {openReminders === idx ? "▴" : "▾"}
+                  </button>
+                  {openReminders === idx ? (
+                    <ReminderEditor
+                      input={{
+                        category: it.category,
+                        date: it.date,
+                        time: it.time,
+                        deadline: it.deadline,
+                        things_to_bring: it.things_to_bring,
+                      }}
+                      reminders={reminders[idx] ?? []}
+                      onChange={(next) => setReminders((prev) => ({ ...prev, [idx]: next }))}
+                      recipient={recipients[idx] ?? "all_parents"}
+                      onRecipientChange={(mode) =>
+                        setRecipients((prev) => ({ ...prev, [idx]: mode }))
+                      }
+                    />
                   ) : null}
                 </div>
               </div>
