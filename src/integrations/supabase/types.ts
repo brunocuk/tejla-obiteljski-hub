@@ -128,6 +128,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_family: {
+        Args: { _family_name: string; _my_name: string }
+        Returns: string
+      }
       is_family_member: { Args: { _family_id: string }; Returns: boolean }
     }
     Enums: {
