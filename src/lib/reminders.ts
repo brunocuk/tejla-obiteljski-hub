@@ -149,8 +149,20 @@ export function suggestReminders(input: ReminderInput, recipient: RecipientMode)
     times.push(atClock(deadlineAt, 1, 19));
   }
 
+  // Only future times can ever be delivered; drop stale suggestions so the UI
+  // shows exactly what will be saved.
+  const now = Date.now();
+  const future = times.filter((t) => t.getTime() > now + 30_000);
+
+  // Event is still ahead but every default suggestion already passed
+  // (e.g. an event created a couple of hours before it starts).
+  if (future.length === 0 && base && base.getTime() > now + 60_000) {
+    const thirtyBefore = minutesBefore(base, 30);
+    future.push(thirtyBefore.getTime() > now + 30_000 ? thirtyBefore : base);
+  }
+
   const seen = new Set<string>();
-  return times
+  return future
     .filter((t) => {
       const iso = t.toISOString();
       if (seen.has(iso)) return false;
