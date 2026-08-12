@@ -229,6 +229,10 @@ function Danas() {
           Otvori kalendar <ArrowRight className="size-4" />
         </Link>
       </section>
+
+      {openEvent ? (
+        <EventDetailSheet event={openEvent} onClose={() => setOpenId(null)} />
+      ) : null}
     </AppShell>
   );
 }
