@@ -60,7 +60,14 @@ export function ReminderEditor({
             key={r.key}
             className="flex items-center gap-2 rounded-xl bg-background px-3 py-2 text-sm"
           >
-            <span className="min-w-0 flex-1 truncate">{formatReminder(r.remind_at)}</span>
+            <span className="min-w-0 flex-1 truncate">
+              {formatReminder(r.remind_at)}
+              {new Date(r.remind_at).getTime() <= Date.now() ? (
+                <span className="ml-2 text-[11px] font-semibold text-destructive">
+                  prošlo — neće se spremiti
+                </span>
+              ) : null}
+            </span>
             <button
               type="button"
               aria-label="Ukloni podsjetnik"
