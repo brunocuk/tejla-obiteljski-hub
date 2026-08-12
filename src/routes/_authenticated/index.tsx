@@ -7,6 +7,8 @@ import { useFamilyEvents, type FamilyEvent } from "@/lib/family-events";
 import { EventDetailSheet } from "@/components/EventDetailSheet";
 import { useMyFamilyId } from "@/lib/family-workspace";
 import { NotificationOptIn } from "@/components/NotificationOptIn";
+import { ReminderBadge } from "@/components/ReminderBadge";
+import { useFamilyReminders } from "@/lib/reminders";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -47,6 +49,7 @@ function Danas() {
   const [openId, setOpenId] = useState<string | null>(null);
   const { data: familyId } = useMyFamilyId();
   const { data: events, isPending } = useFamilyEvents(familyId);
+  const { data: reminderMap = {} } = useFamilyReminders(familyId);
   const openEvent: FamilyEvent | null = (events ?? []).find((e) => e.id === openId) ?? null;
 
   const now = new Date();
@@ -122,6 +125,7 @@ function Danas() {
                     {e.members.join(", ") || "Cijela obitelj"}
                   </p>
                   <p className="truncate text-sm text-muted-foreground">{e.title}</p>
+                  <ReminderBadge reminders={reminderMap[e.id]} />
                 </div>
               </button>
             ))
@@ -152,6 +156,7 @@ function Danas() {
                   <p className="truncate text-sm text-muted-foreground">
                     {[e.category, e.time, e.amount].filter(Boolean).join(" · ")}
                   </p>
+                  <ReminderBadge reminders={reminderMap[e.id]} />
                 </div>
               </button>
             ))}
@@ -228,6 +233,7 @@ function Danas() {
                   <p className="truncate text-sm text-muted-foreground">
                     {c.notes}
                   </p>
+                  <ReminderBadge reminders={reminderMap[c.id]} />
                 </div>
                 {c.members.length > 0 ? (
                   <span
@@ -269,6 +275,7 @@ function Danas() {
                       {u.members.join(", ") || "Cijela obitelj"}
                     </p>
                     <p className="truncate text-sm text-muted-foreground">{u.title}</p>
+                    <ReminderBadge reminders={reminderMap[u.id]} />
                   </div>
                   <span className="shrink-0 text-xs font-semibold text-muted-foreground">
                     {d.getDate()}. {MONTHS_GEN[d.getMonth()]}

@@ -209,6 +209,48 @@ const WEEKDAY_FMT = new Intl.DateTimeFormat("hr-HR", {
 
 export const formatReminder = (iso: string) => WEEKDAY_FMT.format(new Date(iso));
 
+const SHORT_FMT = new Intl.DateTimeFormat("hr-HR", {
+  day: "numeric",
+  month: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** Compact local-time label for the card indicator. */
+export const formatReminderShort = (iso: string) => SHORT_FMT.format(new Date(iso));
+
+export const RECIPIENT_LABELS: Record<RecipientMode, string> = {
+  all_parents: "Sve roditelje",
+  creator_only: "Samo mene",
+};
+
+/**
+ * All not-yet-sent reminders of the family, grouped by event id.
+ * Reflects exactly what exists in the database.
+ */
+export function useFamilyReminders(familyId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["family-reminders", familyId],
+    enabled: Boolean(familyId),
+    queryFn: async (): Promise<Record<string, ReminderRow[]>> => {
+      const { data, error } = await supabase
+        .from("event_reminders")
+        .select(
+          "id, event_id, remind_at, recipient_mode, sent_at, family_events!inner(family_id)",
+        )
+        .eq("family_events.family_id", familyId!)
+        .is("sent_at", null)
+        .order("remind_at", { ascending: true });
+      if (error) throw error;
+      const map: Record<string, ReminderRow[]> = {};
+      for (const row of (data ?? []) as unknown as ReminderRow[]) {
+        (map[row.event_id] ??= []).push(row);
+      }
+      return map;
+    },
+  });
+}
+
 export function useEventReminders(eventId: string | null | undefined) {
   return useQuery({
     queryKey: ["event-reminders", eventId],
@@ -229,8 +271,9 @@ export function useEventReminders(eventId: string | null | undefined) {
 export async function insertReminders(eventId: string, drafts: ReminderDraft[], userId: string) {
   const now = Date.now();
   const future = drafts.filter((d) => new Date(d.remind_at).getTime() > now);
-  if (future.length < drafts.length) {
-    console.warn(`[reminders] skipped ${drafts.length - future.length} reminder(s) already in the past`);
+  const skipped = drafts.length - future.length;
+  if (skipped > 0) {
+    console.warn(`[reminders] skipped ${skipped} reminder(s) already in the past`);
   }
   const rows = future.map((d) => ({
       event_id: eventId,
@@ -238,12 +281,16 @@ export async function insertReminders(eventId: string, drafts: ReminderDraft[], 
       recipient_mode: d.recipient_mode,
       created_by: userId,
     }));
-  if (rows.length === 0) return;
-  const { error } = await supabase.from("event_reminders").insert(rows);
+  if (rows.length === 0) return { inserted: 0, skipped };
+  const { data, error } = await supabase.from("event_reminders").insert(rows).select("id");
   if (error) {
     console.error("[reminders] insert failed", error.message);
     throw error;
   }
+  if (!data || data.length === 0) {
+    throw new Error("Podsjetnik nije spremljen.");
+  }
+  return { inserted: data.length, skipped };
 }
 
 /** Replaces all not-yet-sent reminders of an event with the given drafts. */
