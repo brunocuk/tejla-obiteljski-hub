@@ -46,6 +46,7 @@ function Danas() {
   const [openId, setOpenId] = useState<string | null>(null);
   const { data: familyId } = useMyFamilyId();
   const { data: events, isPending } = useFamilyEvents(familyId);
+  const openEvent: FamilyEvent | null = (events ?? []).find((e) => e.id === openId) ?? null;
 
   const now = new Date();
   const today = isoDay(now);
