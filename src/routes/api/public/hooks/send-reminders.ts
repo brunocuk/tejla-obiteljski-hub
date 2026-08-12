@@ -129,7 +129,7 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
                   },
                   vapid,
                 );
-                const res = await fetch(sub.endpoint, payload);
+                const res = await fetch(sub.endpoint, payload as unknown as RequestInit);
                 if (res.status === 404 || res.status === 410) {
                   await supabaseAdmin.from("push_subscriptions").delete().eq("id", sub.id);
                 } else if (res.ok) {
