@@ -1,16 +1,30 @@
-import { useState, type ReactNode } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { createFamily, useMyFamilyId } from "@/lib/family-workspace";
+import { useEffect, useState, type ReactNode } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { acceptPendingInvitation, createFamily, useMyFamilyId } from "@/lib/family-workspace";
 
 export function FamilyGate({ children }: { children: ReactNode }) {
   const { data: familyId, isLoading } = useMyFamilyId();
   const queryClient = useQueryClient();
+  // A pending invitation for this e-mail joins the existing family instead of creating a new one.
+  const { data: joinedFamilyId, isLoading: joining } = useQuery({
+    queryKey: ["accept-invitation"],
+    enabled: !isLoading && !familyId,
+    retry: false,
+    queryFn: acceptPendingInvitation,
+  });
   const [familyName, setFamilyName] = useState("");
   const [myName, setMyName] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (joinedFamilyId) {
+      void queryClient.invalidateQueries({ queryKey: ["my-family-id"] });
+      void queryClient.invalidateQueries({ queryKey: ["my-family-role"] });
+    }
+  }, [joinedFamilyId, queryClient]);
+
+  if (isLoading || (!familyId && joining)) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
         Učitavanje…
@@ -18,7 +32,7 @@ export function FamilyGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (familyId) return <>{children}</>;
+  if (familyId || joinedFamilyId) return <>{children}</>;
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
