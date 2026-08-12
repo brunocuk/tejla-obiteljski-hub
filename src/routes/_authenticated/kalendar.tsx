@@ -194,6 +194,7 @@ function KalendarPage() {
                       <p className="truncate text-xs font-medium text-muted-foreground">
                         {[i.members.join(", "), i.meta].filter(Boolean).join(" · ")}
                       </p>
+                      <ReminderBadge reminders={reminderMap[i.id]} />
                     </div>
                   </button>
                 ))}
@@ -224,6 +225,7 @@ function KalendarPage() {
                     <p className="truncate text-xs font-medium text-muted-foreground">
                       {[i.members.join(", "), i.meta].filter(Boolean).join(" · ")}
                     </p>
+                    <ReminderBadge reminders={reminderMap[i.id]} />
                   </div>
                 </button>
               ))}
