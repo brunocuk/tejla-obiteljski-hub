@@ -40,7 +40,10 @@ export function NotificationOptIn() {
               setNote("Šaljem testnu obavijest…");
               try {
                 await syncSubscription();
-                const res = (await testPush({ data: undefined })) as { sent: number; total: number };
+                const res = (await testPush({ data: undefined })) as {
+                  sent: number;
+                  total: number;
+                };
                 setNote(
                   res.sent > 0
                     ? "Testna obavijest je poslana. Provjeri obavijesti."

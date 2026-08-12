@@ -88,7 +88,12 @@ export function useFamilyEvents(familyId: string | null | undefined) {
       .channel(`family-events-${familyId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "family_events", filter: `family_id=eq.${familyId}` },
+        {
+          event: "*",
+          schema: "public",
+          table: "family_events",
+          filter: `family_id=eq.${familyId}`,
+        },
         invalidate,
       )
       .on("postgres_changes", { event: "*", schema: "public", table: "event_members" }, invalidate)
@@ -130,10 +135,7 @@ export async function updateFamilyEvent(
     .eq("id", eventId);
   if (error) throw error;
 
-  const { error: delError } = await supabase
-    .from("event_members")
-    .delete()
-    .eq("event_id", eventId);
+  const { error: delError } = await supabase.from("event_members").delete().eq("event_id", eventId);
   if (delError) throw delError;
 
   if (memberIds.length > 0) {

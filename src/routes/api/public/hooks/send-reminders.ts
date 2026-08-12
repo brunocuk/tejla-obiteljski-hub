@@ -32,11 +32,23 @@ function zagrebToUtc(dateStr: string, timeStr: string | null): Date {
   // Offset of that instant in Zagreb, derived by reformatting it in the zone.
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: TZ,
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
   }).formatToParts(naive);
   const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
-  const asZagreb = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour") % 24, get("minute"), get("second"));
+  const asZagreb = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour") % 24,
+    get("minute"),
+    get("second"),
+  );
   return new Date(naive.getTime() - (asZagreb - naive.getTime()));
 }
 
@@ -47,7 +59,10 @@ function whenLabel(eventDate: string | null, eventTime: string | null, remindAt:
   const diffMs = target.getTime() - now.getTime();
   const hours = Math.round(diffMs / 3_600_000);
   if (hours <= 0) return "Sada";
-  if (hours < 24) return hours <= 1 ? "Za 1 sat" : `Za ${hours} sata/sati`.replace("sata/sati", hours < 5 ? "sata" : "sati");
+  if (hours < 24)
+    return hours <= 1
+      ? "Za 1 sat"
+      : `Za ${hours} sata/sati`.replace("sata/sati", hours < 5 ? "sata" : "sati");
   const days = Math.round(hours / 24);
   if (days === 1) return "Sutra";
   return `Za ${days} dana`;
@@ -61,7 +76,9 @@ function buildMessage(reminder: ReminderRow) {
     .join(", ");
   const when = whenLabel(e.date, e.time, reminder.remind_at);
   const time = HH(e.time);
-  const bring = Array.isArray(e.things_to_bring) ? e.things_to_bring.map(String).filter(Boolean) : [];
+  const bring = Array.isArray(e.things_to_bring)
+    ? e.things_to_bring.map(String).filter(Boolean)
+    : [];
 
   const head = [when, names, e.title.trim()].filter(Boolean).join(" · ");
   const parts = [head];
@@ -113,7 +130,9 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
         }
 
         const reminders = (data ?? []) as unknown as ReminderRow[];
-        console.log(`[send-reminders] run started at ${nowIso}; due reminders: ${reminders.length}`);
+        console.log(
+          `[send-reminders] run started at ${nowIso}; due reminders: ${reminders.length}`,
+        );
         let sent = 0;
         let attempted = 0;
         let failed = 0;
@@ -144,7 +163,10 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
               rAttempted += 1;
               try {
                 const payload = await buildPushPayload(
-                  { data: JSON.stringify({ ...message, tag: reminder.id }), options: { ttl: 3600 } },
+                  {
+                    data: JSON.stringify({ ...message, tag: reminder.id }),
+                    options: { ttl: 3600 },
+                  },
                   {
                     endpoint: sub.endpoint,
                     expirationTime: null,

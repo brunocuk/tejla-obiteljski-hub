@@ -105,12 +105,17 @@ export function localDate(date: string, time?: string): Date | null {
 }
 
 const atClock = (base: Date, daysBefore: number, hour: number, minute = 0) => {
-  const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() - daysBefore, hour, minute);
+  const d = new Date(
+    base.getFullYear(),
+    base.getMonth(),
+    base.getDate() - daysBefore,
+    hour,
+    minute,
+  );
   return d;
 };
 
-const minutesBefore = (base: Date, minutes: number) =>
-  new Date(base.getTime() - minutes * 60_000);
+const minutesBefore = (base: Date, minutes: number) => new Date(base.getTime() - minutes * 60_000);
 
 export type ReminderInput = {
   category: string;
@@ -187,7 +192,9 @@ export function draftFromOffset(
   minutes: number,
   recipient: RecipientMode,
 ): ReminderDraft | null {
-  const base = localDate(input.date, input.time) ?? (input.deadline ? localDate(input.deadline, "09:00") : null);
+  const base =
+    localDate(input.date, input.time) ??
+    (input.deadline ? localDate(input.deadline, "09:00") : null);
   if (!base) return null;
   return {
     key: newKey(),
@@ -200,7 +207,12 @@ export function draftFromOffset(
 export function customDraft(localValue: string, recipient: RecipientMode): ReminderDraft | null {
   const dt = new Date(localValue);
   if (Number.isNaN(dt.getTime())) return null;
-  return { key: newKey(), remind_at: dt.toISOString(), recipient_mode: recipient, offset_minutes: null };
+  return {
+    key: newKey(),
+    remind_at: dt.toISOString(),
+    recipient_mode: recipient,
+    offset_minutes: null,
+  };
 }
 
 /** Human label for a reminder: preset offset when known, otherwise the absolute time. */
@@ -249,9 +261,7 @@ export function useFamilyReminders(familyId: string | null | undefined) {
     queryFn: async (): Promise<Record<string, ReminderRow[]>> => {
       const { data, error } = await supabase
         .from("event_reminders")
-        .select(
-          "id, event_id, remind_at, recipient_mode, sent_at, family_events!inner(family_id)",
-        )
+        .select("id, event_id, remind_at, recipient_mode, sent_at, family_events!inner(family_id)")
         .eq("family_events.family_id", familyId!)
         .is("sent_at", null)
         .order("remind_at", { ascending: true });
@@ -297,11 +307,11 @@ export async function insertReminders(
     .map((d) => formatReminder(d.remind_at));
   const skipped = skippedTimes.length;
   const rows = future.map((d) => ({
-      event_id: eventId,
-      remind_at: d.remind_at,
-      recipient_mode: d.recipient_mode,
-      created_by: userId,
-    }));
+    event_id: eventId,
+    remind_at: d.remind_at,
+    recipient_mode: d.recipient_mode,
+    created_by: userId,
+  }));
   if (rows.length === 0) return { inserted: 0, skipped, skippedTimes };
   const { data, error } = await supabase.from("event_reminders").insert(rows).select("id");
   if (error) {

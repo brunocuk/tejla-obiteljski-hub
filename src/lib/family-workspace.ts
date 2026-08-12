@@ -60,10 +60,7 @@ export async function updateMyDisplayName(familyId: string, name: string) {
   const uid = userData.user?.id;
   if (!uid) throw new Error("Nisi prijavljen.");
 
-  const { error: profileError } = await supabase
-    .from("profiles")
-    .update({ name })
-    .eq("id", uid);
+  const { error: profileError } = await supabase.from("profiles").update({ name }).eq("id", uid);
   if (profileError) throw profileError;
 
   const { error: memberError } = await supabase

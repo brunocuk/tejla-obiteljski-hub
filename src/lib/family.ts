@@ -1,41 +1,48 @@
-export type MemberName = "Mama" | "Tata" | "Lara" | "Lucija" | "Korina";
+export const WHOLE_FAMILY = "Svi";
 
-export const memberStyles: Record<MemberName, { dot: string; chip: string; initials: string }> = {
-  Mama: { dot: "bg-member-mama", chip: "bg-member-mama/12 text-member-mama", initials: "MA" },
-  Tata: { dot: "bg-member-tata", chip: "bg-member-tata/12 text-member-tata", initials: "TA" },
-  Lara: { dot: "bg-member-lara", chip: "bg-member-lara/12 text-member-lara", initials: "LA" },
-  Lucija: { dot: "bg-member-lucija", chip: "bg-member-lucija/12 text-member-lucija", initials: "LU" },
-  Korina: { dot: "bg-member-korina", chip: "bg-member-korina/12 text-member-korina", initials: "KO" },
-};
+/** Colour slots defined in styles.css — assigned deterministically per member name. */
+const PALETTE = ["mama", "tata", "lara", "lucija", "korina"] as const;
 
-export const WHOLE_FAMILY = "Cijela obitelj";
-
-export type Assignee = MemberName | typeof WHOLE_FAMILY;
-
-export const assigneeOptions: Assignee[] = [
-  "Mama",
-  "Tata",
-  "Lara",
-  "Lucija",
-  "Korina",
-  WHOLE_FAMILY,
-];
-
-export function assigneeStyle(a: string): { dot: string; chip: string } {
-  if (a in memberStyles) {
-    const s = memberStyles[a as MemberName];
-    return { dot: s.dot, chip: s.chip };
-  }
-  return { dot: "bg-primary", chip: "bg-primary-soft text-accent-foreground" };
+function slotFor(name: string) {
+  const key = name.trim().toLowerCase();
+  let sum = 0;
+  for (let i = 0; i < key.length; i += 1) sum = (sum * 31 + key.charCodeAt(i)) % 100_000;
+  return PALETTE[sum % PALETTE.length]!;
 }
 
-/** Maps a free-text person string from AI output to a known family member, or "" if unclear. */
-export function resolveAssignee(raw: string): Assignee | "" {
+export function memberStyle(name: string): { dot: string; chip: string; initials: string } {
+  const clean = name.trim();
+  const initials = clean
+    ? clean
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((p) => p[0])
+        .join("")
+        .toUpperCase()
+    : "?";
+  if (!clean || clean === WHOLE_FAMILY) {
+    return { dot: "bg-primary", chip: "bg-primary-soft text-accent-foreground", initials };
+  }
+  const slot = slotFor(clean);
+  return {
+    dot: `bg-member-${slot}`,
+    chip: `bg-member-${slot}/12 text-member-${slot}`,
+    initials,
+  };
+}
+
+export function assigneeStyle(a: string): { dot: string; chip: string } {
+  const s = memberStyle(a);
+  return { dot: s.dot, chip: s.chip };
+}
+
+/** Maps a free-text person string from AI output to one of the known member names. */
+export function resolveAssignee(raw: string, names: string[] = []): string {
   const v = raw.trim().toLowerCase();
   if (!v) return "";
-  const found = assigneeOptions.find((o) => o.toLowerCase() === v);
+  const found = names.find((n) => n.trim().toLowerCase() === v);
   if (found) return found;
-  if (/(cijela\s+obitelj|obitelj|svi)/.test(v)) return WHOLE_FAMILY;
-  const match = assigneeOptions.filter((o) => o !== WHOLE_FAMILY && v.includes(o.toLowerCase()));
-  return match.length === 1 ? match[0]! : "";
+  if (/(cijela\s+obitelj|obitelj|svi|svima)/.test(v)) return WHOLE_FAMILY;
+  const partial = names.filter((n) => n.trim() && v.includes(n.trim().toLowerCase()));
+  return partial.length === 1 ? partial[0]! : "";
 }

@@ -1,13 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { CalendarDays, Home, Inbox, Sparkles, Users } from "lucide-react";
+import { CalendarDays, Home, Inbox, Users } from "lucide-react";
 
 const items = [
   { to: "/", label: "Danas", icon: Home },
   { to: "/inbox", label: "Inbox", icon: Inbox },
-  { to: "/analiza", label: "AI", icon: Sparkles },
   { to: "/kalendar", label: "Kalendar", icon: CalendarDays },
-  { to: "/obitelj", label: "Obitelj", icon: Users },
+  { to: "/obitelj", label: "Članovi", icon: Users },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -37,7 +36,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 export function PageHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <header className="mb-6">
-      <h1 className="text-[28px] font-bold leading-tight tracking-tight text-foreground">{title}</h1>
+      <h1 className="text-[28px] font-bold leading-tight tracking-tight text-foreground">
+        {title}
+      </h1>
       {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
     </header>
   );

@@ -1,12 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-type InviteInput = { email: string; redirectTo: string };
+type InviteInput = {
+  email: string;
+  redirectTo: string;
+  role?: "parent" | "child";
+  familyMemberId?: string | null;
+};
 
 export const sendFamilyInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: InviteInput) => {
-    const email = String(input?.email ?? "").trim().toLowerCase();
+    const email = String(input?.email ?? "")
+      .trim()
+      .toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new Error("Unesi ispravnu e-mail adresu.");
     }
@@ -16,7 +23,9 @@ export const sendFamilyInvite = createServerFn({ method: "POST" })
     } catch {
       redirectTo = "";
     }
-    return { email, redirectTo };
+    const role = input?.role === "child" ? "child" : "parent";
+    const familyMemberId = input?.familyMemberId ? String(input.familyMemberId) : null;
+    return { email, redirectTo, role, familyMemberId };
   })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context;
@@ -48,12 +57,25 @@ export const sendFamilyInvite = createServerFn({ method: "POST" })
       .maybeSingle();
     if (existing) throw new Error("Poziv na ovu adresu već je poslan.");
 
+    let memberId: string | null = null;
+    if (data.familyMemberId) {
+      const { data: member } = await supabase
+        .from("family_members")
+        .select("id")
+        .eq("id", data.familyMemberId)
+        .eq("family_id", membership.family_id)
+        .maybeSingle();
+      if (!member) throw new Error("Odabrani član ne postoji u ovom prostoru.");
+      memberId = member.id;
+    }
+
     const { error: insertError } = await supabase.from("family_invitations").insert({
       family_id: membership.family_id,
       email: data.email,
-      role: "parent",
+      role: data.role,
       status: "pending",
       invited_by: userId,
+      family_member_id: memberId,
     });
     if (insertError) throw new Error("Spremanje poziva nije uspjelo.");
 
