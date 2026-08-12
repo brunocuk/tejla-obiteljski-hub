@@ -149,8 +149,20 @@ export function suggestReminders(input: ReminderInput, recipient: RecipientMode)
     times.push(atClock(deadlineAt, 1, 19));
   }
 
+  // Only future times can ever be delivered; drop stale suggestions so the UI
+  // shows exactly what will be saved.
+  const now = Date.now();
+  const future = times.filter((t) => t.getTime() > now + 30_000);
+
+  // Event is still ahead but every default suggestion already passed
+  // (e.g. an event created a couple of hours before it starts).
+  if (future.length === 0 && base && base.getTime() > now + 60_000) {
+    const thirtyBefore = minutesBefore(base, 30);
+    future.push(thirtyBefore.getTime() > now + 30_000 ? thirtyBefore : base);
+  }
+
   const seen = new Set<string>();
-  return times
+  return future
     .filter((t) => {
       const iso = t.toISOString();
       if (seen.has(iso)) return false;
@@ -216,9 +228,11 @@ export function useEventReminders(eventId: string | null | undefined) {
 /** Inserts reminders for an event. Past times are skipped. */
 export async function insertReminders(eventId: string, drafts: ReminderDraft[], userId: string) {
   const now = Date.now();
-  const rows = drafts
-    .filter((d) => new Date(d.remind_at).getTime() > now)
-    .map((d) => ({
+  const future = drafts.filter((d) => new Date(d.remind_at).getTime() > now);
+  if (future.length < drafts.length) {
+    console.warn(`[reminders] skipped ${drafts.length - future.length} reminder(s) already in the past`);
+  }
+  const rows = future.map((d) => ({
       event_id: eventId,
       remind_at: d.remind_at,
       recipient_mode: d.recipient_mode,
@@ -226,7 +240,10 @@ export async function insertReminders(eventId: string, drafts: ReminderDraft[], 
     }));
   if (rows.length === 0) return;
   const { error } = await supabase.from("event_reminders").insert(rows);
-  if (error) throw error;
+  if (error) {
+    console.error("[reminders] insert failed", error.message);
+    throw error;
+  }
 }
 
 /** Replaces all not-yet-sent reminders of an event with the given drafts. */

@@ -24,10 +24,26 @@ type ReminderRow = {
 
 const HH = (t: string | null) => (t ? t.slice(0, 5) : "");
 
+const TZ = "Europe/Zagreb";
+
+/** Converts a Zagreb-local date/time into a real UTC instant. */
+function zagrebToUtc(dateStr: string, timeStr: string | null): Date {
+  const naive = new Date(`${dateStr}T${timeStr ? timeStr.slice(0, 8) : "09:00:00"}Z`);
+  // Offset of that instant in Zagreb, derived by reformatting it in the zone.
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TZ,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }).formatToParts(naive);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  const asZagreb = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour") % 24, get("minute"), get("second"));
+  return new Date(naive.getTime() - (asZagreb - naive.getTime()));
+}
+
 function whenLabel(eventDate: string | null, eventTime: string | null, remindAt: string) {
   if (!eventDate) return "";
   const now = new Date(remindAt);
-  const target = new Date(`${eventDate}T${eventTime ? eventTime.slice(0, 8) : "09:00:00"}Z`);
+  const target = zagrebToUtc(eventDate, eventTime);
   const diffMs = target.getTime() - now.getTime();
   const hours = Math.round(diffMs / 3_600_000);
   if (hours <= 0) return "Sada";
@@ -97,11 +113,16 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
         }
 
         const reminders = (data ?? []) as unknown as ReminderRow[];
+        console.log(`[send-reminders] run started at ${nowIso}; due reminders: ${reminders.length}`);
         let sent = 0;
+        let attempted = 0;
+        let failed = 0;
 
         for (const reminder of reminders) {
           if (!reminder.family_events) continue;
           const message = buildMessage(reminder);
+          let rSent = 0;
+          let rAttempted = 0;
 
           let userIds: string[] = [reminder.created_by];
           if (reminder.recipient_mode === "all_parents") {
@@ -119,6 +140,8 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
               .in("user_id", userIds);
 
             for (const sub of subs ?? []) {
+              attempted += 1;
+              rAttempted += 1;
               try {
                 const payload = await buildPushPayload(
                   { data: JSON.stringify({ ...message, tag: reminder.id }), options: { ttl: 3600 } },
@@ -132,22 +155,36 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
                 const res = await fetch(sub.endpoint, payload as unknown as RequestInit);
                 if (res.status === 404 || res.status === 410) {
                   await supabaseAdmin.from("push_subscriptions").delete().eq("id", sub.id);
+                  failed += 1;
+                  console.warn(`[send-reminders] removed expired subscription ${sub.id}`);
                 } else if (res.ok) {
                   sent += 1;
+                  rSent += 1;
+                } else {
+                  failed += 1;
+                  console.error(`[send-reminders] push rejected ${res.status} for sub ${sub.id}`);
                 }
               } catch (err) {
-                console.error("push failed", err);
+                failed += 1;
+                console.error("[send-reminders] push failed", err);
               }
             }
           }
 
-          await supabaseAdmin
-            .from("event_reminders")
-            .update({ sent_at: new Date().toISOString() })
-            .eq("id", reminder.id);
+          // Only mark as sent when at least one push went out, or when there was
+          // nothing to deliver to (no subscriptions) - otherwise retry next run.
+          if (rSent > 0 || rAttempted === 0) {
+            await supabaseAdmin
+              .from("event_reminders")
+              .update({ sent_at: new Date().toISOString() })
+              .eq("id", reminder.id);
+          }
         }
 
-        return Response.json({ processed: reminders.length, sent });
+        console.log(
+          `[send-reminders] done: due=${reminders.length} attempted=${attempted} sent=${sent} failed=${failed}`,
+        );
+        return Response.json({ processed: reminders.length, attempted, sent, failed });
       },
     },
   },
