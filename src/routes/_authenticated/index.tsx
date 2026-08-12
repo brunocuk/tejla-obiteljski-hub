@@ -201,7 +201,12 @@ function Danas() {
             upcoming.map((u) => {
               const d = new Date(`${u.date}T00:00:00`);
               return (
-                <div key={u.id} className="flex items-center gap-4 px-5 py-4">
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => setOpenId(u.id)}
+                  className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
+                >
                   <span className={`size-2 rounded-full ${assigneeStyle(u.members[0] ?? "").dot}`} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[15px] font-semibold">
@@ -212,7 +217,7 @@ function Danas() {
                   <span className="shrink-0 text-xs font-semibold text-muted-foreground">
                     {d.getDate()}. {MONTHS_GEN[d.getMonth()]}
                   </span>
-                </div>
+                </button>
               );
             })
           )}
