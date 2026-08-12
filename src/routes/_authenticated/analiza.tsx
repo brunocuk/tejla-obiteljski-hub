@@ -2,8 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AlertTriangle, Check, Sparkles } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { assigneeOptions } from "@/lib/family";
-import { addConfirmed, useHubStore, type ExtractedItem } from "@/lib/hub-store";
+import { WHOLE_FAMILY } from "@/lib/family";
+import { useHubStore, type ExtractedItem } from "@/lib/hub-store";
+import { useFamilyMembers, useMyFamilyId } from "@/lib/family-workspace";
+import { saveFamilyEvents } from "@/lib/family-events";
 
 export const Route = createFileRoute("/_authenticated/analiza")({
   head: () => ({
@@ -30,6 +32,11 @@ function AnalizaPage() {
   const [selected, setSelected] = useState<number[]>(analysis.map((_, i) => i));
   const [added, setAdded] = useState(false);
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const { data: familyId } = useMyFamilyId();
+  const { data: members } = useFamilyMembers(familyId);
+  const memberRows = (members ?? []).map((m) => ({ id: m.id, name: m.name }));
+  const assigneeOptions = [...memberRows.map((m) => m.name), WHOLE_FAMILY];
 
   useEffect(() => {
     setItems(analysis);
@@ -37,6 +44,32 @@ function AnalizaPage() {
     setAdded(false);
     setError("");
   }, [analysis]);
+
+  const handleAddAll = async () => {
+    const chosen = items.filter((_, i) => selected.includes(i));
+    if (chosen.some((c) => !c.assignee)) {
+      setError("Odaberi kome pripada ova obaveza.");
+      return;
+    }
+    if (chosen.some((c) => c.needsYear)) {
+      setError("Potvrdi godinu za odabrane obveze.");
+      return;
+    }
+    if (!familyId) {
+      setError("Obavezu nije bilo moguće spremiti. Pokušaj ponovno.");
+      return;
+    }
+    setError("");
+    setSaving(true);
+    try {
+      await saveFamilyEvents(familyId, chosen, memberRows);
+      setAdded(true);
+    } catch {
+      setError("Obavezu nije bilo moguće spremiti. Pokušaj ponovno.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const update = (idx: number, field: keyof ExtractedItem, value: string) =>
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
@@ -225,25 +258,12 @@ function AnalizaPage() {
         ) : null}
         <button
           type="button"
-          onClick={() => {
-            const chosen = items.filter((_, i) => selected.includes(i));
-            if (chosen.some((c) => !c.assignee)) {
-              setError("Odaberi kome pripada ova obaveza.");
-              return;
-            }
-            if (chosen.some((c) => c.needsYear)) {
-              setError("Potvrdi godinu za odabrane obveze.");
-              return;
-            }
-            setError("");
-            addConfirmed(chosen);
-            setAdded(true);
-          }}
-          disabled={selected.length === 0}
+          onClick={handleAddAll}
+          disabled={selected.length === 0 || saving}
           className="w-full rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground disabled:opacity-40"
           style={{ backgroundImage: "var(--gradient-primary)", boxShadow: "var(--shadow-float)" }}
         >
-          {added ? "Dodano u kalendar ✓" : `Dodaj sve (${selected.length})`}
+          {saving ? "Spremam…" : added ? "Dodano u kalendar ✓" : `Dodaj sve (${selected.length})`}
         </button>
       </div>
     </AppShell>

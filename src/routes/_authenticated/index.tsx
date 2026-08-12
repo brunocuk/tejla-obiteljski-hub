@@ -3,7 +3,8 @@ import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { assigneeStyle, memberStyles, type MemberName } from "@/lib/family";
-import { useHubStore } from "@/lib/hub-store";
+import { useFamilyEvents } from "@/lib/family-events";
+import { useMyFamilyId } from "@/lib/family-workspace";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -24,32 +25,44 @@ export const Route = createFileRoute("/_authenticated/")({
   component: Danas,
 });
 
-const events: { time: string; who: MemberName; what: string }[] = [
-  { time: "08:00", who: "Lara", what: "škola" },
-  { time: "16:30", who: "Korina", what: "zubar" },
-  { time: "18:00", who: "Lucija", what: "trening" },
-];
-
 const initialTasks: { id: string; title: string; who?: MemberName }[] = [
   { id: "t1", title: "Uplatiti izlet 12 € do četvrtka", who: "Tata" },
   { id: "t2", title: "Kupiti bilježnicu za Laru", who: "Mama" },
   { id: "t3", title: "Potpisati suglasnost za izlet" },
 ];
 
-const upcoming: { date: string; who: MemberName; what: string }[] = [
-  { date: "14. rujna", who: "Lara", what: "Matematika — pisana provjera" },
-  { date: "17. rujna", who: "Lara", what: "Priroda — ispit" },
-  { date: "18. rujna", who: "Lucija", what: "Hrvatski — lektira" },
+const MONTHS_GEN = [
+  "siječnja", "veljače", "ožujka", "travnja", "svibnja", "lipnja",
+  "srpnja", "kolovoza", "rujna", "listopada", "studenoga", "prosinca",
 ];
+const WEEKDAYS = ["Nedjelja", "Ponedjeljak", "Utorak", "Srijeda", "Četvrtak", "Petak", "Subota"];
+
+const isoDay = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 function Danas() {
   const [done, setDone] = useState<string[]>([]);
-  const { confirmed } = useHubStore();
+  const { data: familyId } = useMyFamilyId();
+  const { data: events, isPending } = useFamilyEvents(familyId);
+
+  const now = new Date();
+  const today = isoDay(now);
+  const in7 = isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7));
+  const all = events ?? [];
+  const todayEvents = all
+    .filter((e) => e.date === today)
+    .sort((a, b) => a.time.localeCompare(b.time));
+  const upcoming = all
+    .filter((e) => e.date > today && e.date <= in7)
+    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+  const undated = all.filter((e) => !e.date);
 
   return (
     <AppShell>
       <header className="mb-7">
-        <p className="text-sm font-medium text-muted-foreground">Petak, 12. rujna</p>
+        <p className="text-sm font-medium text-muted-foreground">
+          {WEEKDAYS[now.getDay()]}, {now.getDate()}. {MONTHS_GEN[now.getMonth()]}
+        </p>
         <h1 className="mt-1 text-[30px] font-bold leading-tight tracking-tight">Dobro jutro</h1>
       </header>
 
@@ -58,18 +71,28 @@ function Danas() {
           Danas
         </h2>
         <div className="card-soft divide-y divide-border">
-          {events.map((e) => (
-            <div key={e.time} className="flex items-center gap-4 px-5 py-4">
-              <span className="w-12 text-sm font-semibold tabular-nums text-foreground">
-                {e.time}
-              </span>
-              <span className={`size-2 rounded-full ${memberStyles[e.who].dot}`} />
-              <div className="min-w-0">
-                <p className="truncate text-[15px] font-semibold">{e.who}</p>
-                <p className="truncate text-sm text-muted-foreground">{e.what}</p>
+          {isPending ? (
+            <p className="px-5 py-6 text-center text-sm text-muted-foreground">Učitavam obveze…</p>
+          ) : todayEvents.length === 0 ? (
+            <p className="px-5 py-6 text-center text-sm text-muted-foreground">
+              Danas nema obveza.
+            </p>
+          ) : (
+            todayEvents.map((e) => (
+              <div key={e.id} className="flex items-center gap-4 px-5 py-4">
+                <span className="w-12 text-sm font-semibold tabular-nums text-foreground">
+                  {e.time || "—"}
+                </span>
+                <span className={`size-2 rounded-full ${assigneeStyle(e.members[0] ?? "").dot}`} />
+                <div className="min-w-0">
+                  <p className="truncate text-[15px] font-semibold">
+                    {e.members.join(", ") || "Cijela obitelj"}
+                  </p>
+                  <p className="truncate text-sm text-muted-foreground">{e.title}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </section>
 
@@ -121,13 +144,13 @@ function Danas() {
         </ul>
       </section>
 
-      {confirmed.length > 0 ? (
+      {undated.length > 0 ? (
         <section className="mb-8">
           <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Dodano iz AI analize
+            Bez datuma
           </h2>
           <div className="card-soft divide-y divide-border">
-            {confirmed.map((c) => (
+            {undated.map((c) => (
               <div key={c.id} className="flex items-center gap-4 px-5 py-4">
                 <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
                   {c.time || "—"}
@@ -135,14 +158,14 @@ function Danas() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-semibold">{c.title || "Bez naziva"}</p>
                   <p className="truncate text-sm text-muted-foreground">
-                    {[c.date || c.notes].filter(Boolean).join(" · ")}
+                    {c.notes}
                   </p>
                 </div>
-                {c.assignee ? (
+                {c.members.length > 0 ? (
                   <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${assigneeStyle(c.assignee).chip}`}
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${assigneeStyle(c.members[0] ?? "").chip}`}
                   >
-                    {c.assignee}
+                    {c.members.join(", ")}
                   </span>
                 ) : null}
               </div>
@@ -156,16 +179,31 @@ function Danas() {
           Sljedećih 7 dana
         </h2>
         <div className="card-soft divide-y divide-border">
-          {upcoming.map((u) => (
-            <div key={u.what} className="flex items-center gap-4 px-5 py-4">
-              <span className={`size-2 rounded-full ${memberStyles[u.who].dot}`} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-semibold">{u.who}</p>
-                <p className="truncate text-sm text-muted-foreground">{u.what}</p>
-              </div>
-              <span className="shrink-0 text-xs font-semibold text-muted-foreground">{u.date}</span>
-            </div>
-          ))}
+          {isPending ? (
+            <p className="px-5 py-6 text-center text-sm text-muted-foreground">Učitavam obveze…</p>
+          ) : upcoming.length === 0 ? (
+            <p className="px-5 py-6 text-center text-sm text-muted-foreground">
+              Nema obveza u sljedećih 7 dana.
+            </p>
+          ) : (
+            upcoming.map((u) => {
+              const d = new Date(`${u.date}T00:00:00`);
+              return (
+                <div key={u.id} className="flex items-center gap-4 px-5 py-4">
+                  <span className={`size-2 rounded-full ${assigneeStyle(u.members[0] ?? "").dot}`} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[15px] font-semibold">
+                      {u.members.join(", ") || "Cijela obitelj"}
+                    </p>
+                    <p className="truncate text-sm text-muted-foreground">{u.title}</p>
+                  </div>
+                  <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                    {d.getDate()}. {MONTHS_GEN[d.getMonth()]}
+                  </span>
+                </div>
+              );
+            })
+          )}
         </div>
         <Link
           to="/kalendar"

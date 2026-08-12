@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_members: {
+        Row: {
+          created_at: string
+          event_id: string
+          family_member_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          family_member_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          family_member_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_members_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "family_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_members_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       families: {
         Row: {
           created_at: string
@@ -34,6 +70,65 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      family_events: {
+        Row: {
+          amount: string | null
+          category: string | null
+          created_at: string
+          created_by: string
+          date: string | null
+          deadline: string | null
+          family_id: string
+          id: string
+          location: string | null
+          notes: string | null
+          things_to_bring: Json
+          time: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: string | null
+          category?: string | null
+          created_at?: string
+          created_by: string
+          date?: string | null
+          deadline?: string | null
+          family_id: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          things_to_bring?: Json
+          time?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string
+          date?: string | null
+          deadline?: string | null
+          family_id?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          things_to_bring?: Json
+          time?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_events_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       family_invitations: {
         Row: {
@@ -170,6 +265,7 @@ export type Database = {
     }
     Functions: {
       accept_family_invitation: { Args: never; Returns: string }
+      can_access_event: { Args: { _event_id: string }; Returns: boolean }
       create_family: {
         Args: { _family_name: string; _my_name: string }
         Returns: string
