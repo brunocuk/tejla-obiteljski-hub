@@ -34,12 +34,48 @@ function AuthPage() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [busy, setBusy] = useState(false);
+  // Invitation links arrive with #type=invite (or recovery) and an active session.
+  const [inviteMode, setInviteMode] = useState(false);
 
   useEffect(() => {
+    const hash = window.location.hash;
+    const isInvite = hash.includes("type=invite") || hash.includes("type=recovery");
+    if (isInvite) {
+      setInviteMode(true);
+      return;
+    }
     void supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/", replace: true });
     });
   }, [navigate]);
+
+  async function onSetPassword(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    setInfo("");
+    if (password.length < 8) {
+      setError("Lozinka mora imati najmanje 8 znakova.");
+      return;
+    }
+    if (password !== password2) {
+      setError("Lozinke se ne podudaraju.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error: err } = await supabase.auth.updateUser({
+        password,
+        ...(name.trim() ? { data: { name: name.trim() } } : {}),
+      });
+      if (err) {
+        setError("Postavljanje lozinke nije uspjelo. Otvori poziv ponovno iz e-maila.");
+        return;
+      }
+      navigate({ to: "/", replace: true });
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -111,8 +147,64 @@ function AuthPage() {
         Family Hub
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        {mode === "login" ? "Prijavi se u svoj obiteljski prostor." : "Izradi svoj račun."}
+        {inviteMode
+          ? "Pozvan/a si u obiteljski prostor. Postavi lozinku i završi prijavu."
+          : mode === "login"
+            ? "Prijavi se u svoj obiteljski prostor."
+            : "Izradi svoj račun."}
       </p>
+
+      {inviteMode ? (
+        <form onSubmit={onSetPassword} className="mt-7 space-y-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Ime
+            </span>
+            <input
+              className={inputClass}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Lozinka
+            </span>
+            <input
+              className={inputClass}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Ponovi lozinku
+            </span>
+            <input
+              className={inputClass}
+              type="password"
+              value={password2}
+              onChange={(e) => setPassword2(e.target.value)}
+              autoComplete="new-password"
+            />
+          </label>
+
+          {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
+
+          <button
+            type="submit"
+            disabled={busy}
+            className="mt-2 w-full rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground disabled:opacity-60"
+            style={{ backgroundImage: "var(--gradient-primary)", boxShadow: "var(--shadow-float)" }}
+          >
+            Pridruži se obitelji
+          </button>
+        </form>
+      ) : (
+      <>
 
       <form onSubmit={onSubmit} className="mt-7 space-y-3">
         {mode === "register" ? (
@@ -194,6 +286,8 @@ function AuthPage() {
       >
         {mode === "login" ? "Nemaš račun? Registriraj se" : "Već imaš račun? Prijavi se"}
       </button>
+      </>
+      )}
     </div>
   );
 }
