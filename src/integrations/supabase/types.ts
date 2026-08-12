@@ -393,6 +393,10 @@ export type Database = {
       accept_family_invitation: { Args: never; Returns: string }
       can_access_event: { Args: { _event_id: string }; Returns: boolean }
       can_view_event: { Args: { _event_id: string }; Returns: boolean }
+      can_view_event_row: {
+        Args: { _event_id: string; _family_id: string }
+        Returns: boolean
+      }
       create_family: {
         Args: { _family_name: string; _my_name: string }
         Returns: string
