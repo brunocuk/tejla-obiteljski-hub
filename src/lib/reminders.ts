@@ -209,6 +209,48 @@ const WEEKDAY_FMT = new Intl.DateTimeFormat("hr-HR", {
 
 export const formatReminder = (iso: string) => WEEKDAY_FMT.format(new Date(iso));
 
+const SHORT_FMT = new Intl.DateTimeFormat("hr-HR", {
+  day: "numeric",
+  month: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+/** Compact local-time label for the card indicator. */
+export const formatReminderShort = (iso: string) => SHORT_FMT.format(new Date(iso));
+
+export const RECIPIENT_LABELS: Record<RecipientMode, string> = {
+  all_parents: "Sve roditelje",
+  creator_only: "Samo mene",
+};
+
+/**
+ * All not-yet-sent reminders of the family, grouped by event id.
+ * Reflects exactly what exists in the database.
+ */
+export function useFamilyReminders(familyId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["family-reminders", familyId],
+    enabled: Boolean(familyId),
+    queryFn: async (): Promise<Record<string, ReminderRow[]>> => {
+      const { data, error } = await supabase
+        .from("event_reminders")
+        .select(
+          "id, event_id, remind_at, recipient_mode, sent_at, family_events!inner(family_id)",
+        )
+        .eq("family_events.family_id", familyId!)
+        .is("sent_at", null)
+        .order("remind_at", { ascending: true });
+      if (error) throw error;
+      const map: Record<string, ReminderRow[]> = {};
+      for (const row of (data ?? []) as unknown as ReminderRow[]) {
+        (map[row.event_id] ??= []).push(row);
+      }
+      return map;
+    },
+  });
+}
+
 export function useEventReminders(eventId: string | null | undefined) {
   return useQuery({
     queryKey: ["event-reminders", eventId],
