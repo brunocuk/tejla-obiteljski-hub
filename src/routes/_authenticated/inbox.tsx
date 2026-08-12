@@ -83,9 +83,25 @@ function ManualEventForm({ onClose }: { onClose: () => void }) {
     try {
       const eventId = await saveManualEvent(familyId, form, selected);
       let skipped = 0;
-      if (userId && reminders.length > 0) {
-        const res = await insertReminders(eventId, reminders, userId);
-        skipped = res.skipped;
+      if (reminders.length > 0) {
+        if (!userId) {
+          setError(
+            "Obaveza je spremljena, ali podsjetnik nije. Pokušaj ponovno spremiti podsjetnik.",
+          );
+          setSaving(false);
+          return;
+        }
+        try {
+          const res = await insertReminders(eventId, reminders, userId);
+          skipped = res.skipped;
+        } catch {
+          await queryClient.invalidateQueries({ queryKey: ["family-events", familyId] });
+          setError(
+            "Obaveza je spremljena, ali podsjetnik nije. Pokušaj ponovno spremiti podsjetnik.",
+          );
+          setSaving(false);
+          return;
+        }
       }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["family-events", familyId] }),

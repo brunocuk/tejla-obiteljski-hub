@@ -30,6 +30,8 @@ export type ReminderDraft = {
   /** ISO timestamp (absolute, timezone-aware). */
   remind_at: string;
   recipient_mode: RecipientMode;
+  /** Set when the reminder came from a preset offset (relative to the event). */
+  offset_minutes?: number | null;
 };
 
 export type ReminderRow = {
@@ -191,14 +193,26 @@ export function draftFromOffset(
     key: newKey(),
     remind_at: minutesBefore(base, minutes).toISOString(),
     recipient_mode: recipient,
+    offset_minutes: minutes,
   };
 }
 
 export function customDraft(localValue: string, recipient: RecipientMode): ReminderDraft | null {
   const dt = new Date(localValue);
   if (Number.isNaN(dt.getTime())) return null;
-  return { key: newKey(), remind_at: dt.toISOString(), recipient_mode: recipient };
+  return { key: newKey(), remind_at: dt.toISOString(), recipient_mode: recipient, offset_minutes: null };
 }
+
+/** Human label for a reminder: preset offset when known, otherwise the absolute time. */
+export function reminderLabel(draft: ReminderDraft): string {
+  if (draft.offset_minutes != null) {
+    const preset = OFFSET_OPTIONS.find((o) => o.minutes === draft.offset_minutes);
+    if (preset) return preset.label;
+  }
+  return formatReminder(draft.remind_at);
+}
+
+export const isPast = (iso: string) => new Date(iso).getTime() <= Date.now();
 
 const WEEKDAY_FMT = new Intl.DateTimeFormat("hr-HR", {
   day: "numeric",

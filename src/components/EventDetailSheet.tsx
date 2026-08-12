@@ -85,7 +85,7 @@ export function EventDetailSheet({
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
       const value = e.target.value;
       setForm((prev) => {
-        // Keep unsent reminders meaningful when the event moves in time.
+        // Relative (preset) reminders follow the event; custom absolute times stay put.
         if ((key === "date" || key === "time") && reminders.length > 0) {
           const oldBase = new Date(`${prev.date || "1970-01-01"}T${prev.time || "00:00"}`);
           const next = { ...prev, [key]: value };
@@ -93,10 +93,14 @@ export function EventDetailSheet({
           const shift = newBase.getTime() - oldBase.getTime();
           if (Number.isFinite(shift) && shift !== 0) {
             setReminders((rs) =>
-              rs.map((r) => ({
-                ...r,
-                remind_at: new Date(new Date(r.remind_at).getTime() + shift).toISOString(),
-              })),
+              rs.map((r) =>
+                r.offset_minutes == null
+                  ? r
+                  : {
+                      ...r,
+                      remind_at: new Date(new Date(r.remind_at).getTime() + shift).toISOString(),
+                    },
+              ),
             );
           }
           return next;
@@ -120,8 +124,23 @@ export function EventDetailSheet({
     setBusy(true);
     try {
       await updateFamilyEvent(event.id, form, selected);
-      if (!userId) throw new Error("Korisnik nije prijavljen");
-      const res = await replaceReminders(event.id, reminders, userId);
+      if (!userId) {
+        await refresh();
+        setError(
+          "Obaveza je spremljena, ali podsjetnik nije. Pokušaj ponovno spremiti podsjetnik.",
+        );
+        return;
+      }
+      let res;
+      try {
+        res = await replaceReminders(event.id, reminders, userId);
+      } catch {
+        await refresh();
+        setError(
+          "Obaveza je spremljena, ali podsjetnik nije. Pokušaj ponovno spremiti podsjetnik.",
+        );
+        return;
+      }
       await refresh();
       if (res.skipped > 0) {
         setError(
