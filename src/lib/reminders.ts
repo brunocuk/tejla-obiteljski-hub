@@ -267,21 +267,28 @@ export function useEventReminders(eventId: string | null | undefined) {
   });
 }
 
-/** Inserts reminders for an event. Past times are skipped. */
-export async function insertReminders(eventId: string, drafts: ReminderDraft[], userId: string) {
+export type InsertResult = { inserted: number; skipped: number; skippedTimes: string[] };
+
+/** Inserts reminders for an event. Past times are skipped and reported back. */
+export async function insertReminders(
+  eventId: string,
+  drafts: ReminderDraft[],
+  userId: string,
+): Promise<InsertResult> {
+  if (!userId) throw new Error("Korisnik nije prijavljen");
   const now = Date.now();
   const future = drafts.filter((d) => new Date(d.remind_at).getTime() > now);
-  const skipped = drafts.length - future.length;
-  if (skipped > 0) {
-    console.warn(`[reminders] skipped ${skipped} reminder(s) already in the past`);
-  }
+  const skippedTimes = drafts
+    .filter((d) => new Date(d.remind_at).getTime() <= now)
+    .map((d) => formatReminder(d.remind_at));
+  const skipped = skippedTimes.length;
   const rows = future.map((d) => ({
       event_id: eventId,
       remind_at: d.remind_at,
       recipient_mode: d.recipient_mode,
       created_by: userId,
     }));
-  if (rows.length === 0) return { inserted: 0, skipped };
+  if (rows.length === 0) return { inserted: 0, skipped, skippedTimes };
   const { data, error } = await supabase.from("event_reminders").insert(rows).select("id");
   if (error) {
     console.error("[reminders] insert failed", error.message);
@@ -290,16 +297,20 @@ export async function insertReminders(eventId: string, drafts: ReminderDraft[], 
   if (!data || data.length === 0) {
     throw new Error("Podsjetnik nije spremljen.");
   }
-  return { inserted: data.length, skipped };
+  return { inserted: data.length, skipped, skippedTimes };
 }
 
 /** Replaces all not-yet-sent reminders of an event with the given drafts. */
-export async function replaceReminders(eventId: string, drafts: ReminderDraft[], userId: string) {
+export async function replaceReminders(
+  eventId: string,
+  drafts: ReminderDraft[],
+  userId: string,
+): Promise<InsertResult> {
   const { error } = await supabase
     .from("event_reminders")
     .delete()
     .eq("event_id", eventId)
     .is("sent_at", null);
   if (error) throw error;
-  await insertReminders(eventId, drafts, userId);
+  return insertReminders(eventId, drafts, userId);
 }
