@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { assigneeStyle, memberStyles, WHOLE_FAMILY, type MemberName } from "@/lib/family";
-import { useHubStore } from "@/lib/hub-store";
+import { assigneeStyle } from "@/lib/family";
+import { useFamilyEvents } from "@/lib/family-events";
+import { useFamilyMembers, useMyFamilyId } from "@/lib/family-workspace";
 
 export const Route = createFileRoute("/_authenticated/kalendar")({
   head: () => ({
@@ -28,21 +29,9 @@ type CalEvent = {
   date: string; // YYYY-MM-DD
   time: string;
   title: string;
-  assignee: string;
+  members: string[];
   meta?: string;
 };
-
-const demoEvents: CalEvent[] = [
-  { id: "d1", date: "2025-09-12", time: "08:00", title: "Škola", assignee: "Lara" },
-  { id: "d2", date: "2025-09-12", time: "16:30", title: "Zubar", assignee: "Korina" },
-  { id: "d3", date: "2025-09-12", time: "18:00", title: "Trening", assignee: "Lucija" },
-  { id: "d4", date: "2025-09-13", time: "10:00", title: "Turnir — dvorana Trnsko", assignee: "Lucija" },
-  { id: "d5", date: "2025-09-13", time: "17:00", title: "Roditeljski sastanak", assignee: "Mama" },
-  { id: "d6", date: "2025-09-14", time: "09:45", title: "Matematika — pisana provjera", assignee: "Lara" },
-  { id: "d7", date: "2025-09-17", time: "11:20", title: "Priroda — ispit", assignee: "Lara" },
-  { id: "d8", date: "2025-09-17", time: "20:00", title: "Uplata izleta — rok", assignee: "Tata" },
-  { id: "d9", date: "2025-09-22", time: "07:30", title: "Izlet — 12 €, voda, kapa", assignee: "Korina" },
-];
 
 const MONTHS = [
   "Siječanj", "Veljača", "Ožujak", "Travanj", "Svibanj", "Lipanj",
@@ -54,48 +43,47 @@ const MONTHS_GEN = [
 ];
 const WEEKDAYS = ["nedjelja", "ponedjeljak", "utorak", "srijeda", "četvrtak", "petak", "subota"];
 
-const FILTERS = ["Svi", "Mama", "Tata", "Lara", "Lucija", "Korina"] as const;
-
 function monthKey(d: string) {
   return d.slice(0, 7);
 }
 
-function KalendarPage() {
-  const { confirmed, focusMonth } = useHubStore();
-  const [cursor, setCursor] = useState(() => focusMonth || "2025-09");
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("Svi");
+function currentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
 
-  useEffect(() => {
-    if (focusMonth) setCursor(focusMonth);
-  }, [focusMonth]);
+function KalendarPage() {
+  const { data: familyId } = useMyFamilyId();
+  const { data: members } = useFamilyMembers(familyId);
+  const { data: events, isPending } = useFamilyEvents(familyId);
+  const [cursor, setCursor] = useState(currentMonth);
+  const [filter, setFilter] = useState("Svi");
+
+  const filters = ["Svi", ...(members ?? []).map((m) => m.name)];
 
   const allEvents: CalEvent[] = useMemo(
-    () => [
-      ...demoEvents,
-      ...confirmed.map((c) => ({
-        id: c.id,
-        date: /^\d{4}-\d{2}-\d{2}$/.test(c.date.trim()) ? c.date.trim() : "",
-        time: c.time,
-        title: c.title || "Bez naziva",
-        assignee: c.assignee,
+    () =>
+      (events ?? []).map((e) => ({
+        id: e.id,
+        date: e.date,
+        time: e.time,
+        title: e.title || "Bez naziva",
+        members: e.members,
         meta: [
-          c.category,
-          c.location,
-          c.amount,
-          c.deadline ? `rok: ${c.deadline}` : "",
-          c.things_to_bring.join(", "),
-          c.notes,
+          e.category,
+          e.location,
+          e.amount,
+          e.deadline ? `rok: ${e.deadline}` : "",
+          e.things_to_bring.join(", "),
+          e.notes,
         ]
           .filter(Boolean)
           .join(" · "),
       })),
-    ],
-    [confirmed],
+    [events],
   );
 
-  const visible = allEvents.filter(
-    (e) => filter === "Svi" || e.assignee === filter || e.assignee === WHOLE_FAMILY,
-  );
+  const visible = allEvents.filter((e) => filter === "Svi" || e.members.includes(filter));
   const inMonth = visible
     .filter((e) => e.date && monthKey(e.date) === cursor)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
@@ -139,9 +127,9 @@ function KalendarPage() {
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2">
-        {FILTERS.map((f) => {
+        {filters.map((f) => {
           const active = filter === f;
-          const dot = f === "Svi" ? "" : memberStyles[f as MemberName].dot;
+          const dot = f === "Svi" ? "" : assigneeStyle(f).dot;
           return (
             <button
               key={f}
@@ -160,7 +148,13 @@ function KalendarPage() {
         })}
       </div>
 
-      {inMonth.length === 0 && undated.length === 0 ? (
+      {isPending ? (
+        <div className="card-soft px-5 py-8 text-center">
+          <p className="text-sm text-muted-foreground">Učitavam obveze…</p>
+        </div>
+      ) : null}
+
+      {!isPending && inMonth.length === 0 && undated.length === 0 ? (
         <div className="card-soft px-5 py-8 text-center">
           <p className="text-sm text-muted-foreground">Nema obaveza za odabrani period.</p>
         </div>
