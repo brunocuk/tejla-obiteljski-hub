@@ -131,7 +131,8 @@ export function AnalysisResults({
         queryClient.invalidateQueries({ queryKey: ["family-reminders", familyId] }),
       ]);
       onSaved(ids.length);
-    } catch {
+    } catch (e) {
+      console.error("[analysis] save failed", e);
       setError("Obavezu nije bilo moguće spremiti. Pokušaj ponovno.");
     } finally {
       setSaving(false);
