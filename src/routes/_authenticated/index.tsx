@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { assigneeStyle, memberStyles, type MemberName } from "@/lib/family";
+import { assigneeStyle } from "@/lib/family";
 import { useFamilyEvents, type FamilyEvent } from "@/lib/family-events";
 import { EventDetailSheet } from "@/components/EventDetailSheet";
 import { useMyFamilyId } from "@/lib/family-workspace";
@@ -16,24 +16,17 @@ export const Route = createFileRoute("/_authenticated/")({
       { title: "Danas — Family Hub" },
       {
         name: "description",
-        content:
-          "Svi obiteljski termini, obveze i zadaci na jednom mjestu. Pregled dana za cijelu obitelj.",
+        content: "Sve što te čeka danas — termini, obveze i rokovi na jednom mjestu.",
       },
       { property: "og:title", content: "Danas — Family Hub" },
       {
         property: "og:description",
-        content: "Svi obiteljski termini, obveze i zadaci na jednom mjestu.",
+        content: "Sve što te čeka, na jednom mjestu.",
       },
     ],
   }),
   component: Danas,
 });
-
-const initialTasks: { id: string; title: string; who?: MemberName }[] = [
-  { id: "t1", title: "Uplatiti izlet 12 € do četvrtka", who: "Tata" },
-  { id: "t2", title: "Kupiti bilježnicu za Laru", who: "Mama" },
-  { id: "t3", title: "Potpisati suglasnost za izlet" },
-];
 
 const MONTHS_GEN = [
   "siječnja", "veljače", "ožujka", "travnja", "svibnja", "lipnja",
@@ -45,7 +38,6 @@ const isoDay = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 function Danas() {
-  const [done, setDone] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const { data: familyId } = useMyFamilyId();
   const { data: events, isPending } = useFamilyEvents(familyId);
@@ -163,54 +155,6 @@ function Danas() {
           </div>
         </section>
       ) : null}
-
-      <section className="mb-8">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Za napraviti
-        </h2>
-        <ul className="space-y-3">
-          {initialTasks.map((t) => {
-            const checked = done.includes(t.id);
-            return (
-              <li key={t.id}>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setDone((d) => (d.includes(t.id) ? d.filter((x) => x !== t.id) : [...d, t.id]))
-                  }
-                  className="card-soft flex w-full items-center gap-3 px-4 py-4 text-left transition-opacity active:opacity-70"
-                >
-                  <span
-                    className={`flex size-6 shrink-0 items-center justify-center rounded-full border transition-colors ${
-                      checked ? "border-primary bg-primary" : "border-border bg-background"
-                    }`}
-                  >
-                    {checked ? <Check className="size-3.5 text-primary-foreground" /> : null}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span
-                      className={`block text-[15px] font-medium ${checked ? "text-muted-foreground line-through" : ""}`}
-                    >
-                      {t.title}
-                    </span>
-                  </span>
-                  {t.who ? (
-                    <span
-                      className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${memberStyles[t.who].chip}`}
-                    >
-                      {t.who}
-                    </span>
-                  ) : (
-                    <span className="shrink-0 rounded-full bg-warm px-2.5 py-1 text-[11px] font-semibold text-warm-foreground">
-                      Nedodijeljeno
-                    </span>
-                  )}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
 
       {undated.length > 0 ? (
         <section className="mb-8">

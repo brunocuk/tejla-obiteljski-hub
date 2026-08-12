@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { assigneeStyle } from "@/lib/family";
 import { useFamilyEvents, type FamilyEvent } from "@/lib/family-events";
 import { EventDetailSheet } from "@/components/EventDetailSheet";
+import { ManualEventForm } from "@/components/ManualEventForm";
 import { useFamilyMembers, useMyFamilyId } from "@/lib/family-workspace";
 import { ReminderBadge } from "@/components/ReminderBadge";
 import { useFamilyReminders } from "@/lib/reminders";
@@ -15,12 +16,12 @@ export const Route = createFileRoute("/_authenticated/kalendar")({
       { title: "Kalendar — Family Hub" },
       {
         name: "description",
-        content: "Obiteljski kalendar po danima: škola, treninzi, ispiti i termini za svako dijete.",
+        content: "Kalendar po danima: termini, obveze i rokovi za sve članove na jednom mjestu.",
       },
       { property: "og:title", content: "Kalendar — Family Hub" },
       {
         property: "og:description",
-        content: "Pregled obiteljskih obveza po danima, s bojom za svakog člana.",
+        content: "Pregled svih obveza po danima, s bojom za svakog člana.",
       },
     ],
   }),
@@ -63,6 +64,7 @@ function KalendarPage() {
   const [cursor, setCursor] = useState(currentMonth);
   const [filter, setFilter] = useState("Svi");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const openEvent: FamilyEvent | null =
     (events ?? []).find((e) => e.id === openId) ?? null;
 
@@ -109,7 +111,23 @@ function KalendarPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Kalendar" subtitle="Obiteljske obveze po danima" />
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-[28px] font-bold leading-tight tracking-tight text-foreground">
+            Kalendar
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">Sve što te čeka, po danima</p>
+        </div>
+        <button
+          type="button"
+          aria-label="Dodaj obavezu"
+          onClick={() => setAddOpen(true)}
+          className="mt-1 flex size-11 shrink-0 items-center justify-center rounded-2xl text-primary-foreground"
+          style={{ backgroundImage: "var(--gradient-primary)", boxShadow: "var(--shadow-float)" }}
+        >
+          <Plus className="size-5" strokeWidth={2.4} />
+        </button>
+      </div>
 
       <div className="mb-5 flex items-center justify-between rounded-2xl bg-secondary px-2 py-2">
         <button
@@ -239,6 +257,25 @@ function KalendarPage() {
 
       {openEvent ? (
         <EventDetailSheet event={openEvent} onClose={() => setOpenId(null)} />
+      ) : null}
+
+      {addOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30">
+          <div className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-background p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold tracking-tight">Nova obaveza</h2>
+              <button
+                type="button"
+                aria-label="Zatvori"
+                onClick={() => setAddOpen(false)}
+                className="rounded-xl p-1 text-muted-foreground active:opacity-60"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <ManualEventForm onClose={() => setAddOpen(false)} />
+          </div>
+        </div>
       ) : null}
     </AppShell>
   );

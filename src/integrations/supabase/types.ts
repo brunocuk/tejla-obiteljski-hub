@@ -174,6 +174,7 @@ export type Database = {
           created_at: string
           email: string
           family_id: string
+          family_member_id: string | null
           id: string
           invited_by: string | null
           role: string
@@ -184,6 +185,7 @@ export type Database = {
           created_at?: string
           email: string
           family_id: string
+          family_member_id?: string | null
           id?: string
           invited_by?: string | null
           role?: string
@@ -194,6 +196,7 @@ export type Database = {
           created_at?: string
           email?: string
           family_id?: string
+          family_member_id?: string | null
           id?: string
           invited_by?: string | null
           role?: string
@@ -205,6 +208,13 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_invitations_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
             referencedColumns: ["id"]
           },
         ]
@@ -276,6 +286,57 @@ export type Database = {
           },
         ]
       }
+      member_visibility: {
+        Row: {
+          allowed_member_ids: string[]
+          created_at: string
+          family_id: string
+          family_member_id: string
+          id: string
+          mode: string
+          see_own: boolean
+          see_shared: boolean
+          updated_at: string
+        }
+        Insert: {
+          allowed_member_ids?: string[]
+          created_at?: string
+          family_id: string
+          family_member_id: string
+          id?: string
+          mode?: string
+          see_own?: boolean
+          see_shared?: boolean
+          updated_at?: string
+        }
+        Update: {
+          allowed_member_ids?: string[]
+          created_at?: string
+          family_id?: string
+          family_member_id?: string
+          id?: string
+          mode?: string
+          see_own?: boolean
+          see_shared?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_visibility_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_visibility_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: true
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -331,10 +392,12 @@ export type Database = {
     Functions: {
       accept_family_invitation: { Args: never; Returns: string }
       can_access_event: { Args: { _event_id: string }; Returns: boolean }
+      can_view_event: { Args: { _event_id: string }; Returns: boolean }
       create_family: {
         Args: { _family_name: string; _my_name: string }
         Returns: string
       }
+      is_family_adult: { Args: { _family_id: string }; Returns: boolean }
       is_family_member: { Args: { _family_id: string }; Returns: boolean }
       is_family_owner: { Args: { _family_id: string }; Returns: boolean }
     }

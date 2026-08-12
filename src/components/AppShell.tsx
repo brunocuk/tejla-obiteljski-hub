@@ -1,13 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { CalendarDays, Home, Inbox, Sparkles, Users } from "lucide-react";
+import { CalendarDays, Home, Inbox, Users } from "lucide-react";
 
 const items = [
   { to: "/", label: "Danas", icon: Home },
   { to: "/inbox", label: "Inbox", icon: Inbox },
-  { to: "/analiza", label: "AI", icon: Sparkles },
   { to: "/kalendar", label: "Kalendar", icon: CalendarDays },
-  { to: "/obitelj", label: "Obitelj", icon: Users },
+  { to: "/obitelj", label: "Članovi", icon: Users },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
