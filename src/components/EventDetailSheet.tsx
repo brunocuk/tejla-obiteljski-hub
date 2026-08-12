@@ -222,7 +222,7 @@ export function EventDetailSheet({
               </>
             )}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
