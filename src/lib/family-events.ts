@@ -104,6 +104,43 @@ export function useFamilyEvents(familyId: string | null | undefined) {
 type MemberRow = { id: string; name: string };
 
 /** Saves one manually entered event plus its member links. */
+export async function updateFamilyEvent(
+  eventId: string,
+  input: { title: string; date: string; time: string; location: string; notes: string },
+  memberIds: string[],
+) {
+  const { error } = await supabase
+    .from("family_events")
+    .update({
+      title: input.title.trim() || "Bez naziva",
+      date: toDbDate(input.date),
+      time: input.time.trim() ? toDbTime(input.time) : null,
+      location: emptyToNull(input.location),
+      notes: emptyToNull(input.notes),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", eventId);
+  if (error) throw error;
+
+  const { error: delError } = await supabase
+    .from("event_members")
+    .delete()
+    .eq("event_id", eventId);
+  if (delError) throw delError;
+
+  if (memberIds.length > 0) {
+    const { error: linkError } = await supabase
+      .from("event_members")
+      .insert(memberIds.map((id) => ({ event_id: eventId, family_member_id: id })));
+    if (linkError) throw linkError;
+  }
+}
+
+export async function deleteFamilyEvent(eventId: string) {
+  const { error } = await supabase.from("family_events").delete().eq("id", eventId);
+  if (error) throw error;
+}
+
 export async function saveManualEvent(
   familyId: string,
   input: {
