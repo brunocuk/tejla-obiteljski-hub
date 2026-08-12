@@ -120,8 +120,15 @@ export function EventDetailSheet({
     setBusy(true);
     try {
       await updateFamilyEvent(event.id, form, selected);
-      if (userId) await replaceReminders(event.id, reminders, userId);
+      if (!userId) throw new Error("Korisnik nije prijavljen");
+      const res = await replaceReminders(event.id, reminders, userId);
       await refresh();
+      if (res.skipped > 0) {
+        setError(
+          `Obaveza je spremljena, ali podsjetnik (${res.skippedTimes.join(", ")}) nije spremljen jer je to vrijeme već prošlo.`,
+        );
+        return;
+      }
       setEditing(false);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
