@@ -3,7 +3,8 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { assigneeStyle } from "@/lib/family";
-import { useFamilyEvents } from "@/lib/family-events";
+import { useFamilyEvents, type FamilyEvent } from "@/lib/family-events";
+import { EventDetailSheet } from "@/components/EventDetailSheet";
 import { useFamilyMembers, useMyFamilyId } from "@/lib/family-workspace";
 
 export const Route = createFileRoute("/_authenticated/kalendar")({
@@ -58,6 +59,9 @@ function KalendarPage() {
   const { data: events, isPending } = useFamilyEvents(familyId);
   const [cursor, setCursor] = useState(currentMonth);
   const [filter, setFilter] = useState("Svi");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const openEvent: FamilyEvent | null =
+    (events ?? []).find((e) => e.id === openId) ?? null;
 
   const filters = ["Svi", ...(members ?? []).map((m) => m.name)];
 
@@ -175,7 +179,12 @@ function KalendarPage() {
               </div>
               <div className="card-soft divide-y divide-border">
                 {list.map((i) => (
-                  <div key={i.id} className="flex items-center gap-4 px-5 py-4">
+                  <button
+                    key={i.id}
+                    type="button"
+                    onClick={() => setOpenId(i.id)}
+                    className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
+                  >
                     <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
                       {i.time || "—"}
                     </span>
@@ -186,7 +195,7 @@ function KalendarPage() {
                         {[i.members.join(", "), i.meta].filter(Boolean).join(" · ")}
                       </p>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             </section>
@@ -200,7 +209,12 @@ function KalendarPage() {
             </div>
             <div className="card-soft divide-y divide-border">
               {undated.map((i) => (
-                <div key={i.id} className="flex items-center gap-4 px-5 py-4">
+                <button
+                  key={i.id}
+                  type="button"
+                  onClick={() => setOpenId(i.id)}
+                  className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
+                >
                   <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
                     {i.time || "—"}
                   </span>
@@ -211,12 +225,16 @@ function KalendarPage() {
                       {[i.members.join(", "), i.meta].filter(Boolean).join(" · ")}
                     </p>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </section>
         ) : null}
       </div>
+
+      {openEvent ? (
+        <EventDetailSheet event={openEvent} onClose={() => setOpenId(null)} />
+      ) : null}
     </AppShell>
   );
 }
