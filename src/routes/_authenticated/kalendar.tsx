@@ -179,11 +179,11 @@ function KalendarPage() {
                     <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
                       {i.time || "—"}
                     </span>
-                    <span className={`h-8 w-1 shrink-0 rounded-full ${assigneeStyle(i.assignee).dot}`} />
+                    <span className={`h-8 w-1 shrink-0 rounded-full ${assigneeStyle(i.members[0] ?? "").dot}`} />
                     <div className="min-w-0">
                       <p className="truncate text-[15px] font-semibold">{i.title}</p>
                       <p className="truncate text-xs font-medium text-muted-foreground">
-                        {[i.assignee, i.meta].filter(Boolean).join(" · ")}
+                        {[i.members.join(", "), i.meta].filter(Boolean).join(" · ")}
                       </p>
                     </div>
                   </div>
@@ -204,11 +204,11 @@ function KalendarPage() {
                   <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
                     {i.time || "—"}
                   </span>
-                  <span className={`h-8 w-1 shrink-0 rounded-full ${assigneeStyle(i.assignee).dot}`} />
+                  <span className={`h-8 w-1 shrink-0 rounded-full ${assigneeStyle(i.members[0] ?? "").dot}`} />
                   <div className="min-w-0">
                     <p className="truncate text-[15px] font-semibold">{i.title}</p>
                     <p className="truncate text-xs font-medium text-muted-foreground">
-                      {[i.assignee, i.meta].filter(Boolean).join(" · ")}
+                      {[i.members.join(", "), i.meta].filter(Boolean).join(" · ")}
                     </p>
                   </div>
                 </div>
