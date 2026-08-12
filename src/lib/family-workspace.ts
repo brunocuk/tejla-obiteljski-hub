@@ -28,6 +28,52 @@ export function useMyFamilyId() {
   return useQuery({ queryKey: ["my-family-id"], queryFn: fetchMyFamilyId });
 }
 
+export function useMyUserId() {
+  return useQuery({
+    queryKey: ["my-user-id"],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getUser();
+      return data.user?.id ?? null;
+    },
+  });
+}
+
+export function useMyFamily(familyId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["my-family", familyId],
+    enabled: Boolean(familyId),
+    queryFn: async (): Promise<{ id: string; name: string } | null> => {
+      const { data, error } = await supabase
+        .from("families")
+        .select("id, name")
+        .eq("id", familyId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data ?? null;
+    },
+  });
+}
+
+/** Updates the signed-in user's own display name (profile + linked family member). */
+export async function updateMyDisplayName(familyId: string, name: string) {
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) throw new Error("Nisi prijavljen.");
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ name })
+    .eq("id", uid);
+  if (profileError) throw profileError;
+
+  const { error: memberError } = await supabase
+    .from("family_members")
+    .update({ name })
+    .eq("family_id", familyId)
+    .eq("linked_user_id", uid);
+  if (memberError) throw memberError;
+}
+
 export async function fetchMyFamilyRole(): Promise<string | null> {
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
