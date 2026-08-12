@@ -26,13 +26,15 @@ export function FamilyGate({ children }: { children: ReactNode }) {
       setError("Ispuni naziv obitelji i svoje ime.");
       return;
     }
+    if (saving) return;
     setSaving(true);
     setError("");
     try {
       await createFamily(familyName.trim(), myName.trim());
       await queryClient.invalidateQueries({ queryKey: ["my-family-id"] });
-    } catch {
-      setError("Stvaranje obitelji nije uspjelo. Pokušaj ponovno.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setError(message ? `Stvaranje obitelji nije uspjelo: ${message}` : "Stvaranje obitelji nije uspjelo. Pokušaj ponovno.");
     } finally {
       setSaving(false);
     }
