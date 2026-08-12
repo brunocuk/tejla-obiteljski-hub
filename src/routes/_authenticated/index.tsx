@@ -29,8 +29,18 @@ export const Route = createFileRoute("/_authenticated/")({
 });
 
 const MONTHS_GEN = [
-  "siječnja", "veljače", "ožujka", "travnja", "svibnja", "lipnja",
-  "srpnja", "kolovoza", "rujna", "listopada", "studenoga", "prosinca",
+  "siječnja",
+  "veljače",
+  "ožujka",
+  "travnja",
+  "svibnja",
+  "lipnja",
+  "srpnja",
+  "kolovoza",
+  "rujna",
+  "listopada",
+  "studenoga",
+  "prosinca",
 ];
 const WEEKDAYS = ["Nedjelja", "Ponedjeljak", "Utorak", "Srijeda", "Četvrtak", "Petak", "Subota"];
 
@@ -58,8 +68,7 @@ function Danas() {
 
   const dayDiff = (iso: string) =>
     Math.round(
-      (new Date(`${iso}T00:00:00`).getTime() -
-        new Date(`${today}T00:00:00`).getTime()) /
+      (new Date(`${iso}T00:00:00`).getTime() - new Date(`${today}T00:00:00`).getTime()) /
         86_400_000,
     );
   const soon = all
@@ -74,7 +83,8 @@ function Danas() {
 
   const soonLabel = (e: FamilyEvent) => {
     const diff = dayDiff(e.deadline || e.date);
-    if (e.deadline && (!e.date || e.deadline <= e.date)) return diff === 1 ? "Rok sutra" : `Rok za ${diff} dana`;
+    if (e.deadline && (!e.date || e.deadline <= e.date))
+      return diff === 1 ? "Rok sutra" : `Rok za ${diff} dana`;
     return diff === 1 ? "Sutra" : `Za ${diff} dana`;
   };
 
@@ -174,9 +184,7 @@ function Danas() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-semibold">{c.title || "Bez naziva"}</p>
-                  <p className="truncate text-sm text-muted-foreground">
-                    {c.notes}
-                  </p>
+                  <p className="truncate text-sm text-muted-foreground">{c.notes}</p>
                   <ReminderBadge reminders={reminderMap[c.id]} />
                 </div>
                 {c.members.length > 0 ? (
@@ -213,7 +221,9 @@ function Danas() {
                   onClick={() => setOpenId(u.id)}
                   className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
                 >
-                  <span className={`size-2 rounded-full ${assigneeStyle(u.members[0] ?? "").dot}`} />
+                  <span
+                    className={`size-2 rounded-full ${assigneeStyle(u.members[0] ?? "").dot}`}
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[15px] font-semibold">
                       {u.members.join(", ") || "Cijela obitelj"}
@@ -237,9 +247,7 @@ function Danas() {
         </Link>
       </section>
 
-      {openEvent ? (
-        <EventDetailSheet event={openEvent} onClose={() => setOpenId(null)} />
-      ) : null}
+      {openEvent ? <EventDetailSheet event={openEvent} onClose={() => setOpenId(null)} /> : null}
     </AppShell>
   );
 }

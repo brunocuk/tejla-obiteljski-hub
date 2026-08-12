@@ -30,8 +30,7 @@ export const Route = createFileRoute("/_authenticated/obitelj")({
       { title: "Članovi — Family Hub" },
       {
         name: "description",
-        content:
-          "Svi članovi zajedničkog prostora: pozovi odrasle i djecu te odredi što tko vidi.",
+        content: "Svi članovi zajedničkog prostora: pozovi odrasle i djecu te odredi što tko vidi.",
       },
       { property: "og:title", content: "Članovi — Family Hub" },
       {
@@ -513,7 +512,9 @@ function VisibilitySheet({
   const queryClient = useQueryClient();
   const { data: visibility = {} } = useMemberVisibility(familyId);
   const current = visibility[member.id];
-  const [mode, setMode] = useState<VisibilityMode>((current?.mode ?? "own_shared") as VisibilityMode);
+  const [mode, setMode] = useState<VisibilityMode>(
+    (current?.mode ?? "own_shared") as VisibilityMode,
+  );
   const [seeOwn, setSeeOwn] = useState(current?.see_own ?? true);
   const [seeShared, setSeeShared] = useState(current?.see_shared ?? true);
   const [allowed, setAllowed] = useState<string[]>(current?.allowed_member_ids ?? []);

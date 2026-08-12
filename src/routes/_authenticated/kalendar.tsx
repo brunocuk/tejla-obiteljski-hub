@@ -38,12 +38,32 @@ type CalEvent = {
 };
 
 const MONTHS = [
-  "Siječanj", "Veljača", "Ožujak", "Travanj", "Svibanj", "Lipanj",
-  "Srpanj", "Kolovoz", "Rujan", "Listopad", "Studeni", "Prosinac",
+  "Siječanj",
+  "Veljača",
+  "Ožujak",
+  "Travanj",
+  "Svibanj",
+  "Lipanj",
+  "Srpanj",
+  "Kolovoz",
+  "Rujan",
+  "Listopad",
+  "Studeni",
+  "Prosinac",
 ];
 const MONTHS_GEN = [
-  "siječnja", "veljače", "ožujka", "travnja", "svibnja", "lipnja",
-  "srpnja", "kolovoza", "rujna", "listopada", "studenoga", "prosinca",
+  "siječnja",
+  "veljače",
+  "ožujka",
+  "travnja",
+  "svibnja",
+  "lipnja",
+  "srpnja",
+  "kolovoza",
+  "rujna",
+  "listopada",
+  "studenoga",
+  "prosinca",
 ];
 const WEEKDAYS = ["nedjelja", "ponedjeljak", "utorak", "srijeda", "četvrtak", "petak", "subota"];
 
@@ -65,8 +85,7 @@ function KalendarPage() {
   const [filter, setFilter] = useState("Svi");
   const [openId, setOpenId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const openEvent: FamilyEvent | null =
-    (events ?? []).find((e) => e.id === openId) ?? null;
+  const openEvent: FamilyEvent | null = (events ?? []).find((e) => e.id === openId) ?? null;
 
   const filters = ["Svi", ...(members ?? []).map((m) => m.name)];
 
@@ -209,7 +228,9 @@ function KalendarPage() {
                     <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
                       {i.time || "—"}
                     </span>
-                    <span className={`h-8 w-1 shrink-0 rounded-full ${assigneeStyle(i.members[0] ?? "").dot}`} />
+                    <span
+                      className={`h-8 w-1 shrink-0 rounded-full ${assigneeStyle(i.members[0] ?? "").dot}`}
+                    />
                     <div className="min-w-0">
                       <p className="truncate text-[15px] font-semibold">{i.title}</p>
                       <p className="truncate text-xs font-medium text-muted-foreground">
@@ -240,7 +261,9 @@ function KalendarPage() {
                   <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
                     {i.time || "—"}
                   </span>
-                  <span className={`h-8 w-1 shrink-0 rounded-full ${assigneeStyle(i.members[0] ?? "").dot}`} />
+                  <span
+                    className={`h-8 w-1 shrink-0 rounded-full ${assigneeStyle(i.members[0] ?? "").dot}`}
+                  />
                   <div className="min-w-0">
                     <p className="truncate text-[15px] font-semibold">{i.title}</p>
                     <p className="truncate text-xs font-medium text-muted-foreground">
@@ -255,9 +278,7 @@ function KalendarPage() {
         ) : null}
       </div>
 
-      {openEvent ? (
-        <EventDetailSheet event={openEvent} onClose={() => setOpenId(null)} />
-      ) : null}
+      {openEvent ? <EventDetailSheet event={openEvent} onClose={() => setOpenId(null)} /> : null}
 
       {addOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30">

@@ -41,7 +41,12 @@ export function useMemberVisibility(familyId: string | null | undefined) {
 export async function saveMemberVisibility(
   familyId: string,
   familyMemberId: string,
-  patch: { mode: VisibilityMode; see_own?: boolean; see_shared?: boolean; allowed_member_ids?: string[] },
+  patch: {
+    mode: VisibilityMode;
+    see_own?: boolean;
+    see_shared?: boolean;
+    allowed_member_ids?: string[];
+  },
 ) {
   const { error } = await supabase.from("member_visibility").upsert(
     {

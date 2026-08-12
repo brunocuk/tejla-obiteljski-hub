@@ -53,9 +53,7 @@ export function AnalysisResults({
     if (memberRows.length === 0) return;
     const names = memberRows.map((m) => m.name);
     setItems((prev) =>
-      prev.map((it) =>
-        it.assignee ? it : { ...it, assignee: resolveAssignee(it.person, names) },
-      ),
+      prev.map((it) => (it.assignee ? it : { ...it, assignee: resolveAssignee(it.person, names) })),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [members]);
@@ -222,7 +220,9 @@ export function AnalysisResults({
                         setError("");
                       }}
                       className={`w-full appearance-none rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/40 ${
-                        it.assignee ? "bg-secondary/60" : "bg-warm font-semibold text-warm-foreground"
+                        it.assignee
+                          ? "bg-secondary/60"
+                          : "bg-warm font-semibold text-warm-foreground"
                       }`}
                     >
                       <option value="">Odaberi člana</option>

@@ -204,89 +204,91 @@ function AuthPage() {
           </button>
         </form>
       ) : (
-      <>
+        <>
+          <form onSubmit={onSubmit} className="mt-7 space-y-3">
+            {mode === "register" ? (
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Ime
+                </span>
+                <input
+                  className={inputClass}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                />
+              </label>
+            ) : null}
 
-      <form onSubmit={onSubmit} className="mt-7 space-y-3">
-        {mode === "register" ? (
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Ime
-            </span>
-            <input
-              className={inputClass}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoComplete="name"
-            />
-          </label>
-        ) : null}
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                E-mail
+              </span>
+              <input
+                className={inputClass}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </label>
 
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            E-mail
-          </span>
-          <input
-            className={inputClass}
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-          />
-        </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Lozinka
+              </span>
+              <input
+                className={inputClass}
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+              />
+            </label>
 
-        <label className="block">
-          <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Lozinka
-          </span>
-          <input
-            className={inputClass}
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete={mode === "login" ? "current-password" : "new-password"}
-          />
-        </label>
+            {mode === "register" ? (
+              <label className="block">
+                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Ponovi lozinku
+                </span>
+                <input
+                  className={inputClass}
+                  type="password"
+                  value={password2}
+                  onChange={(e) => setPassword2(e.target.value)}
+                  autoComplete="new-password"
+                />
+              </label>
+            ) : null}
 
-        {mode === "register" ? (
-          <label className="block">
-            <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              Ponovi lozinku
-            </span>
-            <input
-              className={inputClass}
-              type="password"
-              value={password2}
-              onChange={(e) => setPassword2(e.target.value)}
-              autoComplete="new-password"
-            />
-          </label>
-        ) : null}
+            {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
+            {info ? <p className="text-sm font-medium text-accent-foreground">{info}</p> : null}
 
-        {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
-        {info ? <p className="text-sm font-medium text-accent-foreground">{info}</p> : null}
+            <button
+              type="submit"
+              disabled={busy}
+              className="mt-2 w-full rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground disabled:opacity-60"
+              style={{
+                backgroundImage: "var(--gradient-primary)",
+                boxShadow: "var(--shadow-float)",
+              }}
+            >
+              {mode === "login" ? "Prijavi se" : "Izradi račun"}
+            </button>
+          </form>
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="mt-2 w-full rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground disabled:opacity-60"
-          style={{ backgroundImage: "var(--gradient-primary)", boxShadow: "var(--shadow-float)" }}
-        >
-          {mode === "login" ? "Prijavi se" : "Izradi račun"}
-        </button>
-      </form>
-
-      <button
-        type="button"
-        onClick={() => {
-          setMode(mode === "login" ? "register" : "login");
-          setError("");
-          setInfo("");
-        }}
-        className="mt-5 text-sm font-semibold text-primary"
-      >
-        {mode === "login" ? "Nemaš račun? Registriraj se" : "Već imaš račun? Prijavi se"}
-      </button>
-      </>
+          <button
+            type="button"
+            onClick={() => {
+              setMode(mode === "login" ? "register" : "login");
+              setError("");
+              setInfo("");
+            }}
+            className="mt-5 text-sm font-semibold text-primary"
+          >
+            {mode === "login" ? "Nemaš račun? Registriraj se" : "Već imaš račun? Prijavi se"}
+          </button>
+        </>
       )}
     </div>
   );

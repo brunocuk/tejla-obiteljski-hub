@@ -11,7 +11,9 @@ type InviteInput = {
 export const sendFamilyInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: InviteInput) => {
-    const email = String(input?.email ?? "").trim().toLowerCase();
+    const email = String(input?.email ?? "")
+      .trim()
+      .toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new Error("Unesi ispravnu e-mail adresu.");
     }

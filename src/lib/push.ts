@@ -5,7 +5,8 @@ export type PushStatus = "unsupported" | "needs-install" | "granted" | "denied" 
 const isIOS = () =>
   typeof navigator !== "undefined" &&
   (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === "MacIntel" && (navigator as unknown as { maxTouchPoints: number }).maxTouchPoints > 1));
+    (navigator.platform === "MacIntel" &&
+      (navigator as unknown as { maxTouchPoints: number }).maxTouchPoints > 1));
 
 export const isStandalone = () =>
   typeof window !== "undefined" &&

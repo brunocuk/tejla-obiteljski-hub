@@ -110,14 +110,40 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
 }
 
 const MONTHS: Record<string, number> = {
-  sijecanj: 1, sijecnja: 1, veljaca: 2, veljace: 2, ozujak: 3, ozujka: 3, travanj: 4, travnja: 4,
-  svibanj: 5, svibnja: 5, lipanj: 6, lipnja: 6, srpanj: 7, srpnja: 7, kolovoz: 8, kolovoza: 8,
-  rujan: 9, rujna: 9, listopad: 10, listopada: 10, studeni: 11, studenog: 11, prosinac: 12, prosinca: 12,
+  sijecanj: 1,
+  sijecnja: 1,
+  veljaca: 2,
+  veljace: 2,
+  ozujak: 3,
+  ozujka: 3,
+  travanj: 4,
+  travnja: 4,
+  svibanj: 5,
+  svibnja: 5,
+  lipanj: 6,
+  lipnja: 6,
+  srpanj: 7,
+  srpnja: 7,
+  kolovoz: 8,
+  kolovoza: 8,
+  rujan: 9,
+  rujna: 9,
+  listopad: 10,
+  listopada: 10,
+  studeni: 11,
+  studenog: 11,
+  prosinac: 12,
+  prosinca: 12,
 };
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const deaccent = (s: string) =>
-  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .toLowerCase();
 
 function parseDate(rawDate: string, rawNotes: string, title: string, deadline: string) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
@@ -158,7 +184,12 @@ function parseDate(rawDate: string, rawNotes: string, title: string, deadline: s
     if (!day || !month || day > 31 || month > 12) continue;
 
     const dayMonth = `${pad(month)}-${pad(day)}`;
-    const notes = src.isNotes ? rawNotes.replace(matched, "").replace(/^[\s.,;:–-]+/, "").trim() : rawNotes;
+    const notes = src.isNotes
+      ? rawNotes
+          .replace(matched, "")
+          .replace(/^[\s.,;:–-]+/, "")
+          .trim()
+      : rawNotes;
     return year
       ? { date: `${year}-${dayMonth}`, dayMonth, needsYear: false, notes }
       : { date: "", dayMonth, needsYear: true, notes };

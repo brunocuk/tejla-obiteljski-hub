@@ -117,7 +117,11 @@ export function FamilyGate({ children }: { children: ReactNode }) {
       await queryClient.invalidateQueries({ queryKey: ["my-family-id"] });
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
-      setError(message ? `Stvaranje obitelji nije uspjelo: ${message}` : "Stvaranje obitelji nije uspjelo. Pokušaj ponovno.");
+      setError(
+        message
+          ? `Stvaranje obitelji nije uspjelo: ${message}`
+          : "Stvaranje obitelji nije uspjelo. Pokušaj ponovno.",
+      );
     } finally {
       setSaving(false);
     }

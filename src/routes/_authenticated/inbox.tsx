@@ -182,7 +182,13 @@ function InboxPage() {
         onChange={onPick}
         className="hidden"
       />
-      <input ref={pdfRef} type="file" accept="application/pdf" onChange={onPick} className="hidden" />
+      <input
+        ref={pdfRef}
+        type="file"
+        accept="application/pdf"
+        onChange={onPick}
+        className="hidden"
+      />
 
       {mode === "idle" && !loading ? (
         <button
@@ -206,7 +212,11 @@ function InboxPage() {
         <section className="mt-5">
           <div className="card-soft overflow-hidden">
             {preview.url ? (
-              <img src={preview.url} alt="Odabrana datoteka" className="max-h-72 w-full object-contain" />
+              <img
+                src={preview.url}
+                alt="Odabrana datoteka"
+                className="max-h-72 w-full object-contain"
+              />
             ) : null}
             <p className="truncate px-4 py-3 text-sm text-muted-foreground">{preview.name}</p>
           </div>

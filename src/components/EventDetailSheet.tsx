@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Bell, X } from "lucide-react";
-import {
-  deleteFamilyEvent,
-  updateFamilyEvent,
-  type FamilyEvent,
-} from "@/lib/family-events";
+import { deleteFamilyEvent, updateFamilyEvent, type FamilyEvent } from "@/lib/family-events";
 import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
@@ -33,13 +29,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function EventDetailSheet({
-  event,
-  onClose,
-}: {
-  event: FamilyEvent;
-  onClose: () => void;
-}) {
+export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClose: () => void }) {
   const queryClient = useQueryClient();
   const { data: familyId } = useMyFamilyId();
   const { data: members = [] } = useFamilyMembers(familyId);
@@ -151,9 +141,7 @@ export function EventDetailSheet({
       setEditing(false);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
-      setError(
-        `Promjene nije bilo moguće spremiti${msg ? ` (${msg})` : ""}. Pokušaj ponovno.`,
-      );
+      setError(`Promjene nije bilo moguće spremiti${msg ? ` (${msg})` : ""}. Pokušaj ponovno.`);
     } finally {
       setBusy(false);
     }
@@ -198,11 +186,21 @@ export function EventDetailSheet({
             <div className="grid grid-cols-2 gap-3">
               <label className="block text-sm font-semibold">
                 Datum
-                <input type="date" value={form.date} onChange={set("date")} className={fieldClass} />
+                <input
+                  type="date"
+                  value={form.date}
+                  onChange={set("date")}
+                  className={fieldClass}
+                />
               </label>
               <label className="block text-sm font-semibold">
                 Vrijeme
-                <input type="time" value={form.time} onChange={set("time")} className={fieldClass} />
+                <input
+                  type="time"
+                  value={form.time}
+                  onChange={set("time")}
+                  className={fieldClass}
+                />
               </label>
             </div>
             <label className="block text-sm font-semibold">
@@ -222,7 +220,12 @@ export function EventDetailSheet({
             </label>
             <label className="block text-sm font-semibold">
               Napomena
-              <textarea value={form.notes} onChange={set("notes")} rows={3} className={fieldClass} />
+              <textarea
+                value={form.notes}
+                onChange={set("notes")}
+                rows={3}
+                className={fieldClass}
+              />
             </label>
 
             <div>
@@ -286,7 +289,10 @@ export function EventDetailSheet({
               onClick={save}
               disabled={busy}
               className="w-full rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground disabled:opacity-60"
-              style={{ backgroundImage: "var(--gradient-primary)", boxShadow: "var(--shadow-float)" }}
+              style={{
+                backgroundImage: "var(--gradient-primary)",
+                boxShadow: "var(--shadow-float)",
+              }}
             >
               {busy ? "Spremam…" : "Spremi promjene"}
             </button>
@@ -360,7 +366,10 @@ export function EventDetailSheet({
                   type="button"
                   onClick={() => setEditing(true)}
                   className="w-full rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground"
-                  style={{ backgroundImage: "var(--gradient-primary)", boxShadow: "var(--shadow-float)" }}
+                  style={{
+                    backgroundImage: "var(--gradient-primary)",
+                    boxShadow: "var(--shadow-float)",
+                  }}
                 >
                   Uredi
                 </button>
