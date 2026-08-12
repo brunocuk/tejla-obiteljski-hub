@@ -17,6 +17,8 @@ export type FamilyEvent = {
   things_to_bring: string[];
   /** Names of the family members this event belongs to. */
   members: string[];
+  /** Ids of the family members this event belongs to. */
+  member_ids: string[];
 };
 
 const asText = (v: string | null | undefined) => (v ?? "").trim();
@@ -50,7 +52,7 @@ export function useFamilyEvents(familyId: string | null | undefined) {
       const { data, error } = await supabase
         .from("family_events")
         .select(
-          "id, title, category, date, time, location, notes, deadline, amount, things_to_bring, event_members(family_members(name))",
+          "id, title, category, date, time, location, notes, deadline, amount, things_to_bring, event_members(family_member_id, family_members(name))",
         )
         .eq("family_id", familyId!)
         .order("date", { ascending: true });
@@ -72,6 +74,7 @@ export function useFamilyEvents(familyId: string | null | undefined) {
         members: (row.event_members ?? [])
           .map((em) => asText(em.family_members?.name))
           .filter(Boolean),
+        member_ids: (row.event_members ?? []).map((em) => em.family_member_id),
       }));
     },
   });
