@@ -28,6 +28,31 @@ export function useMyFamilyId() {
   return useQuery({ queryKey: ["my-family-id"], queryFn: fetchMyFamilyId });
 }
 
+export async function fetchMyFamilyRole(): Promise<string | null> {
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return null;
+  const { data, error } = await supabase
+    .from("family_users")
+    .select("role")
+    .eq("user_id", uid)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.role ?? null;
+}
+
+export function useMyFamilyRole() {
+  return useQuery({ queryKey: ["my-family-role"], queryFn: fetchMyFamilyRole });
+}
+
+/** Joins the family only when a pending invitation exists for the signed-in e-mail. */
+export async function acceptPendingInvitation(): Promise<string | null> {
+  const { data, error } = await supabase.rpc("accept_family_invitation");
+  if (error) return null;
+  return (data as string | null) ?? null;
+}
+
 export function useFamilyMembers(familyId: string | null | undefined) {
   return useQuery({
     queryKey: ["family-members", familyId],
