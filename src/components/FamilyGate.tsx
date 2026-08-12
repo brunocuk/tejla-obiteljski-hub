@@ -1,6 +1,66 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { acceptPendingInvitation, createFamily, useMyFamilyId } from "@/lib/family-workspace";
+import {
+  acceptPendingInvitation,
+  createFamily,
+  updateMyDisplayName,
+  useFamilyMembers,
+  useMyFamilyId,
+  useMyUserId,
+} from "@/lib/family-workspace";
+
+/** Asks an invited parent for their name once, when no profile name exists yet. */
+function NamePrompt({ familyId }: { familyId: string }) {
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim()) {
+      setError("Unesi svoje ime.");
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      await updateMyDisplayName(familyId, name.trim());
+      await queryClient.invalidateQueries({ queryKey: ["family-members", familyId] });
+    } catch {
+      setError("Spremanje imena nije uspjelo. Pokušaj ponovno.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-10">
+      <h1 className="text-2xl font-bold tracking-tight">Kako se zoveš?</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Tvoje ime vidjet će ostali članovi obitelji.
+      </p>
+      <form onSubmit={handleSave} className="card-soft mt-6 space-y-4 p-5">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Davor"
+          className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
+        />
+        {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground disabled:opacity-60"
+          style={{ backgroundImage: "var(--gradient-primary)", boxShadow: "var(--shadow-float)" }}
+        >
+          {saving ? "Spremam…" : "Spremi"}
+        </button>
+      </form>
+    </main>
+  );
+}
 
 export function FamilyGate({ children }: { children: ReactNode }) {
   const { data: familyId, isLoading } = useMyFamilyId();
@@ -16,6 +76,9 @@ export function FamilyGate({ children }: { children: ReactNode }) {
   const [myName, setMyName] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const activeFamilyId = familyId ?? joinedFamilyId ?? null;
+  const { data: myUserId } = useMyUserId();
+  const { data: members = [], isLoading: membersLoading } = useFamilyMembers(activeFamilyId);
 
   useEffect(() => {
     if (joinedFamilyId) {
@@ -32,7 +95,13 @@ export function FamilyGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (familyId || joinedFamilyId) return <>{children}</>;
+  if (activeFamilyId) {
+    const me = members.find((m) => m.linked_user_id && m.linked_user_id === myUserId);
+    if (!membersLoading && me && !me.name.trim()) {
+      return <NamePrompt familyId={activeFamilyId} />;
+    }
+    return <>{children}</>;
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();

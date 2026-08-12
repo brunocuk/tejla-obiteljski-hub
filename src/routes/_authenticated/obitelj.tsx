@@ -56,7 +56,7 @@ function Row({
 }: {
   name: string;
   role: string;
-  onEdit?: () => void;
+  onEdit?: (() => void) | undefined;
 }) {
   const style = styleFor(name);
   return (
