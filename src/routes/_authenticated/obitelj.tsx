@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, LogOut, Plus, UserPlus } from "lucide-react";
+import { Check, LogOut, Pencil, Plus, UserPlus } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { memberStyles, type MemberName } from "@/lib/family";
@@ -10,8 +10,11 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   addFamilyMember,
   useFamilyMembers,
+  useMyFamily,
   useMyFamilyId,
   useMyFamilyRole,
+  useMyUserId,
+  updateMyDisplayName,
   type FamilyMemberRow,
 } from "@/lib/family-workspace";
 
@@ -46,7 +49,15 @@ function styleFor(name: string) {
   };
 }
 
-function Row({ name, role }: { name: string; role: string }) {
+function Row({
+  name,
+  role,
+  onEdit,
+}: {
+  name: string;
+  role: string;
+  onEdit?: () => void;
+}) {
   const style = styleFor(name);
   return (
     <div className="flex items-center gap-4 px-5 py-4">
@@ -55,10 +66,20 @@ function Row({ name, role }: { name: string; role: string }) {
       >
         {style.initials}
       </span>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="text-[15px] font-semibold">{name}</p>
         <p className="truncate text-sm text-muted-foreground">{role}</p>
       </div>
+      {onEdit ? (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="flex shrink-0 items-center gap-1 rounded-2xl border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+        >
+          <Pencil className="size-3.5" strokeWidth={2.2} />
+          Uredi ime
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -67,6 +88,8 @@ function ObiteljPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: familyId } = useMyFamilyId();
+  const { data: family } = useMyFamily(familyId);
+  const { data: myUserId } = useMyUserId();
   const { data: myRole } = useMyFamilyRole();
   const { data: members = [], isLoading } = useFamilyMembers(familyId);
   const invite = useServerFn(sendFamilyInvite);
@@ -80,6 +103,29 @@ function ObiteljPage() {
   const [inviteError, setInviteError] = useState("");
   const [inviteInfo, setInviteInfo] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [editingName, setEditingName] = useState<string | null>(null);
+  const [nameError, setNameError] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
+  async function handleSaveMyName(e: React.FormEvent) {
+    e.preventDefault();
+    if (!familyId || editingName === null) return;
+    if (!editingName.trim()) {
+      setNameError("Unesi svoje ime.");
+      return;
+    }
+    setSavingName(true);
+    setNameError("");
+    try {
+      await updateMyDisplayName(familyId, editingName.trim());
+      await queryClient.invalidateQueries({ queryKey: ["family-members", familyId] });
+      setEditingName(null);
+    } catch {
+      setNameError("Spremanje imena nije uspjelo. Pokušaj ponovno.");
+    } finally {
+      setSavingName(false);
+    }
+  }
 
   async function handleInvite(e: React.FormEvent) {
     e.preventDefault();
@@ -138,7 +184,51 @@ function ObiteljPage() {
 
   return (
     <AppShell>
-      <PageHeader title="Obitelj" subtitle="Obitelj Horvat · zajednički prostor" />
+      <PageHeader
+        title="Obitelj"
+        subtitle={
+          family?.name?.trim()
+            ? `Obitelj ${family.name.trim()} · zajednički prostor`
+            : "Zajednički prostor"
+        }
+      />
+
+      {editingName !== null ? (
+        <form onSubmit={handleSaveMyName} className="card-soft mb-6 space-y-4 p-5">
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Tvoje ime
+            </span>
+            <input
+              value={editingName}
+              onChange={(e) => setEditingName(e.target.value)}
+              placeholder="Davor"
+              className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary"
+            />
+          </label>
+          {nameError ? <p className="text-sm font-medium text-destructive">{nameError}</p> : null}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setEditingName(null);
+                setNameError("");
+              }}
+              className="flex-1 rounded-3xl border border-border px-4 py-3 text-sm font-semibold text-muted-foreground"
+            >
+              Odustani
+            </button>
+            <button
+              type="submit"
+              disabled={savingName}
+              className="flex-1 rounded-3xl px-4 py-3 text-sm font-bold text-primary-foreground disabled:opacity-60"
+              style={{ backgroundImage: "var(--gradient-primary)" }}
+            >
+              {savingName ? "Spremam…" : "Spremi"}
+            </button>
+          </div>
+        </form>
+      ) : null}
 
       <div className="mb-6 flex items-start gap-3 rounded-2xl bg-primary-soft px-4 py-4">
         <Check className="mt-0.5 size-5 shrink-0 text-accent-foreground" strokeWidth={2.2} />
@@ -161,8 +251,16 @@ function ObiteljPage() {
                 {parents.map((p) => (
                   <Row
                     key={p.id}
-                    name={p.name}
+                    name={p.name?.trim() || "Bez imena"}
                     role={p.linked_user_id ? "Roditelj · ima račun" : "Roditelj"}
+                    onEdit={
+                      myUserId && p.linked_user_id === myUserId
+                        ? () => {
+                            setEditingName(p.name ?? "");
+                            setNameError("");
+                          }
+                        : undefined
+                    }
                   />
                 ))}
               </div>
