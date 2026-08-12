@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import {
@@ -6,7 +6,18 @@ import {
   updateFamilyEvent,
   type FamilyEvent,
 } from "@/lib/family-events";
-import { useFamilyMembers, useMyFamilyId } from "@/lib/family-workspace";
+import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
+import { ReminderEditor } from "@/components/ReminderEditor";
+import {
+  EVENT_CATEGORIES,
+  defaultRecipient,
+  formatReminder,
+  replaceReminders,
+  suggestReminders,
+  useEventReminders,
+  type RecipientMode,
+  type ReminderDraft,
+} from "@/lib/reminders";
 
 const fieldClass =
   "mt-1 w-full rounded-2xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary";
@@ -31,6 +42,8 @@ export function EventDetailSheet({
   const queryClient = useQueryClient();
   const { data: familyId } = useMyFamilyId();
   const { data: members = [] } = useFamilyMembers(familyId);
+  const { data: userId } = useMyUserId();
+  const { data: savedReminders = [] } = useEventReminders(event.id);
 
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -42,25 +55,70 @@ export function EventDetailSheet({
     time: event.time,
     location: event.location,
     notes: event.notes,
+    category: event.category,
   });
   const [selected, setSelected] = useState<string[]>(event.member_ids);
+  const [reminders, setReminders] = useState<ReminderDraft[]>([]);
+  const [recipient, setRecipient] = useState<RecipientMode>("all_parents");
+
+  const pending = savedReminders.filter((r) => !r.sent_at);
+
+  // Load existing reminders into the editor when entering edit mode.
+  useEffect(() => {
+    if (!editing) return;
+    setReminders(
+      pending.map((r) => ({
+        key: r.id,
+        remind_at: r.remind_at,
+        recipient_mode: r.recipient_mode,
+      })),
+    );
+    setRecipient(
+      pending[0]?.recipient_mode ?? defaultRecipient(event.category, event.member_ids.length === 1),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing, savedReminders.length]);
 
   const set =
     (key: keyof typeof form) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((prev) => ({ ...prev, [key]: e.target.value }));
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      const value = e.target.value;
+      setForm((prev) => {
+        // Keep unsent reminders meaningful when the event moves in time.
+        if ((key === "date" || key === "time") && reminders.length > 0) {
+          const oldBase = new Date(`${prev.date || "1970-01-01"}T${prev.time || "00:00"}`);
+          const next = { ...prev, [key]: value };
+          const newBase = new Date(`${next.date || "1970-01-01"}T${next.time || "00:00"}`);
+          const shift = newBase.getTime() - oldBase.getTime();
+          if (Number.isFinite(shift) && shift !== 0) {
+            setReminders((rs) =>
+              rs.map((r) => ({
+                ...r,
+                remind_at: new Date(new Date(r.remind_at).getTime() + shift).toISOString(),
+              })),
+            );
+          }
+          return next;
+        }
+        return { ...prev, [key]: value };
+      });
+    };
 
   const toggle = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const refresh = () =>
-    queryClient.invalidateQueries({ queryKey: ["family-events", familyId] });
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["family-events", familyId] }),
+      queryClient.invalidateQueries({ queryKey: ["event-reminders", event.id] }),
+    ]);
 
   const save = async () => {
     setError(null);
     setBusy(true);
     try {
       await updateFamilyEvent(event.id, form, selected);
+      if (userId) await replaceReminders(event.id, reminders, userId);
       await refresh();
       setEditing(false);
     } catch {
@@ -121,6 +179,17 @@ export function EventDetailSheet({
               <input value={form.location} onChange={set("location")} className={fieldClass} />
             </label>
             <label className="block text-sm font-semibold">
+              Kategorija <span className="font-normal text-muted-foreground">(neobavezno)</span>
+              <select value={form.category} onChange={set("category")} className={fieldClass}>
+                <option value="">Bez kategorije</option>
+                {EVENT_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-semibold">
               Napomena
               <textarea value={form.notes} onChange={set("notes")} rows={3} className={fieldClass} />
             </label>
@@ -146,6 +215,40 @@ export function EventDetailSheet({
             </div>
 
             {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
+
+            <ReminderEditor
+              input={{
+                category: form.category,
+                date: form.date,
+                time: form.time,
+                deadline: event.deadline,
+                things_to_bring: event.things_to_bring,
+              }}
+              reminders={reminders}
+              onChange={setReminders}
+              recipient={recipient}
+              onRecipientChange={setRecipient}
+            />
+            <button
+              type="button"
+              onClick={() =>
+                setReminders(
+                  suggestReminders(
+                    {
+                      category: form.category,
+                      date: form.date,
+                      time: form.time,
+                      deadline: event.deadline,
+                      things_to_bring: event.things_to_bring,
+                    },
+                    recipient,
+                  ),
+                )
+              }
+              className="w-full rounded-2xl bg-primary-soft px-4 py-2.5 text-sm font-semibold text-accent-foreground"
+            >
+              Predloži podsjetnike ponovno
+            </button>
 
             <button
               type="button"
@@ -175,6 +278,10 @@ export function EventDetailSheet({
             <Row label="Rok" value={event.deadline} />
             <Row label="Iznos" value={event.amount} />
             <Row label="Što ponijeti" value={event.things_to_bring.join(", ")} />
+            <Row
+              label="Podsjetnici"
+              value={pending.map((r) => formatReminder(r.remind_at)).join(" · ")}
+            />
           </div>
         )}
 
