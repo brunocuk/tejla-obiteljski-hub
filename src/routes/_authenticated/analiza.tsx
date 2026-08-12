@@ -50,6 +50,7 @@ function AnalizaPage() {
   const [reminders, setReminders] = useState<Record<number, ReminderDraft[]>>({});
   const [recipients, setRecipients] = useState<Record<number, RecipientMode>>({});
   const [openReminders, setOpenReminders] = useState<number | null>(null);
+  const [touched, setTouched] = useState<number[]>([]);
 
   useEffect(() => {
     setItems(analysis);
@@ -65,9 +66,9 @@ function AnalizaPage() {
     items.forEach((it, i) => {
       const mode = recipients[i] ?? defaultRecipient(it.category, false);
       nextM[i] = mode;
-      nextR[i] =
-        reminders[i] ??
-        suggestReminders(
+      nextR[i] = touched.includes(i)
+        ? (reminders[i] ?? [])
+        : suggestReminders(
           {
             category: it.category,
             date: it.date,
@@ -308,11 +309,15 @@ function AnalizaPage() {
                         things_to_bring: it.things_to_bring,
                       }}
                       reminders={reminders[idx] ?? []}
-                      onChange={(next) => setReminders((prev) => ({ ...prev, [idx]: next }))}
+                      onChange={(next) => {
+                        setTouched((t) => (t.includes(idx) ? t : [...t, idx]));
+                        setReminders((prev) => ({ ...prev, [idx]: next }));
+                      }}
                       recipient={recipients[idx] ?? "all_parents"}
-                      onRecipientChange={(mode) =>
-                        setRecipients((prev) => ({ ...prev, [idx]: mode }))
-                      }
+                      onRecipientChange={(mode) => {
+                        setTouched((t) => (t.includes(idx) ? t : [...t, idx]));
+                        setRecipients((prev) => ({ ...prev, [idx]: mode }));
+                      }}
                     />
                   ) : null}
                 </div>
