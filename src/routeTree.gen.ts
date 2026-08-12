@@ -17,6 +17,7 @@ import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedKalendarRouteImport } from './routes/_authenticated/kalendar'
 import { Route as AuthenticatedObiteljRouteImport } from './routes/_authenticated/obitelj'
 import { Route as ApiAnalyzeImageRouteImport } from './routes/api/analyze-image'
+import { Route as ApiPublicVapidKeyRouteImport } from './routes/api/public/vapid-key'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -57,6 +58,11 @@ const ApiAnalyzeImageRoute = ApiAnalyzeImageRouteImport.update({
   path: '/api/analyze-image',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicVapidKeyRoute = ApiPublicVapidKeyRouteImport.update({
+  id: '/api/public/vapid-key',
+  path: '/api/public/vapid-key',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -66,6 +72,7 @@ export interface FileRoutesByFullPath {
   '/kalendar': typeof AuthenticatedKalendarRoute
   '/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
+  '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -75,6 +82,7 @@ export interface FileRoutesByTo {
   '/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
   '/': typeof AuthenticatedIndexRoute
+  '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -86,6 +94,7 @@ export interface FileRoutesById {
   '/_authenticated/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/kalendar'
     | '/obitelj'
     | '/api/analyze-image'
+    | '/api/public/vapid-key'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -106,6 +116,7 @@ export interface FileRouteTypes {
     | '/obitelj'
     | '/api/analyze-image'
     | '/'
+    | '/api/public/vapid-key'
   id:
     | '__root__'
     | '/_authenticated'
@@ -116,12 +127,14 @@ export interface FileRouteTypes {
     | '/_authenticated/obitelj'
     | '/api/analyze-image'
     | '/_authenticated/'
+    | '/api/public/vapid-key'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiAnalyzeImageRoute: typeof ApiAnalyzeImageRoute
+  ApiPublicVapidKeyRoute: typeof ApiPublicVapidKeyRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -182,6 +195,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAnalyzeImageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/vapid-key': {
+      id: '/api/public/vapid-key'
+      path: '/api/public/vapid-key'
+      fullPath: '/api/public/vapid-key'
+      preLoaderRoute: typeof ApiPublicVapidKeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -208,6 +228,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiAnalyzeImageRoute: ApiAnalyzeImageRoute,
+  ApiPublicVapidKeyRoute: ApiPublicVapidKeyRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
