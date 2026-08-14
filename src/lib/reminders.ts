@@ -23,7 +23,7 @@ export const EVENT_CATEGORIES = [
 
 export type EventCategory = (typeof EVENT_CATEGORIES)[number];
 
-export type RecipientMode = "all_parents" | "creator_only";
+export type RecipientMode = "all_parents" | "creator_only" | "selected";
 
 export type ReminderDraft = {
   /** Local key for list handling; database id when the reminder already exists. */
@@ -31,6 +31,8 @@ export type ReminderDraft = {
   /** ISO timestamp (absolute, timezone-aware). */
   remind_at: string;
   recipient_mode: RecipientMode;
+  /** Exact recipients when recipient_mode is "selected" (auth user ids). */
+  recipient_user_ids?: string[];
   /** Set when the reminder came from a preset offset (relative to the event). */
   offset_minutes?: number | null;
   /** Repeat pattern this reminder was generated from. */
@@ -42,9 +44,23 @@ export type ReminderRow = {
   event_id: string;
   remind_at: string;
   recipient_mode: RecipientMode;
+  recipient_user_ids?: string[] | null;
   sent_at: string | null;
   pattern?: string | null;
 };
+
+/** Re-stamps a list of drafts with the chosen recipients (mode + explicit ids). */
+export function withRecipient(
+  drafts: ReminderDraft[],
+  mode: RecipientMode,
+  userIds: string[] = [],
+): ReminderDraft[] {
+  return drafts.map((d) => ({
+    ...d,
+    recipient_mode: mode,
+    recipient_user_ids: mode === "selected" ? userIds : [],
+  }));
+}
 
 /** Maps older/AI category values to the supported category list. */
 export function normalizeCategory(raw: string): string {
@@ -184,11 +200,13 @@ export function suggestReminders(input: ReminderInput, recipient: RecipientMode)
     .map((t) => ({ key: newKey(), remind_at: t.toISOString(), recipient_mode: recipient }));
 }
 
-/** Default recipient: personal appointments only notify the creator. */
-export function defaultRecipient(category: string, onlyMe: boolean): RecipientMode {
-  const c = normalizeCategory(category);
-  if (PERSONAL_CATEGORIES.includes(c)) return "creator_only";
-  return onlyMe && c === "" ? "creator_only" : "all_parents";
+/**
+ * Default recipient is always the person creating the entry ("Samo mene").
+ * Sharing with other adults is an explicit choice (or an explicit spoken request).
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function defaultRecipient(_category?: string, _onlyMe?: boolean): RecipientMode {
+  return "creator_only";
 }
 
 export function draftFromOffset(
