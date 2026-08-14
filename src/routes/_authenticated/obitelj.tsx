@@ -18,6 +18,24 @@ import { MemberDataSheet } from "@/components/MemberDataSheet";
 import { removeFamilyMember } from "@/lib/member-data";
 import { supabase } from "@/integrations/supabase/client";
 import { memberStyle } from "@/lib/family";
+
+/** Tejla-level admin entry point; hidden unless the backend confirms admin rights. */
+function BetaAdminLink() {
+  const checkAdmin = useServerFn(amIAppAdmin);
+  const { data } = useQuery({
+    queryKey: ["am-i-app-admin"],
+    queryFn: () => checkAdmin({ data: undefined }),
+  });
+  if (!data?.isAdmin) return null;
+  return (
+    <Link
+      to="/beta-admin"
+      className="mt-3 flex w-full items-center justify-center gap-2 rounded-3xl border border-border px-6 py-3 text-sm font-semibold text-muted-foreground"
+    >
+      Beta pozivnice
+    </Link>
+  );
+}
 import { sendFamilyInvite } from "@/lib/invitations.functions";
 import { amIAppAdmin } from "@/lib/beta.functions";
 import { useServerFn } from "@tanstack/react-start";
