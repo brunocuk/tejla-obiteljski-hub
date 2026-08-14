@@ -23,7 +23,7 @@ export const EVENT_CATEGORIES = [
 
 export type EventCategory = (typeof EVENT_CATEGORIES)[number];
 
-export type RecipientMode = "all_parents" | "creator_only";
+export type RecipientMode = "all_parents" | "creator_only" | "selected";
 
 export type ReminderDraft = {
   /** Local key for list handling; database id when the reminder already exists. */
@@ -31,6 +31,8 @@ export type ReminderDraft = {
   /** ISO timestamp (absolute, timezone-aware). */
   remind_at: string;
   recipient_mode: RecipientMode;
+  /** Exact recipients when recipient_mode is "selected" (auth user ids). */
+  recipient_user_ids?: string[];
   /** Set when the reminder came from a preset offset (relative to the event). */
   offset_minutes?: number | null;
   /** Repeat pattern this reminder was generated from. */
@@ -42,9 +44,23 @@ export type ReminderRow = {
   event_id: string;
   remind_at: string;
   recipient_mode: RecipientMode;
+  recipient_user_ids?: string[] | null;
   sent_at: string | null;
   pattern?: string | null;
 };
+
+/** Re-stamps a list of drafts with the chosen recipients (mode + explicit ids). */
+export function withRecipient(
+  drafts: ReminderDraft[],
+  mode: RecipientMode,
+  userIds: string[] = [],
+): ReminderDraft[] {
+  return drafts.map((d) => ({
+    ...d,
+    recipient_mode: mode,
+    recipient_user_ids: mode === "selected" ? userIds : [],
+  }));
+}
 
 /** Maps older/AI category values to the supported category list. */
 export function normalizeCategory(raw: string): string {
@@ -82,8 +98,6 @@ export function normalizeCategory(raw: string): string {
     .replace(/đ/g, "d");
   return map[key] ?? "";
 }
-
-const PERSONAL_CATEGORIES = ["Frizer", "Kozmetičar", "Osobno"];
 
 export const OFFSET_OPTIONS: { label: string; minutes: number }[] = [
   { label: "U vrijeme događaja", minutes: 0 },
@@ -184,11 +198,13 @@ export function suggestReminders(input: ReminderInput, recipient: RecipientMode)
     .map((t) => ({ key: newKey(), remind_at: t.toISOString(), recipient_mode: recipient }));
 }
 
-/** Default recipient: personal appointments only notify the creator. */
-export function defaultRecipient(category: string, onlyMe: boolean): RecipientMode {
-  const c = normalizeCategory(category);
-  if (PERSONAL_CATEGORIES.includes(c)) return "creator_only";
-  return onlyMe && c === "" ? "creator_only" : "all_parents";
+/**
+ * Default recipient is always the person creating the entry ("Samo mene").
+ * Sharing with other adults is an explicit choice (or an explicit spoken request).
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function defaultRecipient(_category?: string, _onlyMe?: boolean): RecipientMode {
+  return "creator_only";
 }
 
 export function draftFromOffset(
@@ -252,6 +268,7 @@ export const formatReminderShort = (iso: string) => SHORT_FMT.format(new Date(is
 export const RECIPIENT_LABELS: Record<RecipientMode, string> = {
   all_parents: "Sve roditelje",
   creator_only: "Samo mene",
+  selected: "Odabrane osobe",
 };
 
 /**
@@ -265,7 +282,9 @@ export function useFamilyReminders(familyId: string | null | undefined) {
     queryFn: async (): Promise<Record<string, ReminderRow[]>> => {
       const { data, error } = await supabase
         .from("event_reminders")
-        .select("id, event_id, remind_at, recipient_mode, sent_at, family_events!inner(family_id)")
+        .select(
+          "id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at, family_events!inner(family_id)",
+        )
         .eq("family_events.family_id", familyId!)
         .is("sent_at", null)
         .order("remind_at", { ascending: true });
@@ -286,7 +305,7 @@ export function useEventReminders(eventId: string | null | undefined) {
     queryFn: async (): Promise<ReminderRow[]> => {
       const { data, error } = await supabase
         .from("event_reminders")
-        .select("id, event_id, remind_at, recipient_mode, sent_at")
+        .select("id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at")
         .eq("event_id", eventId!)
         .order("remind_at", { ascending: true });
       if (error) throw error;
@@ -316,6 +335,7 @@ export async function insertReminders(
     event_id: eventId,
     remind_at: d.remind_at,
     recipient_mode: d.recipient_mode,
+    recipient_user_ids: d.recipient_mode === "selected" ? (d.recipient_user_ids ?? []) : [],
     created_by: userId,
     pattern: d.pattern ?? "once",
     series_id: seriesId,

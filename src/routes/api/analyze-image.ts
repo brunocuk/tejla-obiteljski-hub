@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const SYSTEM_PROMPT = `You extract scheduling and task information from an image, a PDF page or pasted text (screenshot, photo of a notice, email, message).
 Return STRICT JSON only, matching exactly:
-{"items":[{"type":"event","person":"","title":"","category":"","date":"","time":"","location":"","deadline":"","amount":"","things_to_bring":[],"action_required":"","subject":"","notes":"","confidence":0,"reminder_intent":false,"reminder_time":"","reminder_recurrence":"","link_to":-1}]}
+{"items":[{"type":"event","person":"","title":"","category":"","date":"","time":"","location":"","deadline":"","amount":"","things_to_bring":[],"action_required":"","subject":"","notes":"","confidence":0,"reminder_intent":false,"reminder_time":"","reminder_recurrence":"","reminder_scope":"","reminder_people":[],"link_to":-1}]}
 Rules:
 - "type" is "event" when something happens at a moment in time (appointment, birthday, trip, exam, deadline). "type" is "task" when the user must DO something ("kupiti poklon", "izvaditi krv", "platiti ratu").
 - One sentence can produce BOTH an event and a task. Then return two items: the event first (type "event"), the task second (type "task") with "link_to" set to the index of that event in the items array (0-based). Never return the same thing twice as two events.
@@ -10,6 +10,12 @@ Rules:
 - For a task, the stated reminder clock time goes into "reminder_time" (HH:MM), NOT into "time". A reminder time is when the user wants to be notified, never when the task happens. Leave "time" empty for tasks unless the task itself must happen at that exact time.
 - The reminder day goes into the task's "date" (YYYY-MM-DD) when stated ("danas", "sutra").
 - "svaki sat" / "svaka 2 sata" / "svaka 3 sata" / "2 puta dnevno" / "3 puta dnevno" / "dok ne ..." set reminder_recurrence to one of: hourly, every_2h, every_3h, twice_daily, three_daily, until_done. Otherwise leave it empty.
+- WHO must be reminded goes into "reminder_scope" and "reminder_people":
+  * "podsjeti me" / "podsjeti mene" / "podsjeti meni" / "nemoj da zaboravim" / any first-person only request => reminder_scope "me", reminder_people [].
+  * "podsjeti nas" / "podsjeti roditelje" / "podsjeti sve" / "podsjeti mamu i tatu" (generic, not by name) => reminder_scope "all_parents", reminder_people [].
+  * one or more named people ("podsjeti Davora", "podsjeti mene i Davora", "podsjeti Davora i Lucija") => reminder_scope "named" and reminder_people listing exactly those names as spoken. When the speaker includes themself ("mene i Davora"), put the speaker's own name first in reminder_people.
+  * No reminder request at all => reminder_scope "" and reminder_people [].
+- Never set reminder_scope "all_parents" just because the text mentions "me", "mene", "meni" or a personal task.
 - A statement without a reminder request ("Danas moram kupiti poklon") is still a task, but reminder_intent must be false.
 - Never invent information that is not present in the input.
 - Unknown field => empty string, or empty array for things_to_bring.

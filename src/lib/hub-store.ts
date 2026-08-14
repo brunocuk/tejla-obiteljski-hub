@@ -29,6 +29,10 @@ export type ExtractedItem = {
   reminder_time: string;
   /** Requested repeat, e.g. "hourly" / "until_done". */
   reminder_recurrence: string;
+  /** Who should be notified: "me" | "all_parents" | "named" | "" (unspecified). */
+  reminder_scope: string;
+  /** Names spoken when reminder_scope is "named". */
+  reminder_people: string[];
   /** Index of the event in the same analysis this task belongs to (-1 = none). */
   link_to: number;
 };
@@ -120,6 +124,10 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
     reminder_intent: Boolean(raw.reminder_intent),
     reminder_time: String(raw.reminder_time ?? "").trim(),
     reminder_recurrence: String(raw.reminder_recurrence ?? "").trim(),
+    reminder_scope: String(raw.reminder_scope ?? "").trim(),
+    reminder_people: Array.isArray(raw.reminder_people)
+      ? raw.reminder_people.map(String).filter(Boolean)
+      : [],
     link_to: Number.isInteger(raw.link_to) ? Number(raw.link_to) : -1,
   };
 }

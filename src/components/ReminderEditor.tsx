@@ -7,6 +7,7 @@ import {
   isPast,
   reminderLabel,
   RECIPIENT_LABELS,
+  withRecipient,
   type ReminderDraft,
   type ReminderInput,
   type RecipientMode,
@@ -32,6 +33,8 @@ export function ReminderEditor({
   reminders,
   onChange,
   recipient,
+  recipientUserIds = [],
+  adults = [],
   onRecipientChange,
   isTask = false,
 }: {
@@ -39,7 +42,11 @@ export function ReminderEditor({
   reminders: ReminderDraft[];
   onChange: (next: ReminderDraft[]) => void;
   recipient: RecipientMode;
-  onRecipientChange: (mode: RecipientMode) => void;
+  /** Explicit recipients when the mode is "selected". */
+  recipientUserIds?: string[];
+  /** Adults with an account, used for picking exact recipients. */
+  adults?: { name: string; userId: string }[];
+  onRecipientChange: (mode: RecipientMode, userIds: string[]) => void;
   /** Tasks may repeat until they are marked done; events may not. */
   isTask?: boolean;
 }) {
@@ -112,8 +119,17 @@ export function ReminderEditor({
   };
 
   const setMode = (mode: RecipientMode) => {
-    onRecipientChange(mode);
-    onChange(reminders.map((r) => ({ ...r, recipient_mode: mode })));
+    const ids = mode === "selected" ? recipientUserIds : [];
+    onRecipientChange(mode, ids);
+    onChange(withRecipient(reminders, mode, ids));
+  };
+
+  const toggleAdult = (userId: string) => {
+    const next = recipientUserIds.includes(userId)
+      ? recipientUserIds.filter((id) => id !== userId)
+      : [...recipientUserIds, userId];
+    onRecipientChange("selected", next);
+    onChange(withRecipient(reminders, "selected", next));
   };
 
   const customActive = reminders.some(
@@ -256,16 +272,19 @@ export function ReminderEditor({
         <div className="mt-2 flex gap-2">
           {(
             [
-              ["all_parents", "Sve roditelje"],
               ["creator_only", "Samo mene"],
+              ["all_parents", "Sve roditelje"],
+              ["selected", "Odabrane osobe"],
             ] as const
-          ).map(([mode, label]) => (
+          )
+            .filter(([mode]) => mode !== "selected" || adults.length > 0)
+            .map(([mode, label]) => (
             <button
               key={mode}
               type="button"
               aria-pressed={recipient === mode}
               onClick={() => setMode(mode)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
+              className={`rounded-full px-3 py-2 text-sm font-semibold ${
                 recipient === mode
                   ? "bg-primary text-primary-foreground ring-2 ring-primary/40"
                   : "bg-primary-soft text-accent-foreground"
@@ -275,6 +294,28 @@ export function ReminderEditor({
             </button>
           ))}
         </div>
+        {recipient === "selected" ? (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {adults.map((a) => (
+              <button
+                key={a.userId}
+                type="button"
+                aria-pressed={recipientUserIds.includes(a.userId)}
+                onClick={() => toggleAdult(a.userId)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                  recipientUserIds.includes(a.userId)
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground"
+                }`}
+              >
+                {a.name || "Bez imena"}
+              </button>
+            ))}
+            {recipientUserIds.length === 0 ? (
+              <p className="text-xs font-semibold text-destructive">Odaberi barem jednu osobu.</p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );
