@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WHOLE_FAMILY } from "@/lib/family";
 import type { ExtractedItem } from "@/lib/hub-store";
+import { cancelPendingReminders } from "@/lib/reminders";
 
 export type FamilyEvent = {
   id: string;
@@ -19,6 +20,12 @@ export type FamilyEvent = {
   members: string[];
   /** Ids of the family members this event belongs to. */
   member_ids: string[];
+  /** "event" happens at a time; "task" is something to do and can be completed. */
+  type: "event" | "task";
+  completed: boolean;
+  completed_at: string | null;
+  /** Event this task belongs to ("Prije toga"). */
+  linked_event_id: string | null;
 };
 
 const asText = (v: string | null | undefined) => (v ?? "").trim();
@@ -52,7 +59,7 @@ export function useFamilyEvents(familyId: string | null | undefined) {
       const { data, error } = await supabase
         .from("family_events")
         .select(
-          "id, title, category, date, time, location, notes, deadline, amount, things_to_bring, event_members(family_member_id, family_members(name))",
+          "id, title, category, date, time, location, notes, deadline, amount, things_to_bring, type, completed, completed_at, linked_event_id, event_members(family_member_id, family_members(name))",
         )
         .eq("family_id", familyId!)
         .order("date", { ascending: true });
@@ -75,6 +82,10 @@ export function useFamilyEvents(familyId: string | null | undefined) {
           .map((em) => asText(em.family_members?.name))
           .filter(Boolean),
         member_ids: (row.event_members ?? []).map((em) => em.family_member_id),
+        type: row.type === "task" ? "task" : "event",
+        completed: Boolean(row.completed),
+        completed_at: row.completed_at,
+        linked_event_id: row.linked_event_id,
       }));
     },
   });
@@ -146,6 +157,20 @@ export async function updateFamilyEvent(
   }
 }
 
+/** Marks a task done/undone. Completing it cancels every pending reminder. */
+export async function setEventCompleted(eventId: string, completed: boolean) {
+  const { error } = await supabase
+    .from("family_events")
+    .update({
+      completed,
+      completed_at: completed ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", eventId);
+  if (error) throw error;
+  if (completed) await cancelPendingReminders(eventId);
+}
+
 export async function deleteFamilyEvent(eventId: string) {
   const { error } = await supabase.from("family_events").delete().eq("id", eventId);
   if (error) throw error;
@@ -160,6 +185,8 @@ export async function saveManualEvent(
     location: string;
     notes: string;
     category?: string;
+    type?: "event" | "task";
+    linked_event_id?: string | null;
   },
   memberIds: string[],
 ) {
@@ -178,6 +205,8 @@ export async function saveManualEvent(
       location: emptyToNull(input.location),
       notes: emptyToNull(input.notes),
       things_to_bring: [],
+      type: input.type ?? "event",
+      linked_event_id: input.linked_event_id ?? null,
       created_by: uid,
     })
     .select("id")
@@ -204,9 +233,14 @@ export async function saveFamilyEvents(
   const uid = userData.user?.id;
   if (!uid) throw new Error("Nisi prijavljen.");
 
-  const createdIds: string[] = [];
+  const createdIds: string[] = new Array(items.length).fill("") as string[];
+  // Events first, so a task extracted from the same sentence can link to one.
+  const order = [
+    ...items.map((it, i) => ({ it, i })).filter(({ it }) => it.type !== "task"),
+    ...items.map((it, i) => ({ it, i })).filter(({ it }) => it.type === "task"),
+  ];
 
-  for (const item of items) {
+  for (const { it: item, i: itemIndex } of order) {
     const { data: inserted, error } = await supabase
       .from("family_events")
       .insert({
@@ -220,6 +254,9 @@ export async function saveFamilyEvents(
         deadline: toDbDate(item.deadline),
         amount: emptyToNull(item.amount),
         things_to_bring: item.things_to_bring,
+        type: item.type === "task" ? "task" : "event",
+        linked_event_id:
+          item.type === "task" && item.link_to >= 0 ? (createdIds[item.link_to] || null) : null,
         created_by: uid,
       })
       .select("id")
@@ -237,7 +274,7 @@ export async function saveFamilyEvents(
         .insert(targets.map((m) => ({ event_id: inserted.id, family_member_id: m.id })));
       if (linkError) throw linkError;
     }
-    createdIds.push(inserted.id as string);
+    createdIds[itemIndex] = inserted.id as string;
   }
 
   return createdIds;

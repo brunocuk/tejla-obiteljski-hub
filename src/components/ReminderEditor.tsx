@@ -11,6 +11,14 @@ import {
   type ReminderInput,
   type RecipientMode,
 } from "@/lib/reminders";
+import {
+  EVENT_PATTERNS,
+  PATTERN_LABELS,
+  TASK_PATTERNS,
+  draftsFromPattern,
+  scheduleSummary,
+  type ReminderPattern,
+} from "@/lib/reminder-engine";
 
 /** "2026-08-12T14:30" for a datetime-local input, in the user's local timezone. */
 const toLocalInput = (iso: string) => {
@@ -25,12 +33,15 @@ export function ReminderEditor({
   onChange,
   recipient,
   onRecipientChange,
+  isTask = false,
 }: {
   input: ReminderInput;
   reminders: ReminderDraft[];
   onChange: (next: ReminderDraft[]) => void;
   recipient: RecipientMode;
   onRecipientChange: (mode: RecipientMode) => void;
+  /** Tasks may repeat until they are marked done; events may not. */
+  isTask?: boolean;
 }) {
   const customExisting = reminders.find((r) => r.offset_minutes == null);
   const [custom, setCustom] = useState(() =>
@@ -105,7 +116,30 @@ export function ReminderEditor({
     onChange(reminders.map((r) => ({ ...r, recipient_mode: mode })));
   };
 
-  const customActive = reminders.some((r) => r.offset_minutes == null);
+  const customActive = reminders.some(
+    (r) => r.offset_minutes == null && (r.pattern ?? "once") === "once",
+  );
+
+  const activePattern: ReminderPattern =
+    (reminders.find((r) => r.pattern && r.pattern !== "once")?.pattern as ReminderPattern) ??
+    "once";
+
+  /** One tap = a whole computed schedule; the user never types several times. */
+  const applyPattern = (pattern: ReminderPattern) => {
+    const first = reminders[0];
+    const base = first ? new Date(first.remind_at) : new Date();
+    const start = base.getTime() > Date.now() ? base : new Date();
+    if (pattern === "once") {
+      onChange(
+        first ? [{ ...first, pattern: "once" }] : draftsFromPattern("once", recipient, { start }),
+      );
+      return;
+    }
+    onChange(draftsFromPattern(pattern, recipient, { start }));
+  };
+
+  const patterns = isTask ? TASK_PATTERNS : EVENT_PATTERNS;
+  const summary = scheduleSummary(reminders.map((r) => r.remind_at));
 
   return (
     <div className="rounded-2xl bg-secondary/50 p-4">
@@ -113,7 +147,36 @@ export function ReminderEditor({
         <Bell className="size-4" strokeWidth={1.9} /> Podsjetnici
       </p>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3">
+        <p className="text-xs font-semibold text-muted-foreground">Ponavljanje</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {patterns.map((p) => (
+            <button
+              key={p}
+              type="button"
+              aria-pressed={activePattern === p}
+              onClick={() => applyPattern(p)}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                activePattern === p
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-primary-soft text-accent-foreground"
+              }`}
+            >
+              {PATTERN_LABELS[p]}
+            </button>
+          ))}
+        </div>
+        {summary.length > 0 ? (
+          <ul className="mt-2 space-y-0.5 text-xs font-medium text-muted-foreground">
+            {summary.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+
+      <p className="mt-4 text-xs font-semibold text-muted-foreground">Prilagođeno vrijeme</p>
+      <div className="mt-2 flex flex-wrap gap-2">
         {OFFSET_OPTIONS.map((o) => {
           const active = isPresetActive(o.minutes);
           return (

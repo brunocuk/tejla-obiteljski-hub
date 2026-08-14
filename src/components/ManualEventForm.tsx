@@ -28,6 +28,7 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
     notes: "",
     category: "",
   });
+  const [kind, setKind] = useState<"event" | "task">("event");
   const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,13 +45,18 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
     if (touched) return;
     const mode = defaultRecipient(form.category, onlyMe);
     setRecipient(mode);
+    if (kind === "task") {
+      // A task only gets reminders the user asks for, via the preset buttons.
+      setReminders([]);
+      return;
+    }
     setReminders(
       suggestReminders(
         { category: form.category, date: form.date, time: form.time, things_to_bring: [] },
         mode,
       ),
     );
-  }, [form.category, form.date, form.time, onlyMe, touched]);
+  }, [form.category, form.date, form.time, onlyMe, touched, kind]);
 
   const set =
     (key: keyof typeof form) =>
@@ -77,7 +83,7 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
     }
     setSaving(true);
     try {
-      const eventId = await saveManualEvent(familyId, form, selected);
+      const eventId = await saveManualEvent(familyId, { ...form, type: kind }, selected);
       let skipped = 0;
       if (reminders.length > 0) {
         if (!userId) {
@@ -122,6 +128,28 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
 
   return (
     <form onSubmit={submit} className="card-soft mt-3 space-y-4 p-4">
+      <div className="flex gap-2">
+        {(
+          [
+            ["event", "Događaj"],
+            ["task", "Zadatak"],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={kind === value}
+            onClick={() => setKind(value)}
+            className={`flex-1 rounded-2xl px-4 py-2.5 text-sm font-semibold ${
+              kind === value
+                ? "bg-primary text-primary-foreground"
+                : "bg-primary-soft text-accent-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <label className="block text-sm font-semibold">
         Naslov
         <input
@@ -193,6 +221,7 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
           setTouched(true);
           setReminders(next);
         }}
+        isTask={kind === "task"}
         recipient={recipient}
         onRecipientChange={(mode) => {
           setTouched(true);
@@ -206,7 +235,7 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
         className="w-full rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground disabled:opacity-60"
         style={{ backgroundImage: "var(--gradient-primary)", boxShadow: "var(--shadow-float)" }}
       >
-        {saving ? "Spremam…" : "Spremi obavezu"}
+        {saving ? "Spremam…" : kind === "task" ? "Spremi zadatak" : "Spremi obavezu"}
       </button>
       <button
         type="button"

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { ReminderPattern } from "@/lib/reminder-engine";
 
 export const EVENT_CATEGORIES = [
   "Škola",
@@ -32,6 +33,8 @@ export type ReminderDraft = {
   recipient_mode: RecipientMode;
   /** Set when the reminder came from a preset offset (relative to the event). */
   offset_minutes?: number | null;
+  /** Repeat pattern this reminder was generated from. */
+  pattern?: ReminderPattern;
 };
 
 export type ReminderRow = {
@@ -40,6 +43,7 @@ export type ReminderRow = {
   remind_at: string;
   recipient_mode: RecipientMode;
   sent_at: string | null;
+  pattern?: string | null;
 };
 
 /** Maps older/AI category values to the supported category list. */
@@ -306,11 +310,15 @@ export async function insertReminders(
     .filter((d) => new Date(d.remind_at).getTime() <= now)
     .map((d) => formatReminder(d.remind_at));
   const skipped = skippedTimes.length;
+  const seriesId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : null;
   const rows = future.map((d) => ({
     event_id: eventId,
     remind_at: d.remind_at,
     recipient_mode: d.recipient_mode,
     created_by: userId,
+    pattern: d.pattern ?? "once",
+    series_id: seriesId,
   }));
   if (rows.length === 0) return { inserted: 0, skipped, skippedTimes };
   const { data, error } = await supabase.from("event_reminders").insert(rows).select("id");
@@ -322,6 +330,16 @@ export async function insertReminders(
     throw new Error("Podsjetnik nije spremljen.");
   }
   return { inserted: data.length, skipped, skippedTimes };
+}
+
+/** Cancels every not-yet-sent reminder of an event (used when a task is done). */
+export async function cancelPendingReminders(eventId: string) {
+  const { error } = await supabase
+    .from("event_reminders")
+    .delete()
+    .eq("event_id", eventId)
+    .is("sent_at", null);
+  if (error) throw error;
 }
 
 /** Replaces all not-yet-sent reminders of an event with the given drafts. */

@@ -9,6 +9,8 @@ type EventRow = {
   date: string | null;
   time: string | null;
   things_to_bring: unknown;
+  type?: string | null;
+  completed?: boolean | null;
   amount: string | null;
   deadline: string | null;
   event_members: { family_members: { name: string } | null }[] | null;
@@ -117,8 +119,10 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
         const { data, error } = await supabaseAdmin
           .from("event_reminders")
           .select(
-            "id, remind_at, recipient_mode, created_by, family_events!inner(id, family_id, title, category, date, time, things_to_bring, amount, deadline, event_members(family_members(name)))",
+            "id, remind_at, recipient_mode, created_by, family_events!inner(id, family_id, title, category, date, time, things_to_bring, amount, deadline, type, completed, event_members(family_members(name)))",
           )
+          // A finished task must never keep notifying.
+          .eq("family_events.completed", false)
           .is("sent_at", null)
           .lte("remind_at", nowIso)
           .gte("remind_at", windowStart)

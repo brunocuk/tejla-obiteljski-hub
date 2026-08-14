@@ -21,6 +21,16 @@ export type ExtractedItem = {
   confidence: number;
   dayMonth: string;
   needsYear: boolean;
+  /** "event" = happens at a time, "task" = something to do (can be completed). */
+  type: "event" | "task";
+  /** True when the user explicitly asked to be reminded ("podsjeti me"). */
+  reminder_intent: boolean;
+  /** Explicit reminder clock time "HH:MM" when it was stated. */
+  reminder_time: string;
+  /** Requested repeat, e.g. "hourly" / "until_done". */
+  reminder_recurrence: string;
+  /** Index of the event in the same analysis this task belongs to (-1 = none). */
+  link_to: number;
 };
 
 export type ConfirmedItem = ExtractedItem & { id: string };
@@ -106,6 +116,11 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
     subject: String(raw.subject ?? ""),
     notes: parsed.notes,
     confidence: Number.isFinite(conf) ? Math.min(1, Math.max(0, conf)) : 0,
+    type: raw.type === "task" ? "task" : "event",
+    reminder_intent: Boolean(raw.reminder_intent),
+    reminder_time: String(raw.reminder_time ?? "").trim(),
+    reminder_recurrence: String(raw.reminder_recurrence ?? "").trim(),
+    link_to: Number.isInteger(raw.link_to) ? Number(raw.link_to) : -1,
   };
 }
 

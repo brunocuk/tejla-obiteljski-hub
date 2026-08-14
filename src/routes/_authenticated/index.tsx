@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { assigneeStyle } from "@/lib/family";
-import { useFamilyEvents, type FamilyEvent } from "@/lib/family-events";
+import { setEventCompleted, useFamilyEvents, type FamilyEvent } from "@/lib/family-events";
+import { useQueryClient } from "@tanstack/react-query";
 import { EventDetailSheet } from "@/components/EventDetailSheet";
 import { useMyFamilyId } from "@/lib/family-workspace";
 import { NotificationOptIn } from "@/components/NotificationOptIn";
@@ -52,12 +53,32 @@ function Danas() {
   const { data: familyId } = useMyFamilyId();
   const { data: events, isPending } = useFamilyEvents(familyId);
   const { data: reminderMap = {} } = useFamilyReminders(familyId);
+  const queryClient = useQueryClient();
+  const toggleTask = async (t: FamilyEvent) => {
+    await setEventCompleted(t.id, !t.completed);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["family-events", familyId] }),
+      queryClient.invalidateQueries({ queryKey: ["family-reminders", familyId] }),
+    ]);
+  };
+  const titleOf = (id: string) =>
+    (events ?? []).find((e) => e.id === id)?.title ?? "povezani događaj";
   const openEvent: FamilyEvent | null = (events ?? []).find((e) => e.id === openId) ?? null;
 
   const now = new Date();
   const today = isoDay(now);
   const in7 = isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7));
-  const all = events ?? [];
+  const allRows = events ?? [];
+  // Tasks live in their own section; they must not clutter the calendar lists.
+  const all = allRows.filter((e) => e.type !== "task");
+  const tasks = allRows
+    .filter((e) => e.type === "task")
+    .sort(
+      (a, b) =>
+        Number(a.completed) - Number(b.completed) ||
+        (a.date || "9999").localeCompare(b.date || "9999"),
+    )
+    .filter((t) => !t.completed || (t.date || today) >= today);
   const todayEvents = all
     .filter((e) => e.date === today)
     .sort((a, b) => a.time.localeCompare(b.time));
@@ -134,6 +155,48 @@ function Danas() {
           )}
         </div>
       </section>
+
+      {tasks.length > 0 ? (
+        <section className="mb-8">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Zadaci
+          </h2>
+          <div className="card-soft divide-y divide-border">
+            {tasks.map((t) => (
+              <div key={`task-${t.id}`} className="flex items-center gap-3 px-5 py-4">
+                <button
+                  type="button"
+                  aria-label={t.completed ? "Označi kao nedovršeno" : "Označi kao riješeno"}
+                  aria-pressed={t.completed}
+                  onClick={() => void toggleTask(t)}
+                  className={`flex size-7 shrink-0 items-center justify-center rounded-lg border transition-colors ${
+                    t.completed ? "border-primary bg-primary" : "border-border bg-background"
+                  }`}
+                >
+                  {t.completed ? <Check className="size-4 text-primary-foreground" /> : null}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpenId(t.id)}
+                  className="min-w-0 flex-1 text-left active:opacity-70"
+                >
+                  <p
+                    className={`truncate text-[15px] font-semibold ${t.completed ? "text-muted-foreground line-through" : ""}`}
+                  >
+                    {t.title || "Bez naziva"}
+                  </p>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {[t.members.join(", "), t.linked_event_id ? `uz ${titleOf(t.linked_event_id)}` : ""]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                  {t.completed ? null : <ReminderBadge reminders={reminderMap[t.id]} />}
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {soon.length > 0 ? (
         <section className="mb-8">

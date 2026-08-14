@@ -2,8 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const SYSTEM_PROMPT = `You extract scheduling and task information from an image, a PDF page or pasted text (screenshot, photo of a notice, email, message).
 Return STRICT JSON only, matching exactly:
-{"items":[{"person":"","title":"","category":"","date":"","time":"","location":"","deadline":"","amount":"","things_to_bring":[],"action_required":"","subject":"","notes":"","confidence":0}]}
+{"items":[{"type":"event","person":"","title":"","category":"","date":"","time":"","location":"","deadline":"","amount":"","things_to_bring":[],"action_required":"","subject":"","notes":"","confidence":0,"reminder_intent":false,"reminder_time":"","reminder_recurrence":"","link_to":-1}]}
 Rules:
+- "type" is "event" when something happens at a moment in time (appointment, birthday, trip, exam, deadline). "type" is "task" when the user must DO something ("kupiti poklon", "izvaditi krv", "platiti ratu").
+- One sentence can produce BOTH an event and a task. Then return two items: the event first (type "event"), the task second (type "task") with "link_to" set to the index of that event in the items array (0-based). Never return the same thing twice as two events.
+- "podsjeti me", "podsjeti nas", "podsjeti <ime>", "nemoj da zaboravim", "javi mi da", "podsjecaj me" mean reminder intent: set reminder_intent true on the TASK item.
+- For a task, the stated reminder clock time goes into "reminder_time" (HH:MM), NOT into "time". A reminder time is when the user wants to be notified, never when the task happens. Leave "time" empty for tasks unless the task itself must happen at that exact time.
+- The reminder day goes into the task's "date" (YYYY-MM-DD) when stated ("danas", "sutra").
+- "svaki sat" / "svaka 2 sata" / "svaka 3 sata" / "2 puta dnevno" / "3 puta dnevno" / "dok ne ..." set reminder_recurrence to one of: hourly, every_2h, every_3h, twice_daily, three_daily, until_done. Otherwise leave it empty.
+- A statement without a reminder request ("Danas moram kupiti poklon") is still a task, but reminder_intent must be false.
 - Never invent information that is not present in the input.
 - Unknown field => empty string, or empty array for things_to_bring.
 - Dates in YYYY-MM-DD when the year is visible. If the day and month are visible but the year is NOT, put the visible date into the "date" field exactly as written (for example "8.6." or "8. lipnja") and do NOT guess the year.
