@@ -23,26 +23,24 @@ export const InviteEmail = ({
   siteUrl,
   confirmationUrl,
 }: InviteEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="hr" dir="ltr">
     <Head />
-    <Preview>You've been invited to join {siteName}</Preview>
+    <Preview>Pozvan/a si u {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>You've been invited</Heading>
+        <Heading style={h1}>Pozvan/a si</Heading>
         <Text style={text}>
-          You've been invited to join{' '}
+          Pozvani ste pridružiti se prostoru{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
-          . Click the button below to accept the invitation and create your
-          account.
+          . Klikni na gumb ispod da prihvatiš poziv i postaviš svoj račun.
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Accept Invitation
+          Prihvati poziv
         </Button>
         <Text style={footer}>
-          If you weren't expecting this invitation, you can safely ignore this
-          email.
+          Ako nisi očekivao/la ovaj poziv, slobodno zanemari ovu poruku.
         </Text>
       </Container>
     </Body>
@@ -65,13 +63,13 @@ const text = {
   lineHeight: '1.5',
   margin: '0 0 25px',
 }
-const link = { color: 'inherit', textDecoration: 'underline' }
+const link = { color: '#7C5CFF', textDecoration: 'underline' }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: '#7C5CFF',
   color: '#ffffff',
   fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
+  borderRadius: '14px',
+  padding: '14px 24px',
   textDecoration: 'none',
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }

@@ -15,17 +15,16 @@ interface ReauthenticationEmailProps {
 }
 
 export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="hr" dir="ltr">
     <Head />
-    <Preview>Your verification code</Preview>
+    <Preview>Tvoj kod za potvrdu</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirm reauthentication</Heading>
-        <Text style={text}>Use the code below to confirm your identity:</Text>
+        <Heading style={h1}>Potvrda identiteta</Heading>
+        <Text style={text}>Upiši kod ispod kako bi potvrdio/la svoj identitet:</Text>
         <Text style={codeStyle}>{token}</Text>
         <Text style={footer}>
-          This code will expire shortly. If you didn't request this, you can
-          safely ignore this email.
+          Kod uskoro istječe. Ako ovo nisi zatražio/la, zanemari ovu poruku.
         </Text>
       </Container>
     </Body>

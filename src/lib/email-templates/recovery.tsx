@@ -20,22 +20,20 @@ export const RecoveryEmail = ({
   siteName,
   confirmationUrl,
 }: RecoveryEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="hr" dir="ltr">
     <Head />
-    <Preview>Reset your password for {siteName}</Preview>
+    <Preview>Ponovno postavi lozinku za {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Reset your password</Heading>
+        <Heading style={h1}>Ponovno postavljanje lozinke</Heading>
         <Text style={text}>
-          We received a request to reset your password for {siteName}. Click
-          the button below to choose a new password.
+          Zaprimili smo zahtjev za promjenu lozinke za {siteName}. Klikni na gumb ispod i postavi novu lozinku.
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Reset Password
+          Postavi novu lozinku
         </Button>
         <Text style={footer}>
-          If you didn't request a password reset, you can safely ignore this
-          email. Your password will not be changed.
+          Ako nisi zatražio/la promjenu lozinke, zanemari ovu poruku — lozinka ostaje nepromijenjena.
         </Text>
       </Container>
     </Body>
@@ -59,11 +57,11 @@ const text = {
   margin: '0 0 25px',
 }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: '#7C5CFF',
   color: '#ffffff',
   fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
+  borderRadius: '14px',
+  padding: '14px 24px',
   textDecoration: 'none',
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }

@@ -25,31 +25,31 @@ export const SignupEmail = ({
   recipient,
   confirmationUrl,
 }: SignupEmailProps) => (
-  <Html lang="en" dir="ltr">
+  <Html lang="hr" dir="ltr">
     <Head />
-    <Preview>Confirm your email for {siteName}</Preview>
+    <Preview>Potvrdi svoju e-mail adresu za {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirm your email</Heading>
+        <Heading style={h1}>Potvrdi e-mail adresu</Heading>
         <Text style={text}>
-          Thanks for signing up for{' '}
+          Hvala što si se registrirao/la na{' '}
           <Link href={siteUrl} style={link}>
             <strong>{siteName}</strong>
           </Link>
-          !
+          .
         </Text>
         <Text style={text}>
-          Please confirm your email address (
+          Potvrdi svoju e-mail adresu (
           <Link href={`mailto:${recipient}`} style={link}>
             {recipient}
           </Link>
-          ) by clicking the button below:
+          ) klikom na gumb ispod:
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Verify Email
+          Potvrdi e-mail
         </Button>
         <Text style={footer}>
-          If you didn't create an account, you can safely ignore this email.
+          Ako nisi izradio/la račun, slobodno zanemari ovu poruku.
         </Text>
       </Container>
     </Body>
@@ -72,13 +72,13 @@ const text = {
   lineHeight: '1.5',
   margin: '0 0 25px',
 }
-const link = { color: 'inherit', textDecoration: 'underline' }
+const link = { color: '#7C5CFF', textDecoration: 'underline' }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: '#7C5CFF',
   color: '#ffffff',
   fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
+  borderRadius: '14px',
+  padding: '14px 24px',
   textDecoration: 'none',
 }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
