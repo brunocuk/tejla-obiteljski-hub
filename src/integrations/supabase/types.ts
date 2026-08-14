@@ -58,6 +58,7 @@ export type Database = {
           id: string
           pattern: string
           recipient_mode: string
+          recipient_user_ids: string[]
           remind_at: string
           sent_at: string | null
           series_id: string | null
@@ -69,6 +70,7 @@ export type Database = {
           id?: string
           pattern?: string
           recipient_mode?: string
+          recipient_user_ids?: string[]
           remind_at: string
           sent_at?: string | null
           series_id?: string | null
@@ -80,6 +82,7 @@ export type Database = {
           id?: string
           pattern?: string
           recipient_mode?: string
+          recipient_user_ids?: string[]
           remind_at?: string
           sent_at?: string | null
           series_id?: string | null
