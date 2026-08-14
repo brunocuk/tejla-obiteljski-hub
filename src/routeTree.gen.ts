@@ -13,6 +13,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAnalizaRouteImport } from './routes/_authenticated/analiza'
+import { Route as AuthenticatedBetaAdminRouteImport } from './routes/_authenticated/beta-admin'
 import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated/inbox'
 import { Route as AuthenticatedKalendarRouteImport } from './routes/_authenticated/kalendar'
 import { Route as AuthenticatedObiteljRouteImport } from './routes/_authenticated/obitelj'
@@ -41,6 +42,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const AuthenticatedAnalizaRoute = AuthenticatedAnalizaRouteImport.update({
   id: '/analiza',
   path: '/analiza',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBetaAdminRoute = AuthenticatedBetaAdminRouteImport.update({
+  id: '/beta-admin',
+  path: '/beta-admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedInboxRoute = AuthenticatedInboxRouteImport.update({
@@ -99,6 +105,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
   '/analiza': typeof AuthenticatedAnalizaRoute
+  '/beta-admin': typeof AuthenticatedBetaAdminRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/kalendar': typeof AuthenticatedKalendarRoute
   '/obitelj': typeof AuthenticatedObiteljRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/analiza': typeof AuthenticatedAnalizaRoute
+  '/beta-admin': typeof AuthenticatedBetaAdminRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/kalendar': typeof AuthenticatedKalendarRoute
   '/obitelj': typeof AuthenticatedObiteljRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/analiza': typeof AuthenticatedAnalizaRoute
+  '/_authenticated/beta-admin': typeof AuthenticatedBetaAdminRoute
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/kalendar': typeof AuthenticatedKalendarRoute
   '/_authenticated/obitelj': typeof AuthenticatedObiteljRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/analiza'
+    | '/beta-admin'
     | '/inbox'
     | '/kalendar'
     | '/obitelj'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
   to:
     | '/auth'
     | '/analiza'
+    | '/beta-admin'
     | '/inbox'
     | '/kalendar'
     | '/obitelj'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/analiza'
+    | '/_authenticated/beta-admin'
     | '/_authenticated/inbox'
     | '/_authenticated/kalendar'
     | '/_authenticated/obitelj'
@@ -231,6 +243,13 @@ declare module '@tanstack/react-router' {
       path: '/analiza'
       fullPath: '/analiza'
       preLoaderRoute: typeof AuthenticatedAnalizaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/beta-admin': {
+      id: '/_authenticated/beta-admin'
+      path: '/beta-admin'
+      fullPath: '/beta-admin'
+      preLoaderRoute: typeof AuthenticatedBetaAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/inbox': {
@@ -308,6 +327,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAnalizaRoute: typeof AuthenticatedAnalizaRoute
+  AuthenticatedBetaAdminRoute: typeof AuthenticatedBetaAdminRoute
   AuthenticatedInboxRoute: typeof AuthenticatedInboxRoute
   AuthenticatedKalendarRoute: typeof AuthenticatedKalendarRoute
   AuthenticatedObiteljRoute: typeof AuthenticatedObiteljRoute
@@ -316,6 +336,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAnalizaRoute: AuthenticatedAnalizaRoute,
+  AuthenticatedBetaAdminRoute: AuthenticatedBetaAdminRoute,
   AuthenticatedInboxRoute: AuthenticatedInboxRoute,
   AuthenticatedKalendarRoute: AuthenticatedKalendarRoute,
   AuthenticatedObiteljRoute: AuthenticatedObiteljRoute,
