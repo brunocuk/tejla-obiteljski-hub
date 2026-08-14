@@ -18,6 +18,7 @@ import { Route as AuthenticatedKalendarRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedObiteljRouteImport } from './routes/_authenticated/obitelj'
 import { Route as ApiAnalyzeImageRouteImport } from './routes/api/analyze-image'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as BetaInviteTokenRouteImport } from './routes/beta-invite.$token'
 import { Route as ApiPublicVapidKeyRouteImport } from './routes/api/public/vapid-key'
 import { Route as ApiPublicHooksSendRemindersRouteImport } from './routes/api/public/hooks/send-reminders'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -67,6 +68,11 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BetaInviteTokenRoute = BetaInviteTokenRouteImport.update({
+  id: '/beta-invite/$token',
+  path: '/beta-invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicVapidKeyRoute = ApiPublicVapidKeyRouteImport.update({
   id: '/api/public/vapid-key',
   path: '/api/public/vapid-key',
@@ -98,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/beta-invite/$token': typeof BetaInviteTokenRoute
   '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
   '/api/public/hooks/send-reminders': typeof ApiPublicHooksSendRemindersRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/beta-invite/$token': typeof BetaInviteTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
   '/api/public/hooks/send-reminders': typeof ApiPublicHooksSendRemindersRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/_authenticated/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/beta-invite/$token': typeof BetaInviteTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
   '/api/public/hooks/send-reminders': typeof ApiPublicHooksSendRemindersRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/obitelj'
     | '/api/analyze-image'
     | '/api/transcribe'
+    | '/beta-invite/$token'
     | '/api/public/vapid-key'
     | '/api/public/hooks/send-reminders'
     | '/lovable/email/auth/preview'
@@ -157,6 +167,7 @@ export interface FileRouteTypes {
     | '/obitelj'
     | '/api/analyze-image'
     | '/api/transcribe'
+    | '/beta-invite/$token'
     | '/'
     | '/api/public/vapid-key'
     | '/api/public/hooks/send-reminders'
@@ -172,6 +183,7 @@ export interface FileRouteTypes {
     | '/_authenticated/obitelj'
     | '/api/analyze-image'
     | '/api/transcribe'
+    | '/beta-invite/$token'
     | '/_authenticated/'
     | '/api/public/vapid-key'
     | '/api/public/hooks/send-reminders'
@@ -184,6 +196,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ApiAnalyzeImageRoute: typeof ApiAnalyzeImageRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  BetaInviteTokenRoute: typeof BetaInviteTokenRoute
   ApiPublicVapidKeyRoute: typeof ApiPublicVapidKeyRoute
   ApiPublicHooksSendRemindersRoute: typeof ApiPublicHooksSendRemindersRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
@@ -255,6 +268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/beta-invite/$token': {
+      id: '/beta-invite/$token'
+      path: '/beta-invite/$token'
+      fullPath: '/beta-invite/$token'
+      preLoaderRoute: typeof BetaInviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/vapid-key': {
       id: '/api/public/vapid-key'
       path: '/api/public/vapid-key'
@@ -310,6 +330,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ApiAnalyzeImageRoute: ApiAnalyzeImageRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  BetaInviteTokenRoute: BetaInviteTokenRoute,
   ApiPublicVapidKeyRoute: ApiPublicVapidKeyRoute,
   ApiPublicHooksSendRemindersRoute: ApiPublicHooksSendRemindersRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
