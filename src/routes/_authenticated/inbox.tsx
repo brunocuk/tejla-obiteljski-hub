@@ -6,6 +6,7 @@ import { AnalysisResults } from "@/components/AnalysisResults";
 import { ManualEventForm } from "@/components/ManualEventForm";
 import { VoiceCapture } from "@/components/VoiceCapture";
 import { normalizeItem, type ExtractedItem } from "@/lib/hub-store";
+import { applyRelativeReminders } from "@/lib/relative-time";
 import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
 
 export const Route = createFileRoute("/_authenticated/inbox")({
@@ -122,13 +123,19 @@ function InboxPage() {
         body: JSON.stringify({
           ...payload,
           today: localToday(),
+          nowTime: new Date().toTimeString().slice(0, 5),
           speaker,
           members: memberNames,
         }),
       });
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as { items?: Partial<ExtractedItem>[] };
-      const items = (data.items ?? []).map(normalizeItem);
+      const spoken = "text" in payload ? payload.text : "";
+      const items = applyRelativeReminders(
+        (data.items ?? []).map(normalizeItem),
+        spoken,
+        new Date(),
+      );
       setAnalysis(items);
       setMode("results");
       logRecent(label, items.length);

@@ -23,6 +23,8 @@ Rules:
 - Dates in YYYY-MM-DD when the year is visible. If the day and month are visible but the year is NOT, put the visible date into the "date" field exactly as written (for example "8.6." or "8. lipnja") and do NOT guess the year.
 - Relative Croatian expressions ("danas", "sutra", "prekosutra", "u petak", "sljedeci utorak", "za tjedan dana") must be resolved to a concrete YYYY-MM-DD using the provided current date. A weekday without "sljedeci" means the next upcoming occurrence.
 - Spoken times ("u 8 navecer", "pola 9 ujutro", "u podne") must be converted to 24h HH:MM.
+- Relative reminder expressions ("za 5 minuta", "za pola sata", "za sat vremena", "za 2 sata", "za 3 dana") are counted from the provided current local time, NEVER from the moment of writing. Resolve them into reminder_time (HH:MM) and, when they cross midnight, into the task "date".
+- "podsjeti me X prije" refers to the EVENT time minus X; keep the event time in "time" and never copy the event time into reminder_time.
 - Only fill a field when it was actually stated. Never invent a person, location, time or date.
 - A month heading in the input (for example "Lipanj") confirms the month for the items listed under it.
 - Never leave a recognizable event date only inside notes; notes are for additional descriptive information only.
@@ -37,6 +39,7 @@ type Body = {
   mimeType?: string;
   text?: string;
   today?: string;
+  nowTime?: string;
   speaker?: string;
   members?: string[];
 };
@@ -53,6 +56,10 @@ export const Route = createFileRoute("/api/analyze-image")({
         const today = typeof body.today === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.today)
           ? body.today
           : new Date().toISOString().slice(0, 10);
+        const nowTime =
+          typeof body.nowTime === "string" && /^\d{2}:\d{2}$/.test(body.nowTime)
+            ? body.nowTime
+            : "";
         const speaker = typeof body.speaker === "string" ? body.speaker.trim().slice(0, 60) : "";
         const members = Array.isArray(body.members)
           ? body.members.filter((m): m is string => typeof m === "string").slice(0, 20)
@@ -102,7 +109,9 @@ export const Route = createFileRoute("/api/analyze-image")({
             messages: [
               {
                 role: "system",
-                content: `${SYSTEM_PROMPT}\nCurrent date (user's local timezone): ${today}.\n${personHint}`,
+                content: `${SYSTEM_PROMPT}\nCurrent date (user's local timezone): ${today}.${
+                  nowTime ? `\nCurrent local time: ${nowTime}.` : ""
+                }\n${personHint}`,
               },
               { role: "user", content: userContent },
             ],
