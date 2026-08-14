@@ -8,10 +8,11 @@ import { formatCroatianDate, isIsoDate } from "@/lib/date-hr";
 import { saveFamilyEvents } from "@/lib/family-events";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
-  defaultRecipient,
   insertReminders,
   normalizeCategory,
+  resolveRecipient,
   suggestReminders,
+  withRecipient,
   type RecipientMode,
   localDate,
   type ReminderDraft,
@@ -31,7 +32,12 @@ const RECURRENCE_MAP: Record<string, ReminderPattern> = {
  * Default reminders for one extracted item, shared by every input path.
  * Tasks only get reminders when the user actually asked to be reminded.
  */
-function defaultDrafts(it: ExtractedItem, mode: RecipientMode): ReminderDraft[] {
+function defaultDrafts(
+  it: ExtractedItem,
+  mode: RecipientMode,
+  userIds: string[],
+): ReminderDraft[] {
+  const stamp = (list: ReminderDraft[]) => withRecipient(list, mode, userIds);
   if (it.type === "task") {
     if (!it.reminder_intent) return [];
     const base =
@@ -40,9 +46,10 @@ function defaultDrafts(it: ExtractedItem, mode: RecipientMode): ReminderDraft[] 
     // No stated time -> start reminding from the moment the request was made.
     const start = base && base.getTime() > Date.now() ? base : new Date();
     const pattern = RECURRENCE_MAP[it.reminder_recurrence] ?? "once";
-    return draftsFromPattern(pattern, mode, { start });
+    return stamp(draftsFromPattern(pattern, mode, { start }));
   }
-  return suggestReminders(
+  return stamp(
+    suggestReminders(
     {
       category: it.category,
       date: it.date,
@@ -51,6 +58,7 @@ function defaultDrafts(it: ExtractedItem, mode: RecipientMode): ReminderDraft[] 
       things_to_bring: it.things_to_bring,
     },
     mode,
+    ),
   );
 }
 
@@ -74,8 +82,12 @@ export function AnalysisResults({
   const { data: userId } = useMyUserId();
   const memberRows = (members ?? []).map((m) => ({ id: m.id, name: m.name }));
   const assigneeOptions = [...memberRows.map((m) => m.name), WHOLE_FAMILY];
+  const adults = (members ?? [])
+    .filter((m) => m.member_type === "parent" && m.linked_user_id)
+    .map((m) => ({ name: m.name, userId: m.linked_user_id as string }));
   const [reminders, setReminders] = useState<Record<number, ReminderDraft[]>>({});
   const [recipients, setRecipients] = useState<Record<number, RecipientMode>>({});
+  const [recipientIds, setRecipientIds] = useState<Record<number, string[]>>({});
   const [openReminders, setOpenReminders] = useState<number | null>(null);
   const [touched, setTouched] = useState<number[]>([]);
   const [years, setYears] = useState<Record<number, string>>({});
@@ -102,15 +114,20 @@ export function AnalysisResults({
   useEffect(() => {
     const nextR: Record<number, ReminderDraft[]> = {};
     const nextM: Record<number, RecipientMode> = {};
+    const nextIds: Record<number, string[]> = {};
     items.forEach((it, i) => {
-      const mode = recipients[i] ?? defaultRecipient(it.category, false);
+      const resolved = resolveRecipient(it.reminder_scope, it.reminder_people, userId, adults);
+      const mode = touched.includes(i) ? (recipients[i] ?? resolved.mode) : resolved.mode;
+      const ids = touched.includes(i) ? (recipientIds[i] ?? resolved.userIds) : resolved.userIds;
       nextM[i] = mode;
-      nextR[i] = touched.includes(i) ? (reminders[i] ?? []) : defaultDrafts(it, mode);
+      nextIds[i] = ids;
+      nextR[i] = touched.includes(i) ? (reminders[i] ?? []) : defaultDrafts(it, mode, ids);
     });
     setReminders(nextR);
     setRecipients(nextM);
+    setRecipientIds(nextIds);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items]);
+  }, [items, userId, members]);
 
   const update = (idx: number, field: keyof ExtractedItem, value: string) =>
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
@@ -378,10 +395,13 @@ export function AnalysisResults({
                         setReminders((prev) => ({ ...prev, [idx]: next }));
                       }}
                       isTask={it.type === "task"}
-                      recipient={recipients[idx] ?? "all_parents"}
-                      onRecipientChange={(mode) => {
+                      recipient={recipients[idx] ?? "creator_only"}
+                      recipientUserIds={recipientIds[idx] ?? []}
+                      adults={adults}
+                      onRecipientChange={(mode, ids) => {
                         setTouched((t) => (t.includes(idx) ? t : [...t, idx]));
                         setRecipients((prev) => ({ ...prev, [idx]: mode }));
+                        setRecipientIds((prev) => ({ ...prev, [idx]: ids }));
                       }}
                     />
                   ) : null}
