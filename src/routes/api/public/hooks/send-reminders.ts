@@ -153,7 +153,9 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
             const { data: members } = await supabaseAdmin
               .from("family_users")
               .select("user_id")
-              .eq("family_id", reminder.family_events.family_id);
+              .eq("family_id", reminder.family_events.family_id)
+              // "Sve roditelje" means the adults of the space, never the children.
+              .in("role", ["owner", "parent"]);
             userIds = (members ?? []).map((m) => m.user_id);
           } else if (reminder.recipient_mode === "selected") {
             const picked = (reminder.recipient_user_ids ?? []).filter(Boolean);

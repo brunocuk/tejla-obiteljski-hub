@@ -99,9 +99,6 @@ export function resolveRecipient(
     const unique = [...new Set(ids)];
     if (unique.length === 0) return { mode: "creator_only", userIds: [] };
     if (unique.length === 1 && unique[0] === self) return { mode: "creator_only", userIds: [] };
-    if (adults.length > 0 && unique.length >= adults.length) {
-      return { mode: "all_parents", userIds: [] };
-    }
     return { mode: "selected", userIds: unique };
   }
 
