@@ -30,7 +30,7 @@ export function NotificationOptIn() {
         <div className="min-w-0 flex-1">
           <p className="text-[15px] font-semibold">Podsjetnici su uključeni</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {note ?? "Family Hub će te podsjetiti na obveze i rokove."}
+            {note ?? "Tejla će te podsjetiti na obveze i rokove."}
           </p>
           <button
             type="button"
@@ -72,7 +72,7 @@ export function NotificationOptIn() {
         <div className="min-w-0 flex-1">
           <p className="text-[15px] font-semibold">Obavijesti su blokirane</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Uključi ih u postavkama uređaja: Postavke → Obavijesti → Family Hub, pa se vrati u
+            Uključi ih u postavkama uređaja: Postavke → Obavijesti → Tejla, pa se vrati u
             aplikaciju.
           </p>
         </div>
@@ -87,7 +87,7 @@ export function NotificationOptIn() {
           <Share className="size-5" strokeWidth={1.8} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold">Dodaj Family Hub na početni zaslon</p>
+          <p className="text-[15px] font-semibold">Dodaj Tejla na početni zaslon</p>
           <p className="mt-1 text-sm text-muted-foreground">
             Na iPhoneu obavijesti rade samo iz instalirane aplikacije. Otvori izbornik Podijeli i
             odaberi „Dodaj na početni zaslon", pa uključi podsjetnike iz te aplikacije.
@@ -103,7 +103,7 @@ export function NotificationOptIn() {
         <BellRing className="size-5" strokeWidth={1.8} />
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[15px] font-semibold">Želiš da Family Hub pamti umjesto tebe?</p>
+        <p className="text-[15px] font-semibold">Želiš da Tejla pamti umjesto tebe?</p>
         <p className="mt-1 text-sm text-muted-foreground">
           {note ?? "Uključi podsjetnike za obveze, termine i rokove."}
         </p>

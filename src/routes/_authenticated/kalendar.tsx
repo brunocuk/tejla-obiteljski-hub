@@ -13,12 +13,12 @@ import { useFamilyReminders } from "@/lib/reminders";
 export const Route = createFileRoute("/_authenticated/kalendar")({
   head: () => ({
     meta: [
-      { title: "Kalendar — Family Hub" },
+      { title: "Kalendar — Tejla" },
       {
         name: "description",
         content: "Kalendar po danima: termini, obveze i rokovi za sve članove na jednom mjestu.",
       },
-      { property: "og:title", content: "Kalendar — Family Hub" },
+      { property: "og:title", content: "Kalendar — Tejla" },
       {
         property: "og:description",
         content: "Pregled svih obveza po danima, s bojom za svakog člana.",

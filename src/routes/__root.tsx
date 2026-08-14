@@ -77,13 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Family Hub — obiteljske obveze na jednom mjestu" },
+      { title: "Tejla — obiteljske obveze na jednom mjestu" },
       {
         name: "description",
         content:
-          "Family Hub okuplja školske obavijesti, termine i zadatke oba roditelja u jedan zajednički obiteljski kalendar.",
+          "Tejla okuplja školske obavijesti, termine i zadatke oba roditelja u jedan zajednički obiteljski kalendar.",
       },
-      { property: "og:title", content: "Family Hub" },
+      { property: "og:title", content: "Tejla" },
       {
         property: "og:description",
         content: "Obiteljske obveze, termini i zadaci — sve na jednom mjestu.",
