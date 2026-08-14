@@ -114,7 +114,7 @@ function Danas() {
 
   return (
     <AppShell>
-      <header className="mb-7">
+      <header className="mb-5">
         <p className="text-sm font-medium text-muted-foreground">
           {WEEKDAYS[now.getDay()]}, {now.getDate()}. {MONTHS_GEN[now.getMonth()]}
         </p>
