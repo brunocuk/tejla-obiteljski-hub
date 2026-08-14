@@ -95,7 +95,7 @@ export function useFamilyEvents(familyId: string | null | undefined) {
   // hook at once (list + detail sheet), and reusing one topic makes supabase-js
   // throw "cannot add postgres_changes callbacks after subscribe()" — that throw
   // happens inside render/effect and blanks the whole screen.
-  const channelIdRef = useRef<string>();
+  const channelIdRef = useRef<string | null>(null);
   if (!channelIdRef.current) channelIdRef.current = Math.random().toString(36).slice(2);
   useEffect(() => {
     if (!familyId) return;
