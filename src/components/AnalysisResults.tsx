@@ -215,8 +215,19 @@ export function AnalysisResults({
       ]);
       onSaved(ids.length);
     } catch (e) {
-      console.error("[analysis] save failed", e);
-      setError("Obavezu nije bilo moguće spremiti. Pokušaj ponovno.");
+      const detail = e as { message?: string; code?: string; details?: string; hint?: string };
+      console.error(
+        "[analysis] save failed",
+        detail?.code ?? "",
+        detail?.message ?? String(e),
+        detail?.details ?? "",
+        detail?.hint ?? "",
+      );
+      setError(
+        detail?.message
+          ? `Obavezu nije bilo moguće spremiti: ${detail.message}`
+          : "Obavezu nije bilo moguće spremiti. Pokušaj ponovno.",
+      );
     } finally {
       setSaving(false);
     }
