@@ -9,11 +9,13 @@ import {
   Pencil,
   Plus,
   Shield,
+  UserMinus,
   UserPlus,
   X,
 } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { MemberDataSheet } from "@/components/MemberDataSheet";
+import { removeFamilyMember } from "@/lib/member-data";
 import { supabase } from "@/integrations/supabase/client";
 import { memberStyle } from "@/lib/family";
 import { sendFamilyInvite } from "@/lib/invitations.functions";
