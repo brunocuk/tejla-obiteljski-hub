@@ -9,7 +9,7 @@ import { EmailChangeEmail } from '@/lib/email-templates/email-change'
 import { ReauthenticationEmail } from '@/lib/email-templates/reauthentication'
 
 // Configuration
-const SITE_NAME = "obiteljski-hub"
+const SITE_NAME = "Tejla"
 const SENDER_DOMAIN = "notify.tejla.app"
 const ROOT_DOMAIN = "tejla.app"
 const FROM_DOMAIN = "notify.tejla.app"

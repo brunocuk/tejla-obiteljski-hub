@@ -3,9 +3,9 @@ self.addEventListener("push", (event) => {
   try {
     payload = event.data ? event.data.json() : {};
   } catch {
-    payload = { title: "Family Hub", body: event.data ? event.data.text() : "" };
+    payload = { title: "Tejla", body: event.data ? event.data.text() : "" };
   }
-  const title = payload.title || "Family Hub";
+  const title = payload.title || "Tejla";
   event.waitUntil(
     self.registration.showNotification(title, {
       body: payload.body || "",

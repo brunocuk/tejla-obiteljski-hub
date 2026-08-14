@@ -11,13 +11,13 @@ import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-works
 export const Route = createFileRoute("/_authenticated/inbox")({
   head: () => ({
     meta: [
-      { title: "Inbox — Family Hub" },
+      { title: "Inbox — Tejla" },
       {
         name: "description",
         content:
           "Ubaci fotografiju, screenshot, PDF ili tekst — AI izdvaja obveze i termine, a ti ih odmah spremaš.",
       },
-      { property: "og:title", content: "Inbox — Family Hub" },
+      { property: "og:title", content: "Inbox — Tejla" },
       {
         property: "og:description",
         content: "Ubaci bilo što — AI pronalazi ono što je važno i sprema u kalendar.",

@@ -15,12 +15,12 @@ import { AllTasksSheet } from "@/components/AllTasksSheet";
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
     meta: [
-      { title: "Danas — Family Hub" },
+      { title: "Danas — Tejla" },
       {
         name: "description",
         content: "Sve što te čeka danas — termini, obveze i rokovi na jednom mjestu.",
       },
-      { property: "og:title", content: "Danas — Family Hub" },
+      { property: "og:title", content: "Danas — Tejla" },
       {
         property: "og:description",
         content: "Sve što te čeka, na jednom mjestu.",

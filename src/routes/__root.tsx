@@ -77,13 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Family Hub — obiteljske obveze na jednom mjestu" },
+      { title: "Tejla — obiteljske obveze na jednom mjestu" },
       {
         name: "description",
         content:
-          "Family Hub okuplja školske obavijesti, termine i zadatke oba roditelja u jedan zajednički obiteljski kalendar.",
+          "Tejla okuplja školske obavijesti, termine i zadatke oba roditelja u jedan zajednički obiteljski kalendar.",
       },
-      { property: "og:title", content: "Family Hub" },
+      { property: "og:title", content: "Tejla" },
       {
         property: "og:description",
         content: "Obiteljske obveze, termini i zadaci — sve na jednom mjestu.",
@@ -91,6 +91,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "application-name", content: "Tejla" },
+      { name: "apple-mobile-web-app-title", content: "Tejla" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "theme-color", content: "#7C5CFF" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -104,6 +110,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
   shellComponent: RootShell,

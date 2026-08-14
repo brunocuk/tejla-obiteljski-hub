@@ -1,0 +1,14 @@
+{
+  "name": "Tejla",
+  "short_name": "Tejla",
+  "description": "Obiteljske obveze, termini i zadaci — sve na jednom mjestu.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#7C5CFF",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "48x48", "type": "image/x-icon" }
+  ]
+}

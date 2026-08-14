@@ -27,12 +27,12 @@ import {
 export const Route = createFileRoute("/_authenticated/obitelj")({
   head: () => ({
     meta: [
-      { title: "Članovi — Family Hub" },
+      { title: "Članovi — Tejla" },
       {
         name: "description",
         content: "Svi članovi zajedničkog prostora: pozovi odrasle i djecu te odredi što tko vidi.",
       },
-      { property: "og:title", content: "Članovi — Family Hub" },
+      { property: "og:title", content: "Članovi — Tejla" },
       {
         property: "og:description",
         content: "Upravljaj članovima zajedničkog prostora i njihovom vidljivošću.",

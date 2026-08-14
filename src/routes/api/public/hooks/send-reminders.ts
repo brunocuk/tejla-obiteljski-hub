@@ -90,7 +90,7 @@ function buildMessage(reminder: ReminderRow) {
   let body = parts.filter(Boolean).join(" ");
   if (bring.length > 0) body += `. Ponijeti: ${bring.join(", ")}`;
 
-  return { title: "Family Hub podsjetnik", body: body.slice(0, 160), url: "/" };
+  return { title: "Tejla podsjetnik", body: body.slice(0, 160), url: "/" };
 }
 
 export const Route = createFileRoute("/api/public/hooks/send-reminders")({

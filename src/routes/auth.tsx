@@ -6,15 +6,15 @@ export const Route = createFileRoute("/auth")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Prijava — Family Hub" },
+      { title: "Prijava — Tejla" },
       {
         name: "description",
         content: "Prijavi se ili izradi račun i vodi sve obiteljske obveze na jednom mjestu.",
       },
-      { property: "og:title", content: "Prijava — Family Hub" },
+      { property: "og:title", content: "Prijava — Tejla" },
       {
         property: "og:description",
-        content: "Prijavi se u Family Hub i vodi obiteljske obveze na jednom mjestu.",
+        content: "Prijavi se u Tejla i vodi obiteljske obveze na jednom mjestu.",
       },
     ],
   }),
@@ -144,7 +144,7 @@ function AuthPage() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center bg-background px-5 py-10">
       <h1 className="text-[28px] font-bold leading-tight tracking-tight text-foreground">
-        Family Hub
+        Tejla
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {inviteMode

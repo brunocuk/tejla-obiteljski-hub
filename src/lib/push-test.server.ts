@@ -21,7 +21,7 @@ export async function sendTestPushToUser(userId: string) {
       const payload = await buildPushPayload(
         {
           data: JSON.stringify({
-            title: "Family Hub",
+            title: "Tejla",
             body: "Testna obavijest — podsjetnici rade.",
             url: "/",
             tag: "test",
