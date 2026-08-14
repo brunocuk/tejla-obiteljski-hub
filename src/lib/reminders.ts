@@ -47,6 +47,7 @@ export type ReminderRow = {
   recipient_user_ids?: string[] | null;
   sent_at: string | null;
   pattern?: string | null;
+  cancelled_at?: string | null;
 };
 
 /** Re-stamps a list of drafts with the chosen recipients (mode + explicit ids). */
