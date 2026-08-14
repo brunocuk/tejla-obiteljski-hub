@@ -13,8 +13,46 @@ import {
   normalizeCategory,
   suggestReminders,
   type RecipientMode,
+  localDate,
   type ReminderDraft,
 } from "@/lib/reminders";
+import { draftsFromPattern, type ReminderPattern } from "@/lib/reminder-engine";
+
+const RECURRENCE_MAP: Record<string, ReminderPattern> = {
+  hourly: "hourly",
+  every_2h: "every_2h",
+  every_3h: "every_3h",
+  twice_daily: "twice_daily",
+  three_daily: "three_daily",
+  until_done: "until_done",
+};
+
+/**
+ * Default reminders for one extracted item, shared by every input path.
+ * Tasks only get reminders when the user actually asked to be reminded.
+ */
+function defaultDrafts(it: ExtractedItem, mode: RecipientMode): ReminderDraft[] {
+  if (it.type === "task") {
+    if (!it.reminder_intent) return [];
+    const base =
+      (it.reminder_time ? localDate(it.date, it.reminder_time) : null) ??
+      (it.date ? localDate(it.date, "") : null);
+    // No stated time -> start reminding from the moment the request was made.
+    const start = base && base.getTime() > Date.now() ? base : new Date();
+    const pattern = RECURRENCE_MAP[it.reminder_recurrence] ?? "once";
+    return draftsFromPattern(pattern, mode, { start });
+  }
+  return suggestReminders(
+    {
+      category: it.category,
+      date: it.date,
+      time: it.time,
+      deadline: it.deadline,
+      things_to_bring: it.things_to_bring,
+    },
+    mode,
+  );
+}
 
 /** Review + edit screen for AI-extracted obligations, rendered inline in the Inbox flow. */
 export function AnalysisResults({
@@ -67,18 +105,7 @@ export function AnalysisResults({
     items.forEach((it, i) => {
       const mode = recipients[i] ?? defaultRecipient(it.category, false);
       nextM[i] = mode;
-      nextR[i] = touched.includes(i)
-        ? (reminders[i] ?? [])
-        : suggestReminders(
-            {
-              category: it.category,
-              date: it.date,
-              time: it.time,
-              deadline: it.deadline,
-              things_to_bring: it.things_to_bring,
-            },
-            mode,
-          );
+      nextR[i] = touched.includes(i) ? (reminders[i] ?? []) : defaultDrafts(it, mode);
     });
     setReminders(nextR);
     setRecipients(nextM);
@@ -120,7 +147,12 @@ export function AnalysisResults({
     setSaving(true);
     try {
       const chosenIdx = items.map((_, i) => i).filter((i) => selected.includes(i));
-      const ids = await saveFamilyEvents(familyId, chosen, memberRows);
+      // link_to points at the original analysis index; remap it to the saved subset.
+      const remapped = chosen.map((c) => ({
+        ...c,
+        link_to: c.link_to >= 0 ? chosenIdx.indexOf(c.link_to) : -1,
+      }));
+      const ids = await saveFamilyEvents(familyId, remapped, memberRows);
       if (userId) {
         for (let i = 0; i < ids.length; i += 1) {
           const idx = chosenIdx[i];
@@ -194,6 +226,20 @@ export function AnalysisResults({
 
                 <div className="min-w-0 flex-1 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${
+                        it.type === "task"
+                          ? "bg-warm text-warm-foreground"
+                          : "bg-primary-soft text-accent-foreground"
+                      }`}
+                    >
+                      {it.type === "task" ? "Zadatak" : "Događaj"}
+                    </span>
+                    {it.type === "task" && it.link_to >= 0 && items[it.link_to] ? (
+                      <span className="text-[11px] font-semibold text-muted-foreground">
+                        uz „{items[it.link_to]!.title}"
+                      </span>
+                    ) : null}
                     {it.category ? (
                       <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-secondary-foreground">
                         {normalizeCategory(it.category) || it.category}
@@ -331,6 +377,7 @@ export function AnalysisResults({
                         setTouched((t) => (t.includes(idx) ? t : [...t, idx]));
                         setReminders((prev) => ({ ...prev, [idx]: next }));
                       }}
+                      isTask={it.type === "task"}
                       recipient={recipients[idx] ?? "all_parents"}
                       onRecipientChange={(mode) => {
                         setTouched((t) => (t.includes(idx) ? t : [...t, idx]));

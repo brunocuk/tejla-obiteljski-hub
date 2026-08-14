@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, X } from "lucide-react";
-import { deleteFamilyEvent, updateFamilyEvent, type FamilyEvent } from "@/lib/family-events";
+import { Bell, Check, X } from "lucide-react";
+import {
+  deleteFamilyEvent,
+  setEventCompleted,
+  updateFamilyEvent,
+  useFamilyEvents,
+  type FamilyEvent,
+} from "@/lib/family-events";
 import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
@@ -35,6 +41,12 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
   const { data: members = [] } = useFamilyMembers(familyId);
   const { data: userId } = useMyUserId();
   const { data: savedReminders = [] } = useEventReminders(event.id);
+  const { data: allEvents = [] } = useFamilyEvents(familyId);
+  const isTask = event.type === "task";
+  const linkedTasks = allEvents.filter((e) => e.type === "task" && e.linked_event_id === event.id);
+  const parentEvent = event.linked_event_id
+    ? (allEvents.find((e) => e.id === event.linked_event_id) ?? null)
+    : null;
 
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -62,6 +74,9 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
         key: r.id,
         remind_at: r.remind_at,
         recipient_mode: r.recipient_mode,
+        ...(r.pattern && r.pattern !== "once"
+          ? { pattern: r.pattern as NonNullable<ReminderDraft["pattern"]> }
+          : {}),
       })),
     );
     setRecipient(
@@ -142,6 +157,19 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
     } catch (e) {
       const msg = e instanceof Error ? e.message : "";
       setError(`Promjene nije bilo moguće spremiti${msg ? ` (${msg})` : ""}. Pokušaj ponovno.`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleDone = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await setEventCompleted(event.id, !event.completed);
+      await refresh();
+    } catch {
+      setError("Status zadatka nije bilo moguće promijeniti. Pokušaj ponovno.");
     } finally {
       setBusy(false);
     }
@@ -258,6 +286,7 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
                 deadline: event.deadline,
                 things_to_bring: event.things_to_bring,
               }}
+              isTask={isTask}
               reminders={reminders}
               onChange={setReminders}
               recipient={recipient}
@@ -306,6 +335,25 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
           </div>
         ) : (
           <div className="divide-y divide-border">
+            <div className="flex flex-wrap items-center gap-2 pb-3">
+              <span
+                className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${
+                  isTask ? "bg-warm text-warm-foreground" : "bg-primary-soft text-accent-foreground"
+                }`}
+              >
+                {isTask ? "Zadatak" : "Događaj"}
+              </span>
+              {event.completed ? (
+                <span className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-semibold text-secondary-foreground">
+                  Riješeno
+                </span>
+              ) : null}
+              {parentEvent ? (
+                <span className="text-[11px] font-semibold text-muted-foreground">
+                  uz „{parentEvent.title}"
+                </span>
+              ) : null}
+            </div>
             <Row label="Datum" value={event.date} />
             <Row label="Vrijeme" value={event.time} />
             <Row label="Lokacija" value={event.location} />
@@ -333,6 +381,18 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
             ) : (
               <Row label="Podsjetnici" value="Nema spremljenih podsjetnika" />
             )}
+            {linkedTasks.length > 0 ? (
+              <div className="flex gap-3 py-2">
+                <span className="w-28 shrink-0 text-sm text-muted-foreground">Prije toga</span>
+                <ul className="min-w-0 flex-1 space-y-1">
+                  {linkedTasks.map((t) => (
+                    <li key={t.id} className="text-[15px] font-medium">
+                      {t.completed ? "☑" : "☐"} {t.title}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
         )}
 
@@ -362,6 +422,21 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
               </div>
             ) : (
               <>
+                {isTask ? (
+                  <button
+                    type="button"
+                    onClick={toggleDone}
+                    disabled={busy}
+                    className={`flex w-full items-center justify-center gap-2 rounded-3xl px-6 py-4 text-base font-bold disabled:opacity-60 ${
+                      event.completed
+                        ? "bg-secondary text-secondary-foreground"
+                        : "bg-primary text-primary-foreground"
+                    }`}
+                  >
+                    <Check className="size-5" />
+                    {event.completed ? "Označi kao nedovršeno" : "Riješeno"}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => setEditing(true)}

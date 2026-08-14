@@ -56,27 +56,33 @@ export type Database = {
           created_by: string
           event_id: string
           id: string
+          pattern: string
           recipient_mode: string
           remind_at: string
           sent_at: string | null
+          series_id: string | null
         }
         Insert: {
           created_at?: string
           created_by: string
           event_id: string
           id?: string
+          pattern?: string
           recipient_mode?: string
           remind_at: string
           sent_at?: string | null
+          series_id?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string
           event_id?: string
           id?: string
+          pattern?: string
           recipient_mode?: string
           remind_at?: string
           sent_at?: string | null
+          series_id?: string | null
         }
         Relationships: [
           {
@@ -113,49 +119,61 @@ export type Database = {
         Row: {
           amount: string | null
           category: string | null
+          completed: boolean
+          completed_at: string | null
           created_at: string
           created_by: string
           date: string | null
           deadline: string | null
           family_id: string
           id: string
+          linked_event_id: string | null
           location: string | null
           notes: string | null
           things_to_bring: Json
           time: string | null
           title: string
+          type: string
           updated_at: string
         }
         Insert: {
           amount?: string | null
           category?: string | null
+          completed?: boolean
+          completed_at?: string | null
           created_at?: string
           created_by: string
           date?: string | null
           deadline?: string | null
           family_id: string
           id?: string
+          linked_event_id?: string | null
           location?: string | null
           notes?: string | null
           things_to_bring?: Json
           time?: string | null
           title: string
+          type?: string
           updated_at?: string
         }
         Update: {
           amount?: string | null
           category?: string | null
+          completed?: boolean
+          completed_at?: string | null
           created_at?: string
           created_by?: string
           date?: string | null
           deadline?: string | null
           family_id?: string
           id?: string
+          linked_event_id?: string | null
           location?: string | null
           notes?: string | null
           things_to_bring?: Json
           time?: string | null
           title?: string
+          type?: string
           updated_at?: string
         }
         Relationships: [
@@ -164,6 +182,13 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "family_events_linked_event_id_fkey"
+            columns: ["linked_event_id"]
+            isOneToOne: false
+            referencedRelation: "family_events"
             referencedColumns: ["id"]
           },
         ]

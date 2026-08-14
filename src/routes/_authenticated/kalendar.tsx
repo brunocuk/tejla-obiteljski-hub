@@ -91,23 +91,26 @@ function KalendarPage() {
 
   const allEvents: CalEvent[] = useMemo(
     () =>
-      (events ?? []).map((e) => ({
-        id: e.id,
-        date: e.date,
-        time: e.time,
-        title: e.title || "Bez naziva",
-        members: e.members,
-        meta: [
-          e.category,
-          e.location,
-          e.amount,
-          e.deadline ? `rok: ${e.deadline}` : "",
-          e.things_to_bring.join(", "),
-          e.notes,
-        ]
-          .filter(Boolean)
-          .join(" · "),
-      })),
+      // Tasks are not calendar entries; they live in the task list on "Danas".
+      (events ?? [])
+        .filter((e) => e.type !== "task")
+        .map((e) => ({
+          id: e.id,
+          date: e.date,
+          time: e.time,
+          title: e.title || "Bez naziva",
+          members: e.members,
+          meta: [
+            e.category,
+            e.location,
+            e.amount,
+            e.deadline ? `rok: ${e.deadline}` : "",
+            e.things_to_bring.join(", "),
+            e.notes,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        })),
     [events],
   );
 
