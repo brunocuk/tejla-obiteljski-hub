@@ -6,7 +6,8 @@ import { assigneeStyle } from "@/lib/family";
 import { setEventCompleted, useFamilyEvents, type FamilyEvent } from "@/lib/family-events";
 import { useQueryClient } from "@tanstack/react-query";
 import { EventDetailSheet } from "@/components/EventDetailSheet";
-import { useMyFamilyId } from "@/lib/family-workspace";
+import { useMyFamilyId, useMyUserId, useFamilyMembers } from "@/lib/family-workspace";
+import { greetingFor, tejlaMessage } from "@/lib/tejla-voice";
 import { NotificationOptIn } from "@/components/NotificationOptIn";
 import { ReminderBadge } from "@/components/ReminderBadge";
 import { useFamilyReminders } from "@/lib/reminders";
@@ -53,6 +54,8 @@ function Danas() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [tasksOpen, setTasksOpen] = useState(false);
   const { data: familyId } = useMyFamilyId();
+  const { data: myUserId } = useMyUserId();
+  const { data: members = [] } = useFamilyMembers(familyId);
   const { data: events, isPending } = useFamilyEvents(familyId);
   const { data: reminderMap = {} } = useFamilyReminders(familyId);
   const queryClient = useQueryClient();
@@ -90,6 +93,18 @@ function Danas() {
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
   const undated = all.filter((e) => !e.date);
 
+  const myName = members.find((m) => m.linked_user_id && m.linked_user_id === myUserId)?.name ?? "";
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+  const nowTime = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+  const todayTasks = allTasks.filter((t) => t.date === today || (!t.date && !t.completed));
+  const message = tejlaMessage({
+    isoDay: today,
+    nowTime,
+    events: todayEvents.map((e) => ({ time: e.time })),
+    tasks: todayTasks.map((t) => ({ completed: t.completed })),
+  });
+  const calmDay = todayEvents.length + todayTasks.length === 0;
+
   const dayDiff = (iso: string) =>
     Math.round(
       (new Date(`${iso}T00:00:00`).getTime() - new Date(`${today}T00:00:00`).getTime()) /
@@ -118,11 +133,18 @@ function Danas() {
         <p className="text-sm font-medium text-muted-foreground">
           {WEEKDAYS[now.getDay()]}, {now.getDate()}. {MONTHS_GEN[now.getMonth()]}
         </p>
-        <h1 className="mt-1 text-[30px] font-bold leading-tight tracking-tight">Dobro jutro</h1>
+        <h1 className="mt-1 text-[30px] font-bold leading-tight tracking-tight">
+          {greetingFor(now, myName)}
+        </h1>
+        <p className="mt-2 text-[15px] font-medium text-foreground/70">{message.headline}</p>
+        {message.sub ? (
+          <p className="mt-0.5 text-sm text-muted-foreground">{message.sub}</p>
+        ) : null}
       </header>
 
       <NotificationOptIn />
 
+      {calmDay && !isPending ? null : (
       <section className="mb-8">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Danas
@@ -158,6 +180,7 @@ function Danas() {
           )}
         </div>
       </section>
+      )}
 
       {allTasks.length > 0 ? (
         <section className="mb-8">
