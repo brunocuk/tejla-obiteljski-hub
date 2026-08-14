@@ -41,6 +41,7 @@ function defaultDrafts(
   if (it.type === "task") {
     if (!it.reminder_intent) return [];
     const base =
+      (it.reminder_at ? new Date(it.reminder_at) : null) ??
       (it.reminder_time ? localDate(it.date, it.reminder_time) : null) ??
       (it.date ? localDate(it.date, "") : null);
     // No stated time -> start reminding from the moment the request was made.
