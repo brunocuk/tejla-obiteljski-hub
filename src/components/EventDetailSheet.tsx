@@ -20,6 +20,7 @@ import {
   useEventReminders,
   type RecipientMode,
   type ReminderDraft,
+  withRecipient,
 } from "@/lib/reminders";
 
 const fieldClass =
