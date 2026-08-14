@@ -99,8 +99,6 @@ export function normalizeCategory(raw: string): string {
   return map[key] ?? "";
 }
 
-const PERSONAL_CATEGORIES = ["Frizer", "Kozmetičar", "Osobno"];
-
 export const OFFSET_OPTIONS: { label: string; minutes: number }[] = [
   { label: "U vrijeme događaja", minutes: 0 },
   { label: "30 minuta prije", minutes: 30 },
@@ -270,6 +268,7 @@ export const formatReminderShort = (iso: string) => SHORT_FMT.format(new Date(is
 export const RECIPIENT_LABELS: Record<RecipientMode, string> = {
   all_parents: "Sve roditelje",
   creator_only: "Samo mene",
+  selected: "Odabrane osobe",
 };
 
 /**
@@ -283,7 +282,9 @@ export function useFamilyReminders(familyId: string | null | undefined) {
     queryFn: async (): Promise<Record<string, ReminderRow[]>> => {
       const { data, error } = await supabase
         .from("event_reminders")
-        .select("id, event_id, remind_at, recipient_mode, sent_at, family_events!inner(family_id)")
+        .select(
+          "id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at, family_events!inner(family_id)",
+        )
         .eq("family_events.family_id", familyId!)
         .is("sent_at", null)
         .order("remind_at", { ascending: true });
@@ -304,7 +305,7 @@ export function useEventReminders(eventId: string | null | undefined) {
     queryFn: async (): Promise<ReminderRow[]> => {
       const { data, error } = await supabase
         .from("event_reminders")
-        .select("id, event_id, remind_at, recipient_mode, sent_at")
+        .select("id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at")
         .eq("event_id", eventId!)
         .order("remind_at", { ascending: true });
       if (error) throw error;
@@ -334,6 +335,7 @@ export async function insertReminders(
     event_id: eventId,
     remind_at: d.remind_at,
     recipient_mode: d.recipient_mode,
+    recipient_user_ids: d.recipient_mode === "selected" ? (d.recipient_user_ids ?? []) : [],
     created_by: userId,
     pattern: d.pattern ?? "once",
     series_id: seriesId,
