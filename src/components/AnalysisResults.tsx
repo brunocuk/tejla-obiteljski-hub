@@ -45,8 +45,10 @@ function defaultDrafts(
       (absolute && !Number.isNaN(absolute.getTime()) ? absolute : null) ??
       (it.reminder_time ? localDate(it.date, it.reminder_time) : null) ??
       (it.date ? localDate(it.date, "") : null);
-    // No stated time -> start reminding from the moment the request was made.
-    const start = base && base.getTime() > Date.now() ? base : new Date();
+    // A resolved absolute time is kept exactly as computed at capture time.
+    // Only when nothing usable was stated do we start shortly from now, so the
+    // reminder is not already in the past by the time the user taps save.
+    const start = base && base.getTime() > Date.now() ? base : new Date(Date.now() + 120_000);
     const pattern = RECURRENCE_MAP[it.reminder_recurrence] ?? "once";
     return stamp(draftsFromPattern(pattern, mode, { start }));
   }
