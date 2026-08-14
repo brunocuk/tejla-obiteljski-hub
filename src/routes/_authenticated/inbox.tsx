@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, ClipboardPaste, FileText, Image, Keyboard, Plus, X } from "lucide-react";
+import { Camera, ClipboardPaste, FileText, Image, Keyboard, Mic, Plus, X } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { AnalysisResults } from "@/components/AnalysisResults";
 import { ManualEventForm } from "@/components/ManualEventForm";
+import { VoiceCapture } from "@/components/VoiceCapture";
 import { normalizeItem, type ExtractedItem } from "@/lib/hub-store";
 
 export const Route = createFileRoute("/_authenticated/inbox")({
@@ -68,7 +69,13 @@ const relative = (iso: string) => {
   return `prije ${Math.round(hours / 24)} d`;
 };
 
-type Mode = "idle" | "text" | "manual" | "results";
+const localToday = () => {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+};
+
+type Mode = "idle" | "voice" | "text" | "manual" | "results";
 
 function InboxPage() {
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -106,7 +113,7 @@ function InboxPage() {
       const res = await fetch("/api/analyze-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, today: localToday() }),
       });
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as { items?: Partial<ExtractedItem>[] };
@@ -148,11 +155,13 @@ function InboxPage() {
     if (key === "camera") cameraRef.current?.click();
     else if (key === "gallery") galleryRef.current?.click();
     else if (key === "pdf") pdfRef.current?.click();
+    else if (key === "voice") setMode("voice");
     else if (key === "text") setMode("text");
     else if (key === "manual") setMode("manual");
   };
 
   const options = [
+    { key: "voice", icon: Mic, label: "Reci glasom", hint: "Ispričaj što treba zapamtiti" },
     { key: "camera", icon: Camera, label: "Fotografiraj", hint: "Slikaj papir ili obavijest" },
     { key: "gallery", icon: Image, label: "Screenshot / galerija", hint: "Odaberi iz galerije" },
     { key: "pdf", icon: FileText, label: "PDF dokument", hint: "Obavijesti i suglasnosti" },
@@ -272,6 +281,13 @@ function InboxPage() {
             Odustani
           </button>
         </section>
+      ) : null}
+
+      {mode === "voice" && !loading ? (
+        <VoiceCapture
+          onTranscript={(transcript) => runAnalysis({ text: transcript }, "Glasovni unos")}
+          onCancel={reset}
+        />
       ) : null}
 
       {mode === "manual" ? <ManualEventForm onClose={reset} /> : null}
