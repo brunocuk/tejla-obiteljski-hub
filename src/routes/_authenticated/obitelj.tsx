@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, LogOut, Pencil, Plus, Shield, UserPlus, X } from "lucide-react";
+import { Check, Database, LogOut, Pencil, Plus, Shield, UserPlus, X } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
+import { MemberDataSheet } from "@/components/MemberDataSheet";
 import { supabase } from "@/integrations/supabase/client";
 import { memberStyle } from "@/lib/family";
 import { sendFamilyInvite } from "@/lib/invitations.functions";
@@ -47,15 +48,17 @@ function Row({
   role,
   onEdit,
   onOpen,
+  onManage,
 }: {
   name: string;
   role: string;
   onEdit?: (() => void) | undefined;
   onOpen?: (() => void) | undefined;
+  onManage?: (() => void) | undefined;
 }) {
   const style = memberStyle(name);
   return (
-    <div className="flex items-center gap-4 px-5 py-4">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4">
       <span
         className={`flex size-11 items-center justify-center rounded-full text-sm font-bold ${style.chip}`}
       >
@@ -78,6 +81,16 @@ function Row({
         >
           <Pencil className="size-3.5" strokeWidth={2.2} />
           Uredi ime
+        </button>
+      ) : null}
+      {onManage ? (
+        <button
+          type="button"
+          onClick={onManage}
+          className="flex shrink-0 items-center gap-1 rounded-2xl border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+        >
+          <Database className="size-3.5" strokeWidth={2.2} />
+          Upravljanje podacima
         </button>
       ) : null}
     </div>
@@ -115,6 +128,7 @@ function ClanoviPage() {
   const [savingName, setSavingName] = useState(false);
 
   const [visibilityFor, setVisibilityFor] = useState<FamilyMemberRow | null>(null);
+  const [dataFor, setDataFor] = useState<FamilyMemberRow | null>(null);
 
   const parents = members.filter((m: FamilyMemberRow) => m.member_type === "parent");
   const kids = members.filter((m: FamilyMemberRow) => m.member_type === "child");
@@ -271,6 +285,7 @@ function ClanoviPage() {
                     key={p.id}
                     name={p.name?.trim() || "Bez imena"}
                     role={p.linked_user_id ? "Odrasla osoba · ima račun" : "Odrasla osoba"}
+                    onManage={isAdult ? () => setDataFor(p) : undefined}
                     onEdit={
                       myUserId && p.linked_user_id === myUserId
                         ? () => {
@@ -297,6 +312,7 @@ function ClanoviPage() {
                     name={k.name?.trim() || "Bez imena"}
                     role={childRole(k)}
                     onOpen={isAdult ? () => setVisibilityFor(k) : undefined}
+                    onManage={isAdult ? () => setDataFor(k) : undefined}
                     onEdit={
                       myUserId && k.linked_user_id === myUserId
                         ? () => {
@@ -489,6 +505,10 @@ function ClanoviPage() {
           }}
           onClose={() => setVisibilityFor(null)}
         />
+      ) : null}
+
+      {dataFor && isAdult ? (
+        <MemberDataSheet member={dataFor} onClose={() => setDataFor(null)} />
       ) : null}
     </AppShell>
   );
