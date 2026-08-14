@@ -104,11 +104,27 @@ export function AnalysisResults({
   useEffect(() => {
     if (memberRows.length === 0) return;
     const names = memberRows.map((m) => m.name);
+    const meName =
+      (members ?? []).find((m) => m.linked_user_id && m.linked_user_id === userId)?.name ?? "";
+    // Fallback: derive the owner from an explicit reminder target ("Podsjeti Davora ...").
+    const fromReminder = (it: { reminder_scope: string; reminder_people: string[] }) => {
+      if (it.reminder_scope === "me") return resolveAssignee(meName, names);
+      if (it.reminder_scope === "named" && it.reminder_people.length > 0) {
+        const first = resolveAssignee(it.reminder_people[0] ?? "", names);
+        if (it.reminder_people.length === 1) return first;
+        return meName ? resolveAssignee(meName, names) : first;
+      }
+      return "";
+    };
     setItems((prev) =>
-      prev.map((it) => (it.assignee ? it : { ...it, assignee: resolveAssignee(it.person, names) })),
+      prev.map((it) =>
+        it.assignee
+          ? it
+          : { ...it, assignee: resolveAssignee(it.person, names) || fromReminder(it) },
+      ),
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [members]);
+  }, [members, userId]);
 
   // Suggest reminders from the AI-detected category, date and time.
   useEffect(() => {
