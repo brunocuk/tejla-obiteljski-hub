@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { ReminderPattern } from "@/lib/reminder-engine";
+import { draftsFromPattern, type ReminderPattern } from "@/lib/reminder-engine";
 
 export const EVENT_CATEGORIES = [
   "Škola",
@@ -47,6 +47,7 @@ export type ReminderRow = {
   recipient_user_ids?: string[] | null;
   sent_at: string | null;
   pattern?: string | null;
+  cancelled_at?: string | null;
 };
 
 /** Re-stamps a list of drafts with the chosen recipients (mode + explicit ids). */
@@ -331,6 +332,7 @@ export function useFamilyReminders(familyId: string | null | undefined) {
         )
         .eq("family_events.family_id", familyId!)
         .is("sent_at", null)
+        .is("cancelled_at", null)
         .order("remind_at", { ascending: true });
       if (error) throw error;
       const map: Record<string, ReminderRow[]> = {};
@@ -351,6 +353,7 @@ export function useEventReminders(eventId: string | null | undefined) {
         .from("event_reminders")
         .select("id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at")
         .eq("event_id", eventId!)
+        .is("cancelled_at", null)
         .order("remind_at", { ascending: true });
       if (error) throw error;
       return (data ?? []) as ReminderRow[];
@@ -396,14 +399,77 @@ export async function insertReminders(
   return { inserted: data.length, skipped, skippedTimes };
 }
 
-/** Cancels every not-yet-sent reminder of an event (used when a task is done). */
+/**
+ * Pauses (does not delete) every not-yet-sent reminder of an event, so the
+ * original schedule can be restored when a task is reopened.
+ */
 export async function cancelPendingReminders(eventId: string) {
   const { error } = await supabase
     .from("event_reminders")
-    .delete()
+    .update({ cancelled_at: new Date().toISOString() })
     .eq("event_id", eventId)
-    .is("sent_at", null);
+    .is("sent_at", null)
+    .is("cancelled_at", null);
   if (error) throw error;
+}
+
+/**
+ * Restores the paused schedule of a reopened task: future times come back,
+ * past ones are dropped, and a repeating pattern continues from the next
+ * valid slot. Never creates duplicates.
+ */
+export async function restorePausedReminders(eventId: string, userId: string) {
+  const { data, error } = await supabase
+    .from("event_reminders")
+    .select("id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at, pattern")
+    .eq("event_id", eventId)
+    .is("sent_at", null)
+    .not("cancelled_at", "is", null)
+    .order("remind_at", { ascending: true });
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as ReminderRow[];
+  if (rows.length === 0) return { restored: 0, created: 0 };
+
+  const now = Date.now();
+  const future = rows.filter((r) => new Date(r.remind_at).getTime() > now + 30_000);
+  const past = rows.filter((r) => !future.includes(r));
+
+  if (future.length > 0) {
+    const { error: upErr } = await supabase
+      .from("event_reminders")
+      .update({ cancelled_at: null })
+      .in(
+        "id",
+        future.map((r) => r.id),
+      );
+    if (upErr) throw upErr;
+  }
+
+  const pattern = (rows.find((r) => r.pattern && r.pattern !== "once")?.pattern ??
+    "once") as ReminderPattern;
+
+  // Repeating schedules continue from the next valid slot when nothing future is left.
+  let created = 0;
+  if (future.length === 0 && pattern !== "once") {
+    const source = rows[rows.length - 1]!;
+    const drafts = draftsFromPattern(pattern, source.recipient_mode, {
+      start: new Date(now + 60_000),
+    }).map((d) => ({ ...d, recipient_user_ids: source.recipient_user_ids ?? [] }));
+    const result = await insertReminders(eventId, drafts, userId);
+    created = result.inserted;
+  }
+
+  if (past.length > 0) {
+    await supabase
+      .from("event_reminders")
+      .delete()
+      .in(
+        "id",
+        past.map((r) => r.id),
+      );
+  }
+
+  return { restored: future.length, created };
 }
 
 /** Replaces all not-yet-sent reminders of an event with the given drafts. */

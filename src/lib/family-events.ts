@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WHOLE_FAMILY } from "@/lib/family";
 import type { ExtractedItem } from "@/lib/hub-store";
-import { cancelPendingReminders } from "@/lib/reminders";
+import { cancelPendingReminders, restorePausedReminders } from "@/lib/reminders";
 
 export type FamilyEvent = {
   id: string;
@@ -168,7 +168,13 @@ export async function setEventCompleted(eventId: string, completed: boolean) {
     })
     .eq("id", eventId);
   if (error) throw error;
-  if (completed) await cancelPendingReminders(eventId);
+  if (completed) {
+    await cancelPendingReminders(eventId);
+  } else {
+    const { data } = await supabase.auth.getUser();
+    const userId = data.user?.id;
+    if (userId) await restorePausedReminders(eventId, userId);
+  }
 }
 
 export async function deleteFamilyEvent(eventId: string) {

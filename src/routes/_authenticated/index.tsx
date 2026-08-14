@@ -10,6 +10,7 @@ import { useMyFamilyId } from "@/lib/family-workspace";
 import { NotificationOptIn } from "@/components/NotificationOptIn";
 import { ReminderBadge } from "@/components/ReminderBadge";
 import { useFamilyReminders } from "@/lib/reminders";
+import { AllTasksSheet } from "@/components/AllTasksSheet";
 
 export const Route = createFileRoute("/_authenticated/")({
   head: () => ({
@@ -50,6 +51,7 @@ const isoDay = (d: Date) =>
 
 function Danas() {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [tasksOpen, setTasksOpen] = useState(false);
   const { data: familyId } = useMyFamilyId();
   const { data: events, isPending } = useFamilyEvents(familyId);
   const { data: reminderMap = {} } = useFamilyReminders(familyId);
@@ -71,6 +73,7 @@ function Danas() {
   const allRows = events ?? [];
   // Tasks live in their own section; they must not clutter the calendar lists.
   const all = allRows.filter((e) => e.type !== "task");
+  const allTasks = allRows.filter((e) => e.type === "task");
   const tasks = allRows
     .filter((e) => e.type === "task")
     .sort(
@@ -156,12 +159,26 @@ function Danas() {
         </div>
       </section>
 
-      {tasks.length > 0 ? (
+      {allTasks.length > 0 ? (
         <section className="mb-8">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Zadaci
-          </h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Zadaci
+            </h2>
+            <button
+              type="button"
+              onClick={() => setTasksOpen(true)}
+              className="text-xs font-semibold text-accent-foreground"
+            >
+              Svi zadaci
+            </button>
+          </div>
           <div className="card-soft divide-y divide-border">
+            {tasks.length === 0 ? (
+              <p className="px-5 py-6 text-center text-sm text-muted-foreground">
+                Nema aktivnih zadataka za danas.
+              </p>
+            ) : null}
             {tasks.map((t) => (
               <div key={`task-${t.id}`} className="flex items-center gap-3 px-5 py-4">
                 <button
@@ -311,6 +328,18 @@ function Danas() {
       </section>
 
       {openEvent ? <EventDetailSheet event={openEvent} onClose={() => setOpenId(null)} /> : null}
+      {tasksOpen ? (
+        <AllTasksSheet
+          tasks={allTasks}
+          reminderMap={reminderMap}
+          familyId={familyId}
+          onOpenTask={(id) => {
+            setTasksOpen(false);
+            setOpenId(id);
+          }}
+          onClose={() => setTasksOpen(false)}
+        />
+      ) : null}
     </AppShell>
   );
 }
