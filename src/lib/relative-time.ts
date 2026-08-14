@@ -36,7 +36,8 @@ const NUMBER_WORDS: Record<string, number> = {
   pedeset: 50,
 };
 
-const amount = (raw: string): number | null => {
+const amount = (raw: string | undefined): number | null => {
+  if (!raw) return null;
   const n = Number(raw);
   if (Number.isFinite(n)) return n;
   return NUMBER_WORDS[raw] ?? null;
@@ -151,7 +152,7 @@ export function parseLeadTime(text: string): number | null {
   const m = t.match(/([\w]+) (minutu|minute|minuta|min|sat|sata|sati|dan|dana) (prije|ranije)/);
   if (!m) return null;
   const n = amount(m[1]);
-  const unit = UNIT_MINUTES[m[2]];
+  const unit = m[2] ? UNIT_MINUTES[m[2]] : undefined;
   if (!n || !unit) return null;
   return n * unit;
 }
@@ -159,8 +160,9 @@ export function parseLeadTime(text: string): number | null {
 /** Local Date from "YYYY-MM-DD" + "HH:MM" (time optional). */
 function localDateTime(date: string, time: string): Date | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-  const [y, mo, d] = date.split("-").map(Number);
-  const [h, mi] = time && /^\d{1,2}:\d{2}$/.test(time) ? time.split(":").map(Number) : [9, 0];
+  const [y = 0, mo = 1, d = 1] = date.split("-").map(Number);
+  const [h = 9, mi = 0] =
+    time && /^\d{1,2}:\d{2}$/.test(time) ? time.split(":").map(Number) : [9, 0];
   const out = new Date(y, mo - 1, d, h, mi, 0, 0);
   return Number.isNaN(out.getTime()) ? null : out;
 }
