@@ -445,6 +445,10 @@ export type Database = {
         Args: { _member_id: string; _scope: string }
         Returns: Json
       }
+      remove_family_member: {
+        Args: { _member_id: string; _purge?: boolean }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
