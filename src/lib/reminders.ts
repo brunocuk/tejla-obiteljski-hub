@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { ReminderPattern } from "@/lib/reminder-engine";
+import { draftsFromPattern, type ReminderPattern } from "@/lib/reminder-engine";
 
 export const EVENT_CATEGORIES = [
   "Škola",
