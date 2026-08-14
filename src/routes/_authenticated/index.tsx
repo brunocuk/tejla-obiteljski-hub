@@ -144,6 +144,7 @@ function Danas() {
 
       <NotificationOptIn />
 
+      {calmDay && !isPending ? null : (
       <section className="mb-8">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Danas
@@ -151,11 +152,11 @@ function Danas() {
         <div className="card-soft divide-y divide-border">
           {isPending ? (
             <p className="px-5 py-6 text-center text-sm text-muted-foreground">Učitavam obveze…</p>
-          ) : todayEvents.length === 0 && !calmDay ? (
+          ) : todayEvents.length === 0 ? (
             <p className="px-5 py-6 text-center text-sm text-muted-foreground">
               Danas nema obveza.
             </p>
-          ) : todayEvents.length === 0 ? null : (
+          ) : (
             todayEvents.map((e) => (
               <button
                 key={e.id}
