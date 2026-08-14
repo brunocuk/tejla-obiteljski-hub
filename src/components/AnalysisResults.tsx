@@ -4,6 +4,7 @@ import { AlertTriangle, Check } from "lucide-react";
 import { WHOLE_FAMILY, resolveAssignee } from "@/lib/family";
 import type { ExtractedItem } from "@/lib/hub-store";
 import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
+import { formatCroatianDate, isIsoDate } from "@/lib/date-hr";
 import { saveFamilyEvents } from "@/lib/family-events";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
@@ -40,6 +41,7 @@ export function AnalysisResults({
   const [openReminders, setOpenReminders] = useState<number | null>(null);
   const [touched, setTouched] = useState<number[]>([]);
   const [years, setYears] = useState<Record<number, string>>({});
+  const [editingDate, setEditingDate] = useState<number | null>(null);
   const currentYear = String(new Date().getFullYear());
 
   useEffect(() => {
@@ -235,12 +237,25 @@ export function AnalysisResults({
                     </select>
                   </div>
                   <div className="flex gap-2">
-                    <input
-                      value={it.date}
-                      onChange={(e) => update(idx, "date", e.target.value)}
-                      placeholder="Datum"
-                      className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
-                    />
+                    {isIsoDate(it.date) && editingDate !== idx ? (
+                      <button
+                        type="button"
+                        onClick={() => setEditingDate(idx)}
+                        className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-left text-sm outline-none"
+                      >
+                        {formatCroatianDate(it.date)}
+                      </button>
+                    ) : (
+                      <input
+                        type={isIsoDate(it.date) ? "date" : "text"}
+                        value={it.date}
+                        autoFocus={editingDate === idx}
+                        onBlur={() => setEditingDate(null)}
+                        onChange={(e) => update(idx, "date", e.target.value)}
+                        placeholder="Datum"
+                        className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+                      />
+                    )}
                     <input
                       value={it.time}
                       onChange={(e) => update(idx, "time", e.target.value)}
