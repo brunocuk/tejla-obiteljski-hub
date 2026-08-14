@@ -72,6 +72,10 @@ function Danas() {
 
   const now = new Date();
   const today = isoDay(now);
+  // Dovršeni zadaci ostaju vidljivi točno 24 sata od trenutka dovršavanja.
+  const completedVisibleUntil = now.getTime() - 24 * 60 * 60 * 1000;
+  const isRecentlyCompleted = (t: FamilyEvent) =>
+    !!t.completed_at && new Date(t.completed_at).getTime() > completedVisibleUntil;
   const in7 = isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7));
   const allRows = events ?? [];
   // Tasks live in their own section; they must not clutter the calendar lists.
@@ -84,7 +88,7 @@ function Danas() {
         Number(a.completed) - Number(b.completed) ||
         (a.date || "9999").localeCompare(b.date || "9999"),
     )
-    .filter((t) => !t.completed || (t.date || today) >= today);
+    .filter((t) => (t.completed ? isRecentlyCompleted(t) : true));
   const todayEvents = all
     .filter((e) => e.date === today)
     .sort((a, b) => a.time.localeCompare(b.time));
