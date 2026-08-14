@@ -9,12 +9,12 @@ export const Route = createFileRoute("/auth")({
       { title: "Prijava — Tejla" },
       {
         name: "description",
-        content: "Prijavi se ili izradi račun i vodi sve obiteljske obveze na jednom mjestu.",
+        content: "Prijavi se u Tejla i povjeri joj sve što moraš zapamtiti — termine, zadatke i podsjetnike.",
       },
       { property: "og:title", content: "Prijava — Tejla" },
       {
         property: "og:description",
-        content: "Prijavi se u Tejla i vodi obiteljske obveze na jednom mjestu.",
+        content: "Prijavi se u Tejla i povjeri joj sve što moraš zapamtiti — termine, zadatke i podsjetnike.",
       },
     ],
   }),
@@ -113,7 +113,7 @@ function AuthPage() {
       <p className="mt-1 text-sm text-muted-foreground">
         {inviteMode
           ? "Pozvan/a si u obiteljski prostor. Postavi lozinku i završi prijavu."
-          : "Prijavi se u svoj obiteljski prostor."}
+          : "Prijavi se u svoj Tejla prostor."}
       </p>
 
       {inviteMode ? (

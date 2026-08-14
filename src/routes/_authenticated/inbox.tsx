@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/inbox")({
       { property: "og:title", content: "Inbox — Tejla" },
       {
         property: "og:description",
-        content: "Ubaci bilo što — AI pronalazi ono što je važno i sprema u kalendar.",
+        content: "Pošalji Tejli obavijest, fotografiju ili informaciju. Ona prepoznaje što je važno i pretvara to u termine, zadatke i podsjetnike.",
       },
     ],
   }),
@@ -191,7 +191,7 @@ function InboxPage() {
     <AppShell>
       <PageHeader
         title="Inbox"
-        subtitle="Ubaci bilo što — AI pronalazi ono što je važno i sprema u kalendar."
+        subtitle="Pošalji bilo što — AI prepoznaje važno i pretvara to u termine, zadatke i podsjetnike."
       />
 
       <input

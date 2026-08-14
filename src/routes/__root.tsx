@@ -77,16 +77,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Tejla — obiteljske obveze na jednom mjestu" },
+      { title: "Tejla — sve što moraš zapamtiti, na jednom mjestu" },
       {
         name: "description",
         content:
-          "Tejla okuplja školske obavijesti, termine i zadatke oba roditelja u jedan zajednički obiteljski kalendar.",
+          "Pošalji Tejli obavijest, fotografiju ili informaciju. Ona prepoznaje što je važno i pretvara to u termine, zadatke i podsjetnike.",
       },
-      { property: "og:title", content: "Tejla" },
+      { property: "og:title", content: "Tejla — sve što moraš zapamtiti, na jednom mjestu" },
       {
         property: "og:description",
-        content: "Obiteljske obveze, termini i zadaci — sve na jednom mjestu.",
+        content: "Pošalji Tejli obavijest, fotografiju ili informaciju. Ona prepoznaje što je važno i pretvara to u termine, zadatke i podsjetnike.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
