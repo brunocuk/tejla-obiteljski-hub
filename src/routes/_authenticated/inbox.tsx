@@ -6,6 +6,7 @@ import { AnalysisResults } from "@/components/AnalysisResults";
 import { ManualEventForm } from "@/components/ManualEventForm";
 import { VoiceCapture } from "@/components/VoiceCapture";
 import { normalizeItem, type ExtractedItem } from "@/lib/hub-store";
+import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
 
 export const Route = createFileRoute("/_authenticated/inbox")({
   head: () => ({
@@ -90,6 +91,11 @@ function InboxPage() {
   const [text, setText] = useState("");
   const [analysis, setAnalysis] = useState<ExtractedItem[]>([]);
   const [recent, setRecent] = useState<RecentEntry[]>([]);
+  const { data: familyId } = useMyFamilyId();
+  const { data: userId } = useMyUserId();
+  const { data: familyMembers } = useFamilyMembers(familyId);
+  const speaker = (familyMembers ?? []).find((m) => m.linked_user_id === userId)?.name ?? "";
+  const memberNames = (familyMembers ?? []).map((m) => m.name);
 
   useEffect(() => setRecent(readRecent()), []);
 
@@ -113,7 +119,12 @@ function InboxPage() {
       const res = await fetch("/api/analyze-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...payload, today: localToday() }),
+        body: JSON.stringify({
+          ...payload,
+          today: localToday(),
+          speaker,
+          members: memberNames,
+        }),
       });
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as { items?: Partial<ExtractedItem>[] };
