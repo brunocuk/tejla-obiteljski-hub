@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WHOLE_FAMILY } from "@/lib/family";
@@ -91,12 +91,18 @@ export function useFamilyEvents(familyId: string | null | undefined) {
   });
 
   // Live sync between parents of the same family.
+  // The topic must be unique per hook instance: several components can use this
+  // hook at once (list + detail sheet), and reusing one topic makes supabase-js
+  // throw "cannot add postgres_changes callbacks after subscribe()" — that throw
+  // happens inside render/effect and blanks the whole screen.
+  const channelIdRef = useRef<string | null>(null);
+  if (!channelIdRef.current) channelIdRef.current = Math.random().toString(36).slice(2);
   useEffect(() => {
     if (!familyId) return;
     const invalidate = () =>
       queryClient.invalidateQueries({ queryKey: ["family-events", familyId] });
     const channel = supabase
-      .channel(`family-events-${familyId}`)
+      .channel(`family-events-${familyId}-${channelIdRef.current}`)
       .on(
         "postgres_changes",
         {
