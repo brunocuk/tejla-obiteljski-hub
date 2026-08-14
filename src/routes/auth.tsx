@@ -26,13 +26,13 @@ const inputClass =
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const mode = "login" as const;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
+  const [info] = useState("");
   const [busy, setBusy] = useState(false);
   // Invitation links arrive with #type=invite (or recovery) and an active session.
   const [inviteMode, setInviteMode] = useState(false);
@@ -52,7 +52,6 @@ function AuthPage() {
   async function onSetPassword(event: FormEvent) {
     event.preventDefault();
     setError("");
-    setInfo("");
     if (password.length < 8) {
       setError("Lozinka mora imati najmanje 8 znakova.");
       return;
@@ -80,7 +79,6 @@ function AuthPage() {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setError("");
-    setInfo("");
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setError("Unesi ispravnu e-mail adresu.");
@@ -90,52 +88,18 @@ function AuthPage() {
       setError("Lozinka mora imati najmanje 8 znakova.");
       return;
     }
-    if (mode === "register") {
-      if (!name.trim()) {
-        setError("Unesi svoje ime.");
-        return;
-      }
-      if (password !== password2) {
-        setError("Lozinke se ne podudaraju.");
-        return;
-      }
-    }
 
     setBusy(true);
     try {
-      if (mode === "login") {
-        const { error: err } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-        if (err) {
-          setError("Neispravan e-mail ili lozinka.");
-          return;
-        }
-        navigate({ to: "/", replace: true });
-      } else {
-        const { data, error: err } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { name: name.trim() },
-          },
-        });
-        if (err) {
-          setError(
-            err.message.toLowerCase().includes("registered")
-              ? "Račun s ovim e-mailom već postoji."
-              : "Registracija nije uspjela. Pokušaj ponovno.",
-          );
-          return;
-        }
-        if (data.session) {
-          navigate({ to: "/", replace: true });
-          return;
-        }
-        setInfo("Provjeri e-mail i potvrdi račun kako bi se mogao prijaviti.");
+      const { error: err } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (err) {
+        setError("Neispravan e-mail ili lozinka.");
+        return;
       }
+      navigate({ to: "/", replace: true });
     } finally {
       setBusy(false);
     }
@@ -149,9 +113,7 @@ function AuthPage() {
       <p className="mt-1 text-sm text-muted-foreground">
         {inviteMode
           ? "Pozvan/a si u obiteljski prostor. Postavi lozinku i završi prijavu."
-          : mode === "login"
-            ? "Prijavi se u svoj obiteljski prostor."
-            : "Izradi svoj račun."}
+          : "Prijavi se u svoj obiteljski prostor."}
       </p>
 
       {inviteMode ? (
@@ -206,20 +168,6 @@ function AuthPage() {
       ) : (
         <>
           <form onSubmit={onSubmit} className="mt-7 space-y-3">
-            {mode === "register" ? (
-              <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Ime
-                </span>
-                <input
-                  className={inputClass}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  autoComplete="name"
-                />
-              </label>
-            ) : null}
-
             <label className="block">
               <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 E-mail
@@ -242,24 +190,9 @@ function AuthPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                autoComplete="current-password"
               />
             </label>
-
-            {mode === "register" ? (
-              <label className="block">
-                <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                  Ponovi lozinku
-                </span>
-                <input
-                  className={inputClass}
-                  type="password"
-                  value={password2}
-                  onChange={(e) => setPassword2(e.target.value)}
-                  autoComplete="new-password"
-                />
-              </label>
-            ) : null}
 
             {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
             {info ? <p className="text-sm font-medium text-accent-foreground">{info}</p> : null}
@@ -273,21 +206,14 @@ function AuthPage() {
                 boxShadow: "var(--shadow-float)",
               }}
             >
-              {mode === "login" ? "Prijavi se" : "Izradi račun"}
+              Prijavi se
             </button>
           </form>
 
-          <button
-            type="button"
-            onClick={() => {
-              setMode(mode === "login" ? "register" : "login");
-              setError("");
-              setInfo("");
-            }}
-            className="mt-5 text-sm font-semibold text-primary"
-          >
-            {mode === "login" ? "Nemaš račun? Registriraj se" : "Već imaš račun? Prijavi se"}
-          </button>
+          <div className="card-soft mt-6 space-y-1 p-5">
+            <p className="text-sm font-semibold">Tejla je trenutno u zatvorenom testiranju.</p>
+            <p className="text-sm text-muted-foreground">Uskoro otvaramo vrata.</p>
+          </div>
         </>
       )}
     </div>

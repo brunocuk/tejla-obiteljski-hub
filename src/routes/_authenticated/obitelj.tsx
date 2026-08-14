@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
   ChevronRight,
@@ -18,7 +18,26 @@ import { MemberDataSheet } from "@/components/MemberDataSheet";
 import { removeFamilyMember } from "@/lib/member-data";
 import { supabase } from "@/integrations/supabase/client";
 import { memberStyle } from "@/lib/family";
+
+/** Tejla-level admin entry point; hidden unless the backend confirms admin rights. */
+function BetaAdminLink() {
+  const checkAdmin = useServerFn(amIAppAdmin);
+  const { data } = useQuery({
+    queryKey: ["am-i-app-admin"],
+    queryFn: () => checkAdmin({ data: undefined }),
+  });
+  if (!data?.isAdmin) return null;
+  return (
+    <Link
+      to="/beta-admin"
+      className="mt-3 flex w-full items-center justify-center gap-2 rounded-3xl border border-border px-6 py-3 text-sm font-semibold text-muted-foreground"
+    >
+      Beta pozivnice
+    </Link>
+  );
+}
 import { sendFamilyInvite } from "@/lib/invitations.functions";
+import { amIAppAdmin } from "@/lib/beta.functions";
 import { useServerFn } from "@tanstack/react-start";
 import {
   addFamilyMember,
@@ -441,6 +460,8 @@ function ClanoviPage() {
         <LogOut className="size-4" strokeWidth={2} />
         Odjavi se
       </button>
+
+      <BetaAdminLink />
 
       {inviteFor ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30">
