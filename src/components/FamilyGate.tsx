@@ -129,12 +129,16 @@ export function FamilyGate({ children }: { children: ReactNode }) {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-10">
-      <h1 className="text-2xl font-bold tracking-tight">Postavi svoju obitelj</h1>
+      <h1 className="text-2xl font-bold tracking-tight">Tu si.</h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Još nekoliko podataka i tvoj obiteljski prostor je spreman.
+        Trenutno nemaš aktivan obiteljski prostor. Tvoj Tejla račun ostaje isti — možeš stvoriti
+        svoj prostor ili se pridružiti postojećem.
       </p>
 
       <form onSubmit={handleCreate} className="card-soft mt-6 space-y-4 p-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Stvori svoj prostor
+        </p>
         <label className="block">
           <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Naziv obitelji
@@ -166,9 +170,17 @@ export function FamilyGate({ children }: { children: ReactNode }) {
           className="w-full rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground disabled:opacity-60"
           style={{ backgroundImage: "var(--gradient-primary)", boxShadow: "var(--shadow-float)" }}
         >
-          {saving ? "Stvaram…" : "Stvori obitelj"}
+          {saving ? "Stvaram…" : "Stvori svoj prostor"}
         </button>
       </form>
+
+      <div className="card-soft mt-4 space-y-1 p-5">
+        <p className="text-sm font-semibold">Pridruži se prostoru</p>
+        <p className="text-sm text-muted-foreground">
+          Zamoli osobu koja vodi prostor da te pozove na ovu e-mail adresu. Čim poziv stigne,
+          prijava ovim istim računom te odmah ubaci u taj prostor.
+        </p>
+      </div>
     </main>
   );
 }
