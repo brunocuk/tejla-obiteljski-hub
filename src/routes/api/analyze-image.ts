@@ -18,7 +18,14 @@ Rules:
 - Text values must be in Croatian, as written in the input.
 - If nothing relevant is found, return {"items":[]}.`;
 
-type Body = { image?: string; mimeType?: string; text?: string; today?: string };
+type Body = {
+  image?: string;
+  mimeType?: string;
+  text?: string;
+  today?: string;
+  speaker?: string;
+  members?: string[];
+};
 
 export const Route = createFileRoute("/api/analyze-image")({
   server: {
@@ -32,6 +39,19 @@ export const Route = createFileRoute("/api/analyze-image")({
         const today = typeof body.today === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.today)
           ? body.today
           : new Date().toISOString().slice(0, 10);
+        const speaker = typeof body.speaker === "string" ? body.speaker.trim().slice(0, 60) : "";
+        const members = Array.isArray(body.members)
+          ? body.members.filter((m): m is string => typeof m === "string").slice(0, 20)
+          : [];
+        const personHint = [
+          speaker
+            ? `The person speaking / writing is "${speaker}". First-person Croatian expressions ("imam", "moram", "idem", "meni", "moj termin", "kod mene", "trebam") mean the obligation belongs to "${speaker}" — set person to "${speaker}".`
+            : "",
+          members.length ? `Known family members: ${members.join(", ")}.` : "",
+          `When a name is stated ("Lara ima zubara"), set person to that name. If it cannot be reliably determined who the obligation belongs to, leave person empty — never guess.`,
+        ]
+          .filter(Boolean)
+          .join("\n");
         if (!pastedText && (!body.image || typeof body.image !== "string")) {
           return Response.json({ error: "Missing image or text" }, { status: 400 });
         }
@@ -68,7 +88,7 @@ export const Route = createFileRoute("/api/analyze-image")({
             messages: [
               {
                 role: "system",
-                content: `${SYSTEM_PROMPT}\nCurrent date (user's local timezone): ${today}.`,
+                content: `${SYSTEM_PROMPT}\nCurrent date (user's local timezone): ${today}.\n${personHint}`,
               },
               { role: "user", content: userContent },
             ],
