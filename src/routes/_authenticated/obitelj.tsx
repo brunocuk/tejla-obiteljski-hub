@@ -516,6 +516,13 @@ function ClanoviPage() {
             setDataFor(target);
           }}
           onClose={() => setManageFor(null)}
+          canRemove={isAdult && manageFor.linked_user_id !== myUserId}
+          onRemoved={async () => {
+            setManageFor(null);
+            await queryClient.invalidateQueries({ queryKey: ["family-members", familyId] });
+            await queryClient.invalidateQueries({ queryKey: ["member-visibility", familyId] });
+            await queryClient.invalidateQueries({ queryKey: ["family-events"] });
+          }}
         />
       ) : null}
 
@@ -534,6 +541,8 @@ function MemberManageSheet({
   onInvite,
   onOpenData,
   onClose,
+  canRemove,
+  onRemoved,
 }: {
   member: FamilyMemberRow;
   familyId: string;
@@ -542,6 +551,8 @@ function MemberManageSheet({
   onInvite: () => void;
   onOpenData: () => void;
   onClose: () => void;
+  canRemove: boolean;
+  onRemoved: () => void | Promise<void>;
 }) {
   const queryClient = useQueryClient();
   const { data: visibility = {} } = useMemberVisibility(familyId);
@@ -557,6 +568,27 @@ function MemberManageSheet({
 
   const others = allMembers.filter((m) => m.id !== member.id);
   const isChild = member.member_type === "child";
+  const displayName = member.name?.trim() || "člana";
+  const [removeStep, setRemoveStep] = useState<null | "choose" | "purge">(null);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState("");
+
+  const runRemove = async (purge: boolean) => {
+    setRemoving(true);
+    setRemoveError("");
+    try {
+      await removeFamilyMember(member.id, purge);
+      await onRemoved();
+    } catch (err) {
+      setRemoveError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Uklanjanje nije uspjelo. Pokušaj ponovno.",
+      );
+    } finally {
+      setRemoving(false);
+    }
+  };
 
   const modes: VisibilityMode[] = ["own", "own_shared", "all", "custom"];
 
@@ -721,6 +753,92 @@ function MemberManageSheet({
           </span>
           <ChevronRight className="size-4" strokeWidth={2.4} />
         </button>
+
+        {canRemove ? (
+          <div className="mt-2 space-y-3 border-t border-border pt-4">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-destructive">
+              Članstvo u obitelji
+            </h3>
+            {removeStep === null ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setRemoveError("");
+                  setRemoveStep("choose");
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-3xl border border-destructive/40 px-4 py-3 text-sm font-bold text-destructive"
+              >
+                <UserMinus className="size-4" strokeWidth={2.2} />
+                Ukloni iz obitelji
+              </button>
+            ) : (
+              <div className="space-y-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-4">
+                <p className="text-sm font-bold text-destructive">
+                  Ukloniti {displayName} iz obitelji?
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {displayName} više neće imati pristup ovom obiteljskom prostoru. Tejla račun neće
+                  biti obrisan i može se i dalje koristiti.
+                </p>
+                {removeStep === "choose" ? (
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => runRemove(false)}
+                      disabled={removing}
+                      className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-left text-sm font-semibold disabled:opacity-60"
+                    >
+                      Ukloni i zadrži obiteljsku povijest
+                      <span className="mt-0.5 block text-xs font-medium text-muted-foreground">
+                        Dosadašnji zapisi ostaju u prostoru. Budući podsjetnici samo za tu osobu se
+                        otkazuju.
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRemoveStep("purge")}
+                      disabled={removing}
+                      className="w-full rounded-2xl border border-destructive/40 px-4 py-3 text-left text-sm font-semibold text-destructive disabled:opacity-60"
+                    >
+                      Ukloni i obriši osobne podatke iz ovog prostora
+                      <span className="mt-0.5 block text-xs font-medium text-muted-foreground">
+                        Zajednički događaji ostaju drugim članovima.
+                      </span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-destructive">
+                      Brisanje osobnih podataka je nepovratno. Tejla račun ostaje aktivan.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => runRemove(true)}
+                      disabled={removing}
+                      className="w-full rounded-3xl bg-destructive px-4 py-3 text-sm font-bold text-destructive-foreground disabled:opacity-60"
+                    >
+                      {removing ? "Uklanjam…" : "Da, obriši podatke i ukloni"}
+                    </button>
+                  </div>
+                )}
+                {removeError ? (
+                  <p className="text-sm font-medium text-destructive">{removeError}</p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRemoveStep(null);
+                    setRemoveError("");
+                  }}
+                  disabled={removing}
+                  className="w-full rounded-3xl border border-border px-4 py-3 text-sm font-semibold text-muted-foreground"
+                >
+                  Odustani
+                </button>
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );
