@@ -40,8 +40,9 @@ function defaultDrafts(
   const stamp = (list: ReminderDraft[]) => withRecipient(list, mode, userIds);
   if (it.type === "task") {
     if (!it.reminder_intent) return [];
+    const absolute = it.reminder_at ? new Date(it.reminder_at) : null;
     const base =
-      (it.reminder_at ? new Date(it.reminder_at) : null) ??
+      (absolute && !Number.isNaN(absolute.getTime()) ? absolute : null) ??
       (it.reminder_time ? localDate(it.date, it.reminder_time) : null) ??
       (it.date ? localDate(it.date, "") : null);
     // No stated time -> start reminding from the moment the request was made.
