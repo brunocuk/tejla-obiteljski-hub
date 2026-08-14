@@ -121,3 +121,76 @@ export function parseRelativeReminder(text: string, now: Date = new Date()): Rel
 
   return null;
 }
+
+type ReminderItemLike = {
+  type: "event" | "task";
+  date: string;
+  time: string;
+  reminder_intent: boolean;
+  reminder_time: string;
+  reminder_at?: string;
+  link_to: number;
+};
+
+const UNIT_MINUTES: Record<string, number> = {
+  minutu: 1,
+  minute: 1,
+  minuta: 1,
+  min: 1,
+  sat: 60,
+  sata: 60,
+  sati: 60,
+  dan: 1440,
+  dana: 1440,
+};
+
+/** "2 sata prije" / "pola sata prije" -> minutes before the event. */
+export function parseLeadTime(text: string): number | null {
+  const t = deaccent(text).replace(/\s+/g, " ");
+  if (/pola sata (prije|ranije)/.test(t)) return 30;
+  const m = t.match(/([\w]+) (minutu|minute|minuta|min|sat|sata|sati|dan|dana) (prije|ranije)/);
+  if (!m) return null;
+  const n = amount(m[1]);
+  const unit = UNIT_MINUTES[m[2]];
+  if (!n || !unit) return null;
+  return n * unit;
+}
+
+/** Local Date from "YYYY-MM-DD" + "HH:MM" (time optional). */
+function localDateTime(date: string, time: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const [y, mo, d] = date.split("-").map(Number);
+  const [h, mi] = time && /^\d{1,2}:\d{2}$/.test(time) ? time.split(":").map(Number) : [9, 0];
+  const out = new Date(y, mo - 1, d, h, mi, 0, 0);
+  return Number.isNaN(out.getTime()) ? null : out;
+}
+
+/**
+ * Resolves reminder times for spoken/typed input against the user's clock.
+ * Event dates and times are never modified — only `reminder_at` is filled in.
+ */
+export function applyRelativeReminders<T extends ReminderItemLike>(
+  items: T[],
+  text: string,
+  now: Date = new Date(),
+): T[] {
+  if (!text.trim()) return items;
+  const lead = parseLeadTime(text);
+  const relative = lead == null ? parseRelativeReminder(text, now) : null;
+  if (lead == null && !relative) return items;
+
+  return items.map((item) => {
+    if (!item.reminder_intent) return item;
+    if (lead != null) {
+      // "podsjeti me 2 sata prije" -> relative to the event, not to now.
+      const linked = item.link_to >= 0 ? items[item.link_to] : null;
+      const base =
+        localDateTime(item.date, item.time) ??
+        (linked ? localDateTime(linked.date, linked.time) : null);
+      if (!base) return item;
+      const at = new Date(base.getTime() - lead * 60_000);
+      return { ...item, reminder_at: at.toISOString() };
+    }
+    return { ...item, reminder_at: relative!.at.toISOString() };
+  });
+}
