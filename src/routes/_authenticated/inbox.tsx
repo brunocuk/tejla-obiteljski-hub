@@ -128,7 +128,12 @@ function InboxPage() {
       });
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as { items?: Partial<ExtractedItem>[] };
-      const items = (data.items ?? []).map(normalizeItem);
+      const spoken = "text" in payload ? payload.text : "";
+      const items = applyRelativeReminders(
+        (data.items ?? []).map(normalizeItem),
+        spoken,
+        new Date(),
+      );
       setAnalysis(items);
       setMode("results");
       logRecent(label, items.length);
