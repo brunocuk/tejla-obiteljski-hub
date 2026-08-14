@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_admins: {
+        Row: {
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      beta_invites: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          label: string
+          status: string
+          token: string
+          updated_at: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          label?: string
+          status?: string
+          token: string
+          updated_at?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          label?: string
+          status?: string
+          token?: string
+          updated_at?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
       event_members: {
         Row: {
           created_at: string
@@ -437,6 +491,7 @@ export type Database = {
         Args: { _family_name: string; _my_name: string }
         Returns: string
       }
+      is_app_admin: { Args: never; Returns: boolean }
       is_family_adult: { Args: { _family_id: string }; Returns: boolean }
       is_family_member: { Args: { _family_id: string }; Returns: boolean }
       is_family_owner: { Args: { _family_id: string }; Returns: boolean }
