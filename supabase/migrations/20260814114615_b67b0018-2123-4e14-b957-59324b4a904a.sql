@@ -1,0 +1,2 @@
+ALTER TABLE public.event_reminders ADD COLUMN IF NOT EXISTS cancelled_at timestamp with time zone;
+CREATE INDEX IF NOT EXISTS event_reminders_cancelled_idx ON public.event_reminders (event_id, cancelled_at);

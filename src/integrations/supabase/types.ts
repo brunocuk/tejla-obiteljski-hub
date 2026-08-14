@@ -52,6 +52,7 @@ export type Database = {
       }
       event_reminders: {
         Row: {
+          cancelled_at: string | null
           created_at: string
           created_by: string
           event_id: string
@@ -64,6 +65,7 @@ export type Database = {
           series_id: string | null
         }
         Insert: {
+          cancelled_at?: string | null
           created_at?: string
           created_by: string
           event_id: string
@@ -76,6 +78,7 @@ export type Database = {
           series_id?: string | null
         }
         Update: {
+          cancelled_at?: string | null
           created_at?: string
           created_by?: string
           event_id?: string
