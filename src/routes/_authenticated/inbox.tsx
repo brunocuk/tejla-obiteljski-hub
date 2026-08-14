@@ -123,6 +123,7 @@ function InboxPage() {
         body: JSON.stringify({
           ...payload,
           today: localToday(),
+          nowTime: new Date().toTimeString().slice(0, 5),
           speaker,
           members: memberNames,
         }),
