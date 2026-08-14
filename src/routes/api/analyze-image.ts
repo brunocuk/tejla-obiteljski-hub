@@ -7,6 +7,9 @@ Rules:
 - Never invent information that is not present in the input.
 - Unknown field => empty string, or empty array for things_to_bring.
 - Dates in YYYY-MM-DD when the year is visible. If the day and month are visible but the year is NOT, put the visible date into the "date" field exactly as written (for example "8.6." or "8. lipnja") and do NOT guess the year.
+- Relative Croatian expressions ("danas", "sutra", "prekosutra", "u petak", "sljedeci utorak", "za tjedan dana") must be resolved to a concrete YYYY-MM-DD using the provided current date. A weekday without "sljedeci" means the next upcoming occurrence.
+- Spoken times ("u 8 navecer", "pola 9 ujutro", "u podne") must be converted to 24h HH:MM.
+- Only fill a field when it was actually stated. Never invent a person, location, time or date.
 - A month heading in the input (for example "Lipanj") confirms the month for the items listed under it.
 - Never leave a recognizable event date only inside notes; notes are for additional descriptive information only.
 - category must be exactly one of: Škola, Ispit, Pregled, Zubar, Frizer, Kozmetičar, Trening, Izlet, Putovanje, Rođendan, Uplata, Rok, Servis, Osobno, Obitelj, Ostalo. Pick the closest match; use "Ostalo" when unclear.
@@ -15,7 +18,7 @@ Rules:
 - Text values must be in Croatian, as written in the input.
 - If nothing relevant is found, return {"items":[]}.`;
 
-type Body = { image?: string; mimeType?: string; text?: string };
+type Body = { image?: string; mimeType?: string; text?: string; today?: string };
 
 export const Route = createFileRoute("/api/analyze-image")({
   server: {
@@ -26,6 +29,9 @@ export const Route = createFileRoute("/api/analyze-image")({
 
         const body = (await request.json()) as Body;
         const pastedText = typeof body.text === "string" ? body.text.trim() : "";
+        const today = typeof body.today === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.today)
+          ? body.today
+          : new Date().toISOString().slice(0, 10);
         if (!pastedText && (!body.image || typeof body.image !== "string")) {
           return Response.json({ error: "Missing image or text" }, { status: 400 });
         }
@@ -60,7 +66,10 @@ export const Route = createFileRoute("/api/analyze-image")({
           body: JSON.stringify({
             model: "google/gemini-3.6-flash",
             messages: [
-              { role: "system", content: SYSTEM_PROMPT },
+              {
+                role: "system",
+                content: `${SYSTEM_PROMPT}\nCurrent date (user's local timezone): ${today}.`,
+              },
               { role: "user", content: userContent },
             ],
             response_format: { type: "json_object" },
