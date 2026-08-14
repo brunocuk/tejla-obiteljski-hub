@@ -125,6 +125,7 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
           // A finished task must never keep notifying.
           .eq("family_events.completed", false)
           .is("sent_at", null)
+          .is("cancelled_at", null)
           .lte("remind_at", nowIso)
           .gte("remind_at", windowStart)
           .limit(100);
