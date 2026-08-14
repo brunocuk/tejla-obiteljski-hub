@@ -16,6 +16,7 @@ Rules:
   * one or more named people ("podsjeti Davora", "podsjeti mene i Davora", "podsjeti Davora i Lucija") => reminder_scope "named" and reminder_people listing exactly those names as spoken. When the speaker includes themself ("mene i Davora"), put the speaker's own name first in reminder_people.
   * No reminder request at all => reminder_scope "" and reminder_people [].
 - Never set reminder_scope "all_parents" just because the text mentions "me", "mene", "meni" or a personal task.
+- The person named in a reminder request is ALSO the owner of the task unless the text clearly states someone else must do it. "Podsjeti Davora da nazove servis" => person "Davor". "Podsjeti Korinu sutra da ponese opremu" => person "Korina". "Podsjeti me da kupim mlijeko" => person is the speaker. "Podsjeti mene i Davora" => person is the speaker. Always fill "person" in these cases; never leave it empty when a reminder names someone.
 - A statement without a reminder request ("Danas moram kupiti poklon") is still a task, but reminder_intent must be false.
 - Never invent information that is not present in the input.
 - Unknown field => empty string, or empty array for things_to_bring.
