@@ -45,8 +45,10 @@ function defaultDrafts(
       (absolute && !Number.isNaN(absolute.getTime()) ? absolute : null) ??
       (it.reminder_time ? localDate(it.date, it.reminder_time) : null) ??
       (it.date ? localDate(it.date, "") : null);
-    // No stated time -> start reminding from the moment the request was made.
-    const start = base && base.getTime() > Date.now() ? base : new Date();
+    // A resolved absolute time is kept exactly as computed at capture time.
+    // Only when nothing usable was stated do we start shortly from now, so the
+    // reminder is not already in the past by the time the user taps save.
+    const start = base && base.getTime() > Date.now() ? base : new Date(Date.now() + 120_000);
     const pattern = RECURRENCE_MAP[it.reminder_recurrence] ?? "once";
     return stamp(draftsFromPattern(pattern, mode, { start }));
   }
@@ -176,6 +178,18 @@ export function AnalysisResults({
     }
     if (!familyId) {
       setError("Obavezu nije bilo moguće spremiti. Pokušaj ponovno.");
+      return;
+    }
+    // Reminders are absolute timestamps resolved at capture time. At save time
+    // we only compare them with the real current clock (millisecond precision) —
+    // never re-evaluate the original relative phrase.
+    const chosenIdxAll = items.map((_, i) => i).filter((i) => selected.includes(i));
+    const nowMs = Date.now();
+    const expired = chosenIdxAll
+      .flatMap((i) => reminders[i] ?? [])
+      .filter((d) => new Date(d.remind_at).getTime() <= nowMs);
+    if (expired.length > 0 && expired.length === chosenIdxAll.flatMap((i) => reminders[i] ?? []).length) {
+      setError("Vrijeme podsjetnika je u međuvremenu prošlo. Odaberi novo vrijeme.");
       return;
     }
     setError("");

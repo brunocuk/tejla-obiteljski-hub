@@ -176,13 +176,24 @@ export function applyRelativeReminders<T extends ReminderItemLike>(
   text: string,
   now: Date = new Date(),
 ): T[] {
-  if (!text.trim()) return items;
-  const lead = parseLeadTime(text);
-  const relative = lead == null ? parseRelativeReminder(text, now) : null;
-  if (lead == null && !relative) return items;
+  const lead = text.trim() ? parseLeadTime(text) : null;
+  const relative = lead == null && text.trim() ? parseRelativeReminder(text, now) : null;
+
+  /**
+   * Absolute fallback: whatever clock time the AI stated is anchored once, here,
+   * with full second precision. From this point on the reminder is a fixed
+   * timestamp — saving later never re-evaluates the original phrase.
+   */
+  const absoluteFallback = (item: T): T => {
+    if (item.reminder_at) return item;
+    const at = item.reminder_time ? localDateTime(item.date, item.reminder_time) : null;
+    if (!at) return item;
+    return { ...item, reminder_at: at.toISOString() };
+  };
 
   return items.map((item) => {
     if (!item.reminder_intent) return item;
+    if (lead == null && !relative) return absoluteFallback(item);
     if (lead != null) {
       // "podsjeti me 2 sata prije" -> relative to the event, not to now.
       const linked = item.link_to >= 0 ? items[item.link_to] : null;
@@ -192,7 +203,7 @@ export function applyRelativeReminders<T extends ReminderItemLike>(
         (linked?.time ? localDateTime(linked.date, linked.time) : null) ??
         localDateTime(item.date, item.time) ??
         (linked ? localDateTime(linked.date, linked.time) : null);
-      if (!base) return item;
+      if (!base) return absoluteFallback(item);
       const at = new Date(base.getTime() - lead * 60_000);
       return { ...item, reminder_at: at.toISOString() };
     }
