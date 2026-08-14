@@ -1,7 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Database, LogOut, Pencil, Plus, Shield, UserPlus, X } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Database,
+  LogOut,
+  Pencil,
+  Plus,
+  Shield,
+  UserPlus,
+  X,
+} from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { MemberDataSheet } from "@/components/MemberDataSheet";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,14 +56,14 @@ export const Route = createFileRoute("/_authenticated/obitelj")({
 function Row({
   name,
   role,
+  rule,
   onEdit,
-  onOpen,
   onManage,
 }: {
   name: string;
   role: string;
+  rule?: string | undefined;
   onEdit?: (() => void) | undefined;
-  onOpen?: (() => void) | undefined;
   onManage?: (() => void) | undefined;
 }) {
   const style = memberStyle(name);
@@ -64,15 +74,11 @@ function Row({
       >
         {style.initials}
       </span>
-      <button
-        type="button"
-        onClick={onOpen}
-        disabled={!onOpen}
-        className="min-w-0 flex-1 text-left disabled:cursor-default"
-      >
+      <div className="min-w-0 flex-1">
         <p className="text-[15px] font-semibold">{name}</p>
         <p className="truncate text-sm text-muted-foreground">{role}</p>
-      </button>
+        {rule ? <p className="truncate text-sm text-muted-foreground">{rule}</p> : null}
+      </div>
       {onEdit ? (
         <button
           type="button"
@@ -87,10 +93,10 @@ function Row({
         <button
           type="button"
           onClick={onManage}
-          className="flex shrink-0 items-center gap-1 rounded-2xl border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground"
+          className="flex shrink-0 items-center gap-1 rounded-2xl border border-border px-3 py-2 text-xs font-semibold text-accent-foreground"
         >
-          <Database className="size-3.5" strokeWidth={2.2} />
-          Upravljanje podacima
+          Upravljaj
+          <ChevronRight className="size-3.5" strokeWidth={2.4} />
         </button>
       ) : null}
     </div>
@@ -127,7 +133,7 @@ function ClanoviPage() {
   const [nameError, setNameError] = useState("");
   const [savingName, setSavingName] = useState(false);
 
-  const [visibilityFor, setVisibilityFor] = useState<FamilyMemberRow | null>(null);
+  const [manageFor, setManageFor] = useState<FamilyMemberRow | null>(null);
   const [dataFor, setDataFor] = useState<FamilyMemberRow | null>(null);
 
   const parents = members.filter((m: FamilyMemberRow) => m.member_type === "parent");
@@ -211,11 +217,8 @@ function ClanoviPage() {
     navigate({ to: "/auth", replace: true });
   }
 
-  const childRole = (k: FamilyMemberRow) => {
-    const mode = (visibility[k.id]?.mode ?? "own_shared") as VisibilityMode;
-    const account = k.linked_user_id ? "ima račun" : "bez računa";
-    return `Dijete · ${account} · ${VISIBILITY_LABELS[mode]}`;
-  };
+  const childRule = (k: FamilyMemberRow) =>
+    VISIBILITY_LABELS[(visibility[k.id]?.mode ?? "own_shared") as VisibilityMode];
 
   return (
     <AppShell>
@@ -284,8 +287,10 @@ function ClanoviPage() {
                   <Row
                     key={p.id}
                     name={p.name?.trim() || "Bez imena"}
-                    role={p.linked_user_id ? "Odrasla osoba · ima račun" : "Odrasla osoba"}
-                    onManage={isAdult ? () => setDataFor(p) : undefined}
+                    role={
+                      p.linked_user_id ? "Odrasla osoba · ima račun" : "Odrasla osoba · bez računa"
+                    }
+                    onManage={isAdult ? () => setManageFor(p) : undefined}
                     onEdit={
                       myUserId && p.linked_user_id === myUserId
                         ? () => {
@@ -310,9 +315,9 @@ function ClanoviPage() {
                   <Row
                     key={k.id}
                     name={k.name?.trim() || "Bez imena"}
-                    role={childRole(k)}
-                    onOpen={isAdult ? () => setVisibilityFor(k) : undefined}
-                    onManage={isAdult ? () => setDataFor(k) : undefined}
+                    role={`Dijete · ${k.linked_user_id ? "ima račun" : "bez računa"}`}
+                    rule={childRule(k)}
+                    onManage={isAdult ? () => setManageFor(k) : undefined}
                     onEdit={
                       myUserId && k.linked_user_id === myUserId
                         ? () => {
@@ -489,21 +494,26 @@ function ClanoviPage() {
         </div>
       ) : null}
 
-      {visibilityFor ? (
-        <VisibilitySheet
-          member={visibilityFor}
+      {manageFor ? (
+        <MemberManageSheet
+          member={manageFor}
           familyId={familyId ?? ""}
           allMembers={members}
           canInvite={isOwner}
           onInvite={() => {
-            const target = visibilityFor;
-            setVisibilityFor(null);
+            const target = manageFor;
+            setManageFor(null);
             setInviteFor(target);
             setInviteEmail("");
             setInviteError("");
             setInviteInfo("");
           }}
-          onClose={() => setVisibilityFor(null)}
+          onOpenData={() => {
+            const target = manageFor;
+            setManageFor(null);
+            setDataFor(target);
+          }}
+          onClose={() => setManageFor(null)}
         />
       ) : null}
 
@@ -514,12 +524,13 @@ function ClanoviPage() {
   );
 }
 
-function VisibilitySheet({
+function MemberManageSheet({
   member,
   familyId,
   allMembers,
   canInvite,
   onInvite,
+  onOpenData,
   onClose,
 }: {
   member: FamilyMemberRow;
@@ -527,6 +538,7 @@ function VisibilitySheet({
   allMembers: FamilyMemberRow[];
   canInvite: boolean;
   onInvite: () => void;
+  onOpenData: () => void;
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
@@ -542,6 +554,7 @@ function VisibilitySheet({
   const [error, setError] = useState("");
 
   const others = allMembers.filter((m) => m.id !== member.id);
+  const isChild = member.member_type === "child";
 
   const modes: VisibilityMode[] = ["own", "own_shared", "all", "custom"];
 
@@ -569,7 +582,7 @@ function VisibilitySheet({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30">
       <div className="max-h-[88vh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-3xl bg-background p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold tracking-tight">{member.name || "Dijete"}</h2>
+          <h2 className="text-lg font-bold tracking-tight">{member.name || "Član"}</h2>
           <button
             type="button"
             aria-label="Zatvori"
@@ -580,6 +593,11 @@ function VisibilitySheet({
           </button>
         </div>
 
+        {isChild ? (
+          <>
+        <h3 className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Pristup i ovlasti
+        </h3>
         <div className="flex items-start gap-3 rounded-2xl bg-primary-soft px-4 py-3">
           <Shield className="mt-0.5 size-4 shrink-0 text-accent-foreground" strokeWidth={2.2} />
           <p className="text-sm font-medium text-accent-foreground">
@@ -662,17 +680,45 @@ function VisibilitySheet({
         >
           {saving ? "Spremam…" : "Spremi pravila"}
         </button>
+          </>
+        ) : null}
 
-        {canInvite && !member.linked_user_id ? (
+        <h3 className="pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Vlastiti račun
+        </h3>
+        {member.linked_user_id ? (
+          <p className="rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-muted-foreground">
+            Ima vlastiti račun
+          </p>
+        ) : canInvite ? (
           <button
             type="button"
             onClick={onInvite}
             className="flex w-full items-center justify-center gap-2 rounded-3xl border border-border px-4 py-3 text-sm font-semibold text-accent-foreground"
           >
             <UserPlus className="size-4" strokeWidth={2.2} />
-            Pozovi na vlastiti račun
+            Pozovi {member.name?.trim() || "člana"} na vlastiti račun
           </button>
-        ) : null}
+        ) : (
+          <p className="rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-muted-foreground">
+            Nema vlastiti račun
+          </p>
+        )}
+
+        <h3 className="pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Podaci i brisanje
+        </h3>
+        <button
+          type="button"
+          onClick={onOpenData}
+          className="flex w-full items-center justify-between gap-2 rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-accent-foreground"
+        >
+          <span className="flex items-center gap-2">
+            <Database className="size-4" strokeWidth={2.2} />
+            Podaci i brisanje
+          </span>
+          <ChevronRight className="size-4" strokeWidth={2.4} />
+        </button>
       </div>
     </div>
   );
