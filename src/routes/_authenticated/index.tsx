@@ -180,6 +180,7 @@ function Danas() {
           )}
         </div>
       </section>
+      )}
 
       {allTasks.length > 0 ? (
         <section className="mb-8">
