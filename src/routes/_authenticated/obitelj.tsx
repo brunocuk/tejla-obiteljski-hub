@@ -1,6 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
   ChevronRight,
@@ -19,6 +19,7 @@ import { removeFamilyMember } from "@/lib/member-data";
 import { supabase } from "@/integrations/supabase/client";
 import { memberStyle } from "@/lib/family";
 import { sendFamilyInvite } from "@/lib/invitations.functions";
+import { amIAppAdmin } from "@/lib/beta.functions";
 import { useServerFn } from "@tanstack/react-start";
 import {
   addFamilyMember,
@@ -441,6 +442,8 @@ function ClanoviPage() {
         <LogOut className="size-4" strokeWidth={2} />
         Odjavi se
       </button>
+
+      <BetaAdminLink />
 
       {inviteFor ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30">
