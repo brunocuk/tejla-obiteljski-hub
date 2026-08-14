@@ -35,3 +35,12 @@ export async function purgeMemberData(memberId: string, scope: PurgeScope): Prom
     deleted_reminders: 0,
   }) as unknown as PurgeResult;
 }
+
+/** Removes a person from this family space only. Their Tejla account stays intact. */
+export async function removeFamilyMember(memberId: string, purgeData: boolean) {
+  const { error } = await supabase.rpc("remove_family_member", {
+    _member_id: memberId,
+    _purge: purgeData,
+  });
+  if (error) throw error;
+}
