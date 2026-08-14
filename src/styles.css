@@ -43,6 +43,10 @@
   --color-primary-soft: var(--primary-soft);
   --color-warm: var(--warm);
   --color-warm-foreground: var(--warm-foreground);
+  --color-sage: var(--sage);
+  --color-sage-foreground: var(--sage-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --color-member-lara: var(--member-lara);
   --color-member-lucija: var(--member-lucija);
   --color-member-korina: var(--member-korina);
