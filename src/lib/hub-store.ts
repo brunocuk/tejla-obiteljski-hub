@@ -27,6 +27,8 @@ export type ExtractedItem = {
   reminder_intent: boolean;
   /** Explicit reminder clock time "HH:MM" when it was stated. */
   reminder_time: string;
+  /** Absolute reminder moment (ISO) resolved from relative speech ("za 5 minuta"). */
+  reminder_at: string;
   /** Requested repeat, e.g. "hourly" / "until_done". */
   reminder_recurrence: string;
   /** Who should be notified: "me" | "all_parents" | "named" | "" (unspecified). */
@@ -123,6 +125,7 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
     type: raw.type === "task" ? "task" : "event",
     reminder_intent: Boolean(raw.reminder_intent),
     reminder_time: String(raw.reminder_time ?? "").trim(),
+    reminder_at: String(raw.reminder_at ?? "").trim(),
     reminder_recurrence: String(raw.reminder_recurrence ?? "").trim(),
     reminder_scope: String(raw.reminder_scope ?? "").trim(),
     reminder_people: Array.isArray(raw.reminder_people)
