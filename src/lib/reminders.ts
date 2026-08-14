@@ -62,6 +62,50 @@ export function withRecipient(
   }));
 }
 
+export type AdultRecipient = { name: string; userId: string };
+
+/**
+ * Turns the spoken/written reminder intent ("podsjeti me", "podsjeti nas",
+ * "podsjeti Davora") into a concrete recipient choice.
+ * Anything unclear stays with the person who made the entry.
+ */
+export function resolveRecipient(
+  scope: string,
+  people: string[],
+  self: string | null | undefined,
+  adults: AdultRecipient[],
+): { mode: RecipientMode; userIds: string[] } {
+  const norm = (s: string) =>
+    s
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+  if (scope === "all_parents") return { mode: "all_parents", userIds: [] };
+
+  if (scope === "named" && people.length > 0) {
+    const ids: string[] = [];
+    for (const raw of people) {
+      const v = norm(raw);
+      if (!v) continue;
+      if (["ja", "mene", "me", "meni"].includes(v)) {
+        if (self) ids.push(self);
+        continue;
+      }
+      const hit = adults.find((a) => norm(a.name) === v || norm(a.name).startsWith(v));
+      if (hit) ids.push(hit.userId);
+    }
+    const unique = [...new Set(ids)];
+    if (unique.length === 0) return { mode: "creator_only", userIds: [] };
+    if (unique.length === 1 && unique[0] === self) return { mode: "creator_only", userIds: [] };
+    return { mode: "selected", userIds: unique };
+  }
+
+  // "me" and everything unspecified: only the person who created the entry.
+  return { mode: "creator_only", userIds: [] };
+}
+
 /** Maps older/AI category values to the supported category list. */
 export function normalizeCategory(raw: string): string {
   const v = raw.trim().toLowerCase();

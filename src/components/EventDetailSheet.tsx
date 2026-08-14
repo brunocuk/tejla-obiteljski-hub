@@ -20,6 +20,7 @@ import {
   useEventReminders,
   type RecipientMode,
   type ReminderDraft,
+  withRecipient,
 } from "@/lib/reminders";
 
 const fieldClass =
@@ -62,7 +63,11 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
   });
   const [selected, setSelected] = useState<string[]>(event.member_ids);
   const [reminders, setReminders] = useState<ReminderDraft[]>([]);
-  const [recipient, setRecipient] = useState<RecipientMode>("all_parents");
+  const [recipient, setRecipient] = useState<RecipientMode>("creator_only");
+  const [recipientUserIds, setRecipientUserIds] = useState<string[]>([]);
+  const adults = members
+    .filter((m) => m.member_type === "parent" && m.linked_user_id)
+    .map((m) => ({ name: m.name, userId: m.linked_user_id as string }));
 
   const pending = savedReminders.filter((r) => !r.sent_at);
 
@@ -74,14 +79,14 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
         key: r.id,
         remind_at: r.remind_at,
         recipient_mode: r.recipient_mode,
+        recipient_user_ids: r.recipient_user_ids ?? [],
         ...(r.pattern && r.pattern !== "once"
           ? { pattern: r.pattern as NonNullable<ReminderDraft["pattern"]> }
           : {}),
       })),
     );
-    setRecipient(
-      pending[0]?.recipient_mode ?? defaultRecipient(event.category, event.member_ids.length === 1),
-    );
+    setRecipient(pending[0]?.recipient_mode ?? defaultRecipient());
+    setRecipientUserIds(pending[0]?.recipient_user_ids ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editing, savedReminders.length]);
 
@@ -290,13 +295,19 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
               reminders={reminders}
               onChange={setReminders}
               recipient={recipient}
-              onRecipientChange={setRecipient}
+              recipientUserIds={recipientUserIds}
+              adults={adults}
+              onRecipientChange={(mode, ids) => {
+                setRecipient(mode);
+                setRecipientUserIds(ids);
+              }}
             />
             <button
               type="button"
               onClick={() =>
                 setReminders(
-                  suggestReminders(
+                  withRecipient(
+                    suggestReminders(
                     {
                       category: form.category,
                       date: form.date,
@@ -305,6 +316,9 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
                       things_to_bring: event.things_to_bring,
                     },
                     recipient,
+                    ),
+                    recipient,
+                    recipientUserIds,
                   ),
                 )
               }

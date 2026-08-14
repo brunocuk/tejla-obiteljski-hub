@@ -5,9 +5,9 @@ import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-works
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
   EVENT_CATEGORIES,
-  defaultRecipient,
   insertReminders,
   suggestReminders,
+  withRecipient,
   type RecipientMode,
   type ReminderDraft,
 } from "@/lib/reminders";
@@ -33,30 +33,34 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reminders, setReminders] = useState<ReminderDraft[]>([]);
-  const [recipient, setRecipient] = useState<RecipientMode>("all_parents");
+  // Manual entries default to reminding only the person creating them.
+  const [recipient, setRecipient] = useState<RecipientMode>("creator_only");
+  const [recipientUserIds, setRecipientUserIds] = useState<string[]>([]);
   const [touched, setTouched] = useState(false);
 
-  const onlyMe =
-    selected.length === 1 &&
-    members.some((m) => m.id === selected[0] && m.linked_user_id === userId);
+  const adults = members
+    .filter((m) => m.member_type === "parent" && m.linked_user_id)
+    .map((m) => ({ name: m.name, userId: m.linked_user_id as string }));
 
   // Suggested reminders follow the category/date/time until the user edits them.
   useEffect(() => {
     if (touched) return;
-    const mode = defaultRecipient(form.category, onlyMe);
-    setRecipient(mode);
     if (kind === "task") {
       // A task only gets reminders the user asks for, via the preset buttons.
       setReminders([]);
       return;
     }
     setReminders(
-      suggestReminders(
-        { category: form.category, date: form.date, time: form.time, things_to_bring: [] },
-        mode,
+      withRecipient(
+        suggestReminders(
+          { category: form.category, date: form.date, time: form.time, things_to_bring: [] },
+          recipient,
+        ),
+        recipient,
+        recipientUserIds,
       ),
     );
-  }, [form.category, form.date, form.time, onlyMe, touched, kind]);
+  }, [form.category, form.date, form.time, touched, kind, recipient, recipientUserIds]);
 
   const set =
     (key: keyof typeof form) =>
@@ -223,9 +227,11 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
         }}
         isTask={kind === "task"}
         recipient={recipient}
-        onRecipientChange={(mode) => {
-          setTouched(true);
+        recipientUserIds={recipientUserIds}
+        adults={adults}
+        onRecipientChange={(mode, ids) => {
           setRecipient(mode);
+          setRecipientUserIds(ids);
         }}
       />
 

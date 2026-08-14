@@ -20,6 +20,7 @@ type ReminderRow = {
   id: string;
   remind_at: string;
   recipient_mode: string;
+  recipient_user_ids: string[] | null;
   created_by: string;
   family_events: EventRow | null;
 };
@@ -119,7 +120,7 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
         const { data, error } = await supabaseAdmin
           .from("event_reminders")
           .select(
-            "id, remind_at, recipient_mode, created_by, family_events!inner(id, family_id, title, category, date, time, things_to_bring, amount, deadline, type, completed, event_members(family_members(name)))",
+            "id, remind_at, recipient_mode, recipient_user_ids, created_by, family_events!inner(id, family_id, title, category, date, time, things_to_bring, amount, deadline, type, completed, event_members(family_members(name)))",
           )
           // A finished task must never keep notifying.
           .eq("family_events.completed", false)
@@ -152,8 +153,20 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
             const { data: members } = await supabaseAdmin
               .from("family_users")
               .select("user_id")
-              .eq("family_id", reminder.family_events.family_id);
+              .eq("family_id", reminder.family_events.family_id)
+              // "Sve roditelje" means the adults of the space, never the children.
+              .in("role", ["owner", "parent"]);
             userIds = (members ?? []).map((m) => m.user_id);
+          } else if (reminder.recipient_mode === "selected") {
+            const picked = (reminder.recipient_user_ids ?? []).filter(Boolean);
+            // Only deliver to people who really belong to this family space.
+            const { data: members } = await supabaseAdmin
+              .from("family_users")
+              .select("user_id")
+              .eq("family_id", reminder.family_events.family_id);
+            const allowed = new Set((members ?? []).map((m) => m.user_id));
+            userIds = picked.filter((id) => allowed.has(id));
+            if (userIds.length === 0) userIds = [reminder.created_by];
           }
 
           if (userIds.length > 0) {
