@@ -186,7 +186,10 @@ export function applyRelativeReminders<T extends ReminderItemLike>(
     if (lead != null) {
       // "podsjeti me 2 sata prije" -> relative to the event, not to now.
       const linked = item.link_to >= 0 ? items[item.link_to] : null;
+      // Prefer whichever record actually carries a clock time (usually the event).
       const base =
+        (item.time ? localDateTime(item.date, item.time) : null) ??
+        (linked?.time ? localDateTime(linked.date, linked.time) : null) ??
         localDateTime(item.date, item.time) ??
         (linked ? localDateTime(linked.date, linked.time) : null);
       if (!base) return item;
