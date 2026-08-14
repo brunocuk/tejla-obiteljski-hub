@@ -180,6 +180,18 @@ export function AnalysisResults({
       setError("Obavezu nije bilo moguće spremiti. Pokušaj ponovno.");
       return;
     }
+    // Reminders are absolute timestamps resolved at capture time. At save time
+    // we only compare them with the real current clock (millisecond precision) —
+    // never re-evaluate the original relative phrase.
+    const chosenIdxAll = items.map((_, i) => i).filter((i) => selected.includes(i));
+    const nowMs = Date.now();
+    const expired = chosenIdxAll
+      .flatMap((i) => reminders[i] ?? [])
+      .filter((d) => new Date(d.remind_at).getTime() <= nowMs);
+    if (expired.length > 0 && expired.length === chosenIdxAll.flatMap((i) => reminders[i] ?? []).length) {
+      setError("Vrijeme podsjetnika je u međuvremenu prošlo. Odaberi novo vrijeme.");
+      return;
+    }
     setError("");
     setSaving(true);
     try {
