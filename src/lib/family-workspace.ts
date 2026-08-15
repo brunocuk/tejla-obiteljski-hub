@@ -119,13 +119,6 @@ export function inviteResultMessage(result: { existingAccount?: boolean } | null
     : "Poziv je poslan.";
 }
 
-type PendingInvitationShape = {
-  id: string;
-  family_id: string;
-  family_name: string;
-  role: "parent" | "child" | string;
-};
-
 /** Read-only peek at a pending invitation. Never joins the family by itself. */
 export async function fetchPendingInvitation(): Promise<PendingInvitation | null> {
   // Must stay bound to the client — a detached `supabase.rpc` reference throws.
