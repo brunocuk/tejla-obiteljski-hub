@@ -89,9 +89,18 @@ export function useMyFamilyRole() {
   return useQuery({ queryKey: ["my-family-role"], queryFn: fetchMyFamilyRole });
 }
 
-/** Joins the family only when a pending invitation exists for the signed-in e-mail. */
-export async function acceptPendingInvitation(): Promise<string | null> {
-  const { data, error } = await supabase.rpc("accept_family_invitation");
+/**
+ * Joins the family behind the invitation the user was actually shown.
+ * The id is only a pointer — the database re-checks that it belongs to the
+ * signed-in e-mail and is still pending.
+ */
+export async function acceptPendingInvitation(invitationId?: string | null): Promise<string | null> {
+  const client = supabase as unknown as {
+    rpc: (name: string, params?: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+  };
+  const { data, error } = await client.rpc("accept_family_invitation", {
+    _invitation_id: invitationId ?? null,
+  });
   if (error) return null;
   return (data as string | null) ?? null;
 }
