@@ -496,6 +496,7 @@ export type Database = {
       is_family_member: { Args: { _family_id: string }; Returns: boolean }
       is_family_owner: { Args: { _family_id: string }; Returns: boolean }
       member_data_counts: { Args: { _member_id: string }; Returns: Json }
+      pending_family_invitation: { Args: never; Returns: Json }
       purge_member_data: {
         Args: { _member_id: string; _scope: string }
         Returns: Json
