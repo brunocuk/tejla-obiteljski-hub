@@ -30,6 +30,28 @@ function statusLabel(invite: { status: string; expires_at: string }) {
   return "Aktivna";
 }
 
+function formatMoment(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("hr-HR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function StatusRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 text-xs">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-semibold">{value}</span>
+    </div>
+  );
+}
+
 function BetaAdminPage() {
   const queryClient = useQueryClient();
   const checkAdmin = useServerFn(amIAppAdmin);
@@ -111,6 +133,17 @@ function BetaAdminPage() {
                 </span>
               </div>
               <p className="break-all text-xs text-muted-foreground">{link}</p>
+              <div className="space-y-1 rounded-2xl bg-secondary/50 p-3">
+                <StatusRow label="Registracija" value={formatMoment(invite.tester?.registered_at)} />
+                <StatusRow
+                  label="Prostor kreiran"
+                  value={invite.tester ? (invite.tester.has_workspace ? "Da" : "Ne") : "—"}
+                />
+                <StatusRow
+                  label="Zadnja prijava"
+                  value={formatMoment(invite.tester?.last_sign_in_at)}
+                />
+              </div>
               <div className="flex gap-2">
                 <button
                   type="button"
