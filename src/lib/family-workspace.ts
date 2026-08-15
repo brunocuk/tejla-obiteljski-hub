@@ -112,6 +112,20 @@ export type PendingInvitation = {
   role: "parent" | "child" | string;
 };
 
+/** Wording for the invite confirmation: existing accounts never get an e-mail. */
+export function inviteResultMessage(result: { existingAccount?: boolean } | null | undefined) {
+  return result?.existingAccount
+    ? "Ta osoba već ima Tejla račun, pa e-mail poziv nije poslan. Neka se prijavi u Tejlu — poziv će je dočekati i može ga prihvatiti."
+    : "Poziv je poslan.";
+}
+
+type PendingInvitationShape = {
+  id: string;
+  family_id: string;
+  family_name: string;
+  role: "parent" | "child" | string;
+};
+
 /** Read-only peek at a pending invitation. Never joins the family by itself. */
 export async function fetchPendingInvitation(): Promise<PendingInvitation | null> {
   // Must stay bound to the client — a detached `supabase.rpc` reference throws.
