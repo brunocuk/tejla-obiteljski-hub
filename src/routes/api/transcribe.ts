@@ -5,6 +5,10 @@ export const Route = createFileRoute("/api/transcribe")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const { getRequestUserId } = await import("@/lib/api-auth.server");
+        const userId = await getRequestUserId(request);
+        if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
         const key = process.env["LOVABLE_API_KEY"];
         if (!key) return Response.json({ error: "Missing LOVABLE_API_KEY" }, { status: 500 });
 
@@ -12,6 +16,9 @@ export const Route = createFileRoute("/api/transcribe")({
         const file = inbound.get("file");
         if (!(file instanceof File) || file.size === 0) {
           return Response.json({ error: "Missing audio" }, { status: 400 });
+        }
+        if (file.size > 20 * 1024 * 1024) {
+          return Response.json({ error: "Snimka je predugačka" }, { status: 413 });
         }
 
         const form = new FormData();
