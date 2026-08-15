@@ -38,14 +38,26 @@ async function setupBackend(page: Page, scenario: Scenario) {
   const state = { ...scenario };
   const calls = { accept: 0, create: 0 };
 
+  // Fulfilled cross-origin responses need CORS headers, otherwise the browser
+  // drops them before the Supabase client can read them.
+  const cors = {
+    "access-control-allow-origin": "*",
+    "access-control-allow-headers": "*",
+    "access-control-allow-methods": "*",
+    "access-control-expose-headers": "*",
+  };
   const json = (body: unknown) => ({
     status: 200,
     contentType: "application/json",
+    headers: cors,
     body: JSON.stringify(body),
   });
 
   await page.route(`**/${PROJECT_REF}.supabase.co/**`, async (route) => {
     const url = route.request().url();
+    if (route.request().method() === "OPTIONS") {
+      return route.fulfill({ status: 204, headers: cors, body: "" });
+    }
 
     if (url.includes("/auth/v1/user")) {
       return route.fulfill(json({ id: USER_ID, email: "beta@tejla.app", aud: "authenticated" }));
