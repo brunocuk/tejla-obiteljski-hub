@@ -98,6 +98,12 @@ function BetaAdminPage() {
 
   return (
     <main className="mx-auto w-full max-w-md px-5 pb-28 pt-8">
+      <Link
+        to="/"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        ← Natrag u Tejlu
+      </Link>
       <h1 className="text-2xl font-bold tracking-tight">Beta pozivnice</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         Svaka pozivnica vrijedi 7 dana i može se iskoristiti samo jednom.
