@@ -119,7 +119,7 @@ function InboxPage() {
     try {
       const res = await fetch("/api/analyze-image", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await apiAuthHeaders()) },
         body: JSON.stringify({
           ...payload,
           today: localToday(),

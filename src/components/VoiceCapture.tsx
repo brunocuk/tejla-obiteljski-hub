@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Mic, Square } from "lucide-react";
+import { apiAuthHeaders } from "@/lib/api-auth";
 
 /** Records a short Croatian voice note and returns the transcript. */
 export function VoiceCapture({
@@ -64,7 +65,11 @@ export function VoiceCapture({
       const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
       const form = new FormData();
       form.append("file", new File([blob], `glas.${ext}`, { type }));
-      const res = await fetch("/api/transcribe", { method: "POST", body: form });
+      const res = await fetch("/api/transcribe", {
+        method: "POST",
+        headers: await apiAuthHeaders(),
+        body: form,
+      });
       if (!res.ok) throw new Error(String(res.status));
       const data = (await res.json()) as { text?: string };
       const text = (data.text ?? "").trim();
