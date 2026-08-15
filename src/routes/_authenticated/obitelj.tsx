@@ -200,11 +200,7 @@ function ClanoviPage() {
           familyMemberId: child ? inviteFor.id : null,
         },
       });
-      setInviteInfo(
-        result?.existingAccount
-          ? "Ta osoba već ima Tejla račun, pa e-mail poziv nije poslan. Neka se prijavi u Tejlu — poziv će je dočekati i može ga prihvatiti."
-          : "Poziv je poslan.",
-      );
+      setInviteInfo(inviteResultMessage(result));
       setInviteEmail("");
       setInviteFor(null);
     } catch (err) {
