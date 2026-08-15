@@ -118,7 +118,7 @@ test.describe("FamilyGate onboarding (browser)", () => {
     await page.getByPlaceholder("Mateja").fill("Mateja");
     await page.getByRole("button", { name: "Stvori svoj prostor" }).click();
 
-    await expect(page.getByRole("link", { name: "Kalendar" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Kalendar", exact: true })).toBeVisible();
     expect(calls.create).toBe(1);
     expect(calls.accept).toBe(0);
   });
@@ -150,7 +150,7 @@ test.describe("FamilyGate onboarding (browser)", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "Prihvati pozivnicu" }).click();
 
-    await expect(page.getByRole("link", { name: "Kalendar" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Kalendar", exact: true })).toBeVisible();
     expect(calls.accept).toBe(1);
   });
 
@@ -190,6 +190,6 @@ test.describe("FamilyGate onboarding (browser)", () => {
 
     await page.goto("/");
 
-    await expect(page.getByRole("link", { name: "Kalendar" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Kalendar", exact: true })).toBeVisible();
   });
 });
