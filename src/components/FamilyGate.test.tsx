@@ -104,6 +104,20 @@ describe("FamilyGate onboarding", () => {
     expect(await screen.findByText("APP_CONTENT")).toBeInTheDocument();
   });
 
+  it("C2: accepting sends the id of the invitation that was shown", async () => {
+    const user = userEvent.setup();
+    mocks.pendingInvite = {
+      id: "inv-shown",
+      family_id: "family-other",
+      family_name: "Obitelj Druga",
+      role: "parent",
+    };
+    mocks.members = [{ id: "m1", name: "Mateja", linked_user_id: "user-1" }];
+    renderGate();
+    await user.click(await screen.findByRole("button", { name: "Prihvati pozivnicu" }));
+    await waitFor(() => expect(mocks.acceptPendingInvitation).toHaveBeenCalledWith("inv-shown"));
+  });
+
   it("D: declining the invitation falls back to creating an own space", async () => {
     const user = userEvent.setup();
     mocks.pendingInvite = {
