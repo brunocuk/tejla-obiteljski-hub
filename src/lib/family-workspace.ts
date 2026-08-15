@@ -105,10 +105,11 @@ export type PendingInvitation = {
 
 /** Read-only peek at a pending invitation. Never joins the family by itself. */
 export async function fetchPendingInvitation(): Promise<PendingInvitation | null> {
-  const rpc = supabase.rpc as unknown as (
-    name: string,
-  ) => Promise<{ data: unknown; error: unknown }>;
-  const { data, error } = await rpc("pending_family_invitation");
+  // Must stay bound to the client — a detached `supabase.rpc` reference throws.
+  const client = supabase as unknown as {
+    rpc: (name: string) => Promise<{ data: unknown; error: unknown }>;
+  };
+  const { data, error } = await client.rpc("pending_family_invitation");
   if (error || !data) return null;
   return data as PendingInvitation;
 }
