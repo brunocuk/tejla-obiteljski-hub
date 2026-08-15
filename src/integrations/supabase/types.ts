@@ -475,7 +475,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      accept_family_invitation: { Args: never; Returns: string }
+      accept_family_invitation:
+        | { Args: never; Returns: string }
+        | { Args: { _invitation_id?: string }; Returns: string }
       can_access_event: { Args: { _event_id: string }; Returns: boolean }
       can_edit_event: { Args: { _event_id: string }; Returns: boolean }
       can_edit_event_row: {
