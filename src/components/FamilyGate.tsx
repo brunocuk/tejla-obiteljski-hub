@@ -66,13 +66,14 @@ function NamePrompt({ familyId }: { familyId: string }) {
 export function FamilyGate({ children }: { children: ReactNode }) {
   const { data: familyId, isLoading } = useMyFamilyId();
   const queryClient = useQueryClient();
-  // A pending invitation for this e-mail joins the existing family instead of creating a new one.
-  const { data: joinedFamilyId, isLoading: joining } = useQuery({
-    queryKey: ["accept-invitation"],
-    enabled: !isLoading && !familyId,
-    retry: false,
-    queryFn: acceptPendingInvitation,
-  });
+  // A pending invitation is only ever SHOWN here. Joining requires an explicit click.
+  const { data: pendingInvite, isLoading: checkingInvite } = usePendingInvitation(
+    !isLoading && !familyId,
+  );
+  const [joinedFamilyId, setJoinedFamilyId] = useState<string | null>(null);
+  const [declinedInvite, setDeclinedInvite] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [inviteError, setInviteError] = useState("");
   const [familyName, setFamilyName] = useState("");
   const [myName, setMyName] = useState("");
   const [error, setError] = useState("");
@@ -88,7 +89,7 @@ export function FamilyGate({ children }: { children: ReactNode }) {
     }
   }, [joinedFamilyId, queryClient]);
 
-  if (isLoading || (!familyId && joining)) {
+  if (isLoading || (!familyId && !joinedFamilyId && checkingInvite)) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
         Učitavanje…
@@ -102,6 +103,74 @@ export function FamilyGate({ children }: { children: ReactNode }) {
       return <NamePrompt familyId={activeFamilyId} />;
     }
     return <>{children}</>;
+  }
+
+  async function handleAcceptInvite() {
+    if (joining) return;
+    setJoining(true);
+    setInviteError("");
+    try {
+      const id = await acceptPendingInvitation();
+      if (!id) {
+        setInviteError("Pridruživanje nije uspjelo. Pokušaj ponovno ili zatraži novi poziv.");
+        return;
+      }
+      setJoinedFamilyId(id);
+    } finally {
+      setJoining(false);
+    }
+  }
+
+  if (pendingInvite && !declinedInvite) {
+    const roleLabel = pendingInvite.role === "child" ? "dijete" : "roditelj";
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-10">
+        <h1 className="text-2xl font-bold tracking-tight">Imaš poziv.</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Netko te pozvao u svoj obiteljski prostor. Pridružit ćeš se tek ako to sada potvrdiš.
+        </p>
+
+        <div className="card-soft mt-6 space-y-3 p-5">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Prostor
+            </p>
+            <p className="mt-1 text-[17px] font-semibold">{pendingInvite.family_name}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Tvoja uloga
+            </p>
+            <p className="mt-1 text-[15px] font-medium">{roleLabel}</p>
+          </div>
+
+          {inviteError ? (
+            <p className="text-sm font-medium text-destructive">{inviteError}</p>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={() => void handleAcceptInvite()}
+            disabled={joining}
+            className="w-full rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground disabled:opacity-60"
+            style={{ backgroundImage: "var(--gradient-primary)", boxShadow: "var(--shadow-float)" }}
+          >
+            {joining ? "Pridružujem…" : "Prihvati pozivnicu"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setDeclinedInvite(true)}
+            disabled={joining}
+            className="w-full rounded-3xl border border-border px-6 py-4 text-base font-semibold disabled:opacity-60"
+          >
+            Ne, stvori svoj prostor
+          </button>
+          <p className="text-xs text-muted-foreground">
+            Pozivnica ostaje aktivna — možeš je prihvatiti kasnije ako se predomisliš.
+          </p>
+        </div>
+      </main>
+    );
   }
 
   async function handleCreate(e: React.FormEvent) {
