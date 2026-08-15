@@ -110,7 +110,8 @@ export function FamilyGate({ children }: { children: ReactNode }) {
     setJoining(true);
     setInviteError("");
     try {
-      const id = await acceptPendingInvitation();
+      // Accept exactly the invitation rendered on this screen.
+      const id = await acceptPendingInvitation(pendingInvite?.id ?? null);
       if (!id) {
         setInviteError("Pridruživanje nije uspjelo. Pokušaj ponovno ili zatraži novi poziv.");
         return;

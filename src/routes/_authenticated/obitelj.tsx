@@ -41,6 +41,7 @@ import { amIAppAdmin } from "@/lib/beta.functions";
 import { useServerFn } from "@tanstack/react-start";
 import {
   addFamilyMember,
+  inviteResultMessage,
   useFamilyMembers,
   useMyFamily,
   useMyFamilyId,
@@ -192,7 +193,7 @@ function ClanoviPage() {
     setInviting(true);
     try {
       const child = inviteFor !== "parent";
-      await invite({
+      const result = await invite({
         data: {
           email: inviteEmail.trim(),
           redirectTo: window.location.origin,
@@ -200,7 +201,7 @@ function ClanoviPage() {
           familyMemberId: child ? inviteFor.id : null,
         },
       });
-      setInviteInfo("Poziv je poslan.");
+      setInviteInfo(inviteResultMessage(result));
       setInviteEmail("");
       setInviteFor(null);
     } catch (err) {
