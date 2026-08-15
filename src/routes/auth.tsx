@@ -136,7 +136,9 @@ function AuthPage() {
       <p className="mt-1 text-sm text-muted-foreground">
         {inviteMode
           ? "Pozvan/a si u obiteljski prostor. Postavi lozinku i završi prijavu."
-          : "Prijavi se u svoj Tejla prostor."}
+          : forgotMode
+            ? "Upiši svoj e-mail i poslat ćemo ti link za novu lozinku."
+            : "Prijavi se u svoj Tejla prostor."}
       </p>
 
       {inviteMode ? (
@@ -188,6 +190,50 @@ function AuthPage() {
             Pridruži se obitelji
           </button>
         </form>
+      ) : forgotMode ? (
+        <>
+          <form onSubmit={onForgot} className="mt-7 space-y-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                E-mail
+              </span>
+              <input
+                className={inputClass}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
+              />
+            </label>
+
+            {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
+            {info ? <p className="text-sm font-medium text-accent-foreground">{info}</p> : null}
+
+            <button
+              type="submit"
+              disabled={busy}
+              className="mt-2 w-full rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground disabled:opacity-60"
+              style={{
+                backgroundImage: "var(--gradient-primary)",
+                boxShadow: "var(--shadow-float)",
+              }}
+            >
+              {busy ? "Šaljem…" : "Pošalji link za novu lozinku"}
+            </button>
+          </form>
+
+          <button
+            type="button"
+            onClick={() => {
+              setForgotMode(false);
+              setError("");
+              setInfo("");
+            }}
+            className="mt-4 text-sm font-semibold text-muted-foreground underline underline-offset-4"
+          >
+            Natrag na prijavu
+          </button>
+        </>
       ) : (
         <>
           <form onSubmit={onSubmit} className="mt-7 space-y-3">
@@ -232,6 +278,18 @@ function AuthPage() {
               Prijavi se
             </button>
           </form>
+
+          <button
+            type="button"
+            onClick={() => {
+              setForgotMode(true);
+              setError("");
+              setInfo("");
+            }}
+            className="mt-4 text-sm font-semibold text-muted-foreground underline underline-offset-4"
+          >
+            Zaboravljena lozinka?
+          </button>
 
           <div className="card-soft mt-6 space-y-1 p-5">
             <p className="text-sm font-semibold">Tejla je trenutno u zatvorenom testiranju.</p>
