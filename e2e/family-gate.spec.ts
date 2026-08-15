@@ -152,7 +152,7 @@ test.describe("FamilyGate onboarding (browser)", () => {
   });
 
   test("B: a pending invitation is only shown, never silently accepted", async ({ page }) => {
-    const backend = const backend = await setupBackend(page, {
+    const backend = await setupBackend(page, {
       familyId: null,
       members: [],
       invite: { id: "inv-1", family_id: "family-other", family_name: "Obitelj Druga", role: "child" },
@@ -169,7 +169,7 @@ test.describe("FamilyGate onboarding (browser)", () => {
   });
 
   test("C: explicitly accepting the invitation joins the family and opens the app", async ({ page }) => {
-    const backend = const backend = await setupBackend(page, {
+    const backend = await setupBackend(page, {
       familyId: null,
       members: [],
       invite: { id: "inv-1", family_id: "family-other", family_name: "Obitelj Druga", role: "parent" },
@@ -183,7 +183,7 @@ test.describe("FamilyGate onboarding (browser)", () => {
   });
 
   test("D: declining the invitation falls back to creating an own space", async ({ page }) => {
-    const backend = const backend = await setupBackend(page, {
+    const backend = await setupBackend(page, {
       familyId: null,
       members: [],
       invite: { id: "inv-1", family_id: "family-other", family_name: "Obitelj Druga", role: "parent" },
