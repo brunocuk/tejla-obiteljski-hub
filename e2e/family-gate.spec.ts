@@ -33,97 +33,113 @@ function member(name: string, familyId = "family-1"): Member {
   };
 }
 
-/** Fakes an authenticated Supabase session + all backend reads the gate performs. */
+/**
+ * Fakes an authenticated Supabase session and every backend read the gate makes.
+ * The stub is installed as a `fetch` shim inside the page (instead of
+ * `page.route`) because Playwright cannot answer the CORS preflight that a
+ * cross-origin Supabase POST triggers.
+ */
 async function setupBackend(page: Page, scenario: Scenario) {
-  const state = { ...scenario };
-  const calls = { accept: 0, create: 0 };
+  await page.addInitScript(
+    ({ scenario, projectRef, storageKey, userId }) => {
+      const state = { ...scenario };
+      const calls = { accept: 0, create: 0 };
+      (window as unknown as Record<string, unknown>)["__tejlaCalls"] = calls;
 
-  // Fulfilled cross-origin responses need CORS headers, otherwise the browser
-  // drops them before the Supabase client can read them.
-  const cors = {
-    "access-control-allow-origin": "*",
-    "access-control-allow-headers": "*",
-    "access-control-allow-methods": "*",
-    "access-control-expose-headers": "*",
-  };
-  const json = (body: unknown) => ({
-    status: 200,
-    contentType: "application/json",
-    headers: cors,
-    body: JSON.stringify(body),
-  });
-
-  await page.route(`**/${PROJECT_REF}.supabase.co/**`, async (route) => {
-    const url = route.request().url();
-    if (route.request().method() === "OPTIONS") {
-      return route.fulfill({ status: 204, headers: cors, body: "" });
-    }
-
-    if (url.includes("/auth/v1/user")) {
-      return route.fulfill(json({ id: USER_ID, email: "beta@tejla.app", aud: "authenticated" }));
-    }
-    if (url.includes("/rest/v1/family_users")) {
-      return route.fulfill(
-        json(state.familyId ? [{ family_id: state.familyId, role: "owner" }] : []),
-      );
-    }
-    if (url.includes("/rest/v1/family_members")) {
-      return route.fulfill(json(state.members));
-    }
-    if (url.includes("/rpc/pending_family_invitation")) {
-      return route.fulfill(json(state.invite));
-    }
-    if (url.includes("/rpc/accept_family_invitation")) {
-      calls.accept += 1;
-      state.familyId = state.invite?.family_id ?? "family-invited";
-      state.members = [member("Mateja", state.familyId)];
-      return route.fulfill(json(state.familyId));
-    }
-    if (url.includes("/rpc/create_family")) {
-      calls.create += 1;
-      state.familyId = "family-new";
-      state.members = [member("Mateja", state.familyId)];
-      return route.fulfill(json(state.familyId));
-    }
-    // Everything else the app screens read: empty result set.
-    return route.fulfill(json([]));
-  });
-
-  await page.goto("/auth");
-  await page.evaluate(
-    ([key, uid]) => {
+      const sessionUser = {
+        id: userId,
+        email: "beta@tejla.app",
+        aud: "authenticated",
+        role: "authenticated",
+      };
       window.localStorage.setItem(
-        key,
+        storageKey,
         JSON.stringify({
           access_token: "e2e-fake-token",
           refresh_token: "e2e-fake-refresh",
           token_type: "bearer",
           expires_in: 3600,
           expires_at: Math.floor(Date.now() / 1000) + 3600,
-          user: { id: uid, email: "beta@tejla.app", aud: "authenticated", role: "authenticated" },
+          user: sessionUser,
         }),
       );
+
+      const linkedMember = (name: string, familyId: string) => ({
+        id: "member-1",
+        family_id: familyId,
+        name,
+        member_type: "parent",
+        linked_user_id: userId,
+        created_at: new Date().toISOString(),
+      });
+
+      const reply = (body: unknown) =>
+        new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+
+      const realFetch = window.fetch.bind(window);
+      window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url =
+          typeof input === "string"
+            ? input
+            : input instanceof URL
+              ? input.href
+              : (input as Request).url;
+        if (!url.includes(`${projectRef}.supabase.co`)) return realFetch(input as never, init);
+
+        if (url.includes("/auth/v1/user")) return reply(sessionUser);
+        if (url.includes("/rest/v1/family_users")) {
+          return reply(state.familyId ? [{ family_id: state.familyId, role: "owner" }] : []);
+        }
+        if (url.includes("/rest/v1/family_members")) return reply(state.members);
+        if (url.includes("/rpc/pending_family_invitation")) return reply(state.invite);
+        if (url.includes("/rpc/accept_family_invitation")) {
+          calls.accept += 1;
+          state.familyId = state.invite?.family_id ?? "family-invited";
+          state.members = [linkedMember("Mateja", state.familyId)];
+          return reply(state.familyId);
+        }
+        if (url.includes("/rpc/create_family")) {
+          calls.create += 1;
+          state.familyId = "family-new";
+          state.members = [linkedMember("Mateja", state.familyId)];
+          return reply(state.familyId);
+        }
+        // Anything else the app screens read: empty result set.
+        return reply([]);
+      };
     },
-    [STORAGE_KEY, USER_ID] as const,
+    { scenario, projectRef: PROJECT_REF, storageKey: STORAGE_KEY, userId: USER_ID },
   );
 
-  return calls;
+  return {
+    async counts() {
+      return page.evaluate(
+        () =>
+          (window as unknown as Record<string, { accept: number; create: number }>)[
+            "__tejlaCalls"
+          ],
+      );
+    },
+  };
 }
 
 test.describe("FamilyGate onboarding (browser)", () => {
   test("A: new user without an invitation lands on the create-space screen", async ({ page }) => {
-    const calls = await setupBackend(page, { familyId: null, invite: null, members: [] });
+    const backend = await setupBackend(page, { familyId: null, invite: null, members: [] });
 
     await page.goto("/");
 
     await expect(page.getByRole("heading", { name: "Tu si." })).toBeVisible();
     await expect(page.getByRole("button", { name: "Stvori svoj prostor" })).toBeVisible();
     await expect(page.getByRole("navigation")).toHaveCount(0);
-    expect(calls.accept).toBe(0);
+    expect((await backend.counts()).accept).toBe(0);
   });
 
   test("A2: creating a space opens the app", async ({ page }) => {
-    const calls = await setupBackend(page, { familyId: null, invite: null, members: [] });
+    const backend = await setupBackend(page, { familyId: null, invite: null, members: [] });
 
     await page.goto("/");
     await page.getByPlaceholder("Obitelj Horvat").fill("Obitelj Test");
@@ -131,12 +147,12 @@ test.describe("FamilyGate onboarding (browser)", () => {
     await page.getByRole("button", { name: "Stvori svoj prostor" }).click();
 
     await expect(page.getByRole("link", { name: "Kalendar", exact: true })).toBeVisible();
-    expect(calls.create).toBe(1);
-    expect(calls.accept).toBe(0);
+    expect((await backend.counts()).create).toBe(1);
+    expect((await backend.counts()).accept).toBe(0);
   });
 
   test("B: a pending invitation is only shown, never silently accepted", async ({ page }) => {
-    const calls = await setupBackend(page, {
+    const backend = const backend = await setupBackend(page, {
       familyId: null,
       members: [],
       invite: { id: "inv-1", family_id: "family-other", family_name: "Obitelj Druga", role: "child" },
@@ -149,11 +165,11 @@ test.describe("FamilyGate onboarding (browser)", () => {
     await expect(page.getByText("dijete")).toBeVisible();
     await expect(page.getByRole("navigation")).toHaveCount(0);
     // Cross-family guard: no join happened just by opening the app.
-    expect(calls.accept).toBe(0);
+    expect((await backend.counts()).accept).toBe(0);
   });
 
   test("C: explicitly accepting the invitation joins the family and opens the app", async ({ page }) => {
-    const calls = await setupBackend(page, {
+    const backend = const backend = await setupBackend(page, {
       familyId: null,
       members: [],
       invite: { id: "inv-1", family_id: "family-other", family_name: "Obitelj Druga", role: "parent" },
@@ -163,11 +179,11 @@ test.describe("FamilyGate onboarding (browser)", () => {
     await page.getByRole("button", { name: "Prihvati pozivnicu" }).click();
 
     await expect(page.getByRole("link", { name: "Kalendar", exact: true })).toBeVisible();
-    expect(calls.accept).toBe(1);
+    expect((await backend.counts()).accept).toBe(1);
   });
 
   test("D: declining the invitation falls back to creating an own space", async ({ page }) => {
-    const calls = await setupBackend(page, {
+    const backend = const backend = await setupBackend(page, {
       familyId: null,
       members: [],
       invite: { id: "inv-1", family_id: "family-other", family_name: "Obitelj Druga", role: "parent" },
@@ -177,7 +193,7 @@ test.describe("FamilyGate onboarding (browser)", () => {
     await page.getByRole("button", { name: "Ne, stvori svoj prostor" }).click();
 
     await expect(page.getByRole("heading", { name: "Tu si." })).toBeVisible();
-    expect(calls.accept).toBe(0);
+    expect((await backend.counts()).accept).toBe(0);
   });
 
   test("E: an invited member without a name is asked for it before the app renders", async ({ page }) => {
