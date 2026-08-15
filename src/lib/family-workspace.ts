@@ -109,12 +109,12 @@ export async function fetchPendingInvitation(): Promise<PendingInvitation | null
     name: string,
   ) => Promise<{ data: unknown; error: unknown }>;
   const { data, error } = await rpc("pending_family_invitation");
+  (window as any).__DBG = { data, error: error ? JSON.parse(JSON.stringify(error)) : null };
   if (error || !data) return null;
   return data as PendingInvitation;
 }
 
 export function usePendingInvitation(enabled: boolean) {
-  if (typeof document !== "undefined") document.title = "DBG-enabled:" + String(enabled) + " online:" + String(navigator.onLine);
   return useQuery({
     queryKey: ["pending-invitation"],
     enabled,
