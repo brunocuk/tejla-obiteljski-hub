@@ -108,14 +108,13 @@ export async function fetchPendingInvitation(): Promise<PendingInvitation | null
   const rpc = supabase.rpc as unknown as (
     name: string,
   ) => Promise<{ data: unknown; error: unknown }>;
-  document.title = "DBG-CALLED";
   const { data, error } = await rpc("pending_family_invitation");
-  document.title = "DBG:" + JSON.stringify(data) + "|" + JSON.stringify(error);
   if (error || !data) return null;
   return data as PendingInvitation;
 }
 
 export function usePendingInvitation(enabled: boolean) {
+  if (typeof document !== "undefined") document.title = "DBG-enabled:" + String(enabled) + " online:" + String(navigator.onLine);
   return useQuery({
     queryKey: ["pending-invitation"],
     enabled,
