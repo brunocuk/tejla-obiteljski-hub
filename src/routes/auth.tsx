@@ -32,8 +32,9 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
   const [error, setError] = useState("");
-  const [info] = useState("");
+  const [info, setInfo] = useState("");
   const [busy, setBusy] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
   // Invitation links arrive with #type=invite (or recovery) and an active session.
   const [inviteMode, setInviteMode] = useState(false);
 
@@ -100,6 +101,28 @@ function AuthPage() {
         return;
       }
       navigate({ to: "/", replace: true });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onForgot(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    setInfo("");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError("Unesi ispravnu e-mail adresu.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      // Never reveal whether the address exists.
+      setInfo(
+        "Ako taj e-mail postoji u Tejli, poslali smo link za promjenu lozinke. Provjeri i mapu neželjene pošte.",
+      );
     } finally {
       setBusy(false);
     }
