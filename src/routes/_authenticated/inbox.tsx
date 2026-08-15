@@ -7,6 +7,7 @@ import { ManualEventForm } from "@/components/ManualEventForm";
 import { VoiceCapture } from "@/components/VoiceCapture";
 import { normalizeItem, type ExtractedItem } from "@/lib/hub-store";
 import { applyRelativeReminders } from "@/lib/relative-time";
+import { apiAuthHeaders } from "@/lib/api-auth";
 import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
 
 export const Route = createFileRoute("/_authenticated/inbox")({
