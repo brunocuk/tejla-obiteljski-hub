@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   acceptPendingInvitation,
   createFamily,
@@ -7,6 +7,7 @@ import {
   useFamilyMembers,
   useMyFamilyId,
   useMyUserId,
+  usePendingInvitation,
 } from "@/lib/family-workspace";
 
 /** Asks an invited parent for their name once, when no profile name exists yet. */
