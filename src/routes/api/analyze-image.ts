@@ -48,11 +48,26 @@ export const Route = createFileRoute("/api/analyze-image")({
   server: {
     handlers: {
       POST: async ({ request }) => {
+        const { getRequestUserId } = await import("@/lib/api-auth.server");
+        const userId = await getRequestUserId(request);
+        if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+        const contentLength = Number(request.headers.get("content-length") ?? 0);
+        if (contentLength > 8 * 1024 * 1024) {
+          return Response.json({ error: "Ulaz je prevelik" }, { status: 413 });
+        }
+
         const key = process.env["LOVABLE_API_KEY"];
         if (!key) return Response.json({ error: "Missing LOVABLE_API_KEY" }, { status: 500 });
 
         const body = (await request.json()) as Body;
         const pastedText = typeof body.text === "string" ? body.text.trim() : "";
+        if (pastedText.length > 20000) {
+          return Response.json({ error: "Tekst je predug" }, { status: 413 });
+        }
+        if (typeof body.image === "string" && body.image.length > 8 * 1024 * 1024) {
+          return Response.json({ error: "Slika je prevelika" }, { status: 413 });
+        }
         const today = typeof body.today === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.today)
           ? body.today
           : new Date().toISOString().slice(0, 10);
