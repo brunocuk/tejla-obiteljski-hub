@@ -113,7 +113,8 @@ export async function loadBetaTesterStatuses(
     .select("user_id")
     .in("user_id", ids);
   for (const row of spaces ?? []) {
-    if (result[row.user_id]) result[row.user_id].has_workspace = true;
+    const entry = result[row.user_id];
+    if (entry) entry.has_workspace = true;
   }
 
   return result;
