@@ -84,3 +84,37 @@ export async function redeemBetaInviteServer(input: {
 
   return { ok: true as const, state: "valid" as BetaInviteState };
 }
+
+export type BetaTesterStatus = {
+  registered_at: string | null;
+  last_sign_in_at: string | null;
+  has_workspace: boolean;
+};
+
+/** Read-only technical onboarding status for redeemed invites, keyed by used_by UUID. */
+export async function loadBetaTesterStatuses(
+  userIds: string[],
+): Promise<Record<string, BetaTesterStatus>> {
+  const ids = Array.from(new Set(userIds.filter(Boolean)));
+  if (ids.length === 0) return {};
+
+  const result: Record<string, BetaTesterStatus> = {};
+  for (const id of ids) {
+    result[id] = { registered_at: null, last_sign_in_at: null, has_workspace: false };
+    const { data } = await supabaseAdmin.auth.admin.getUserById(id);
+    if (data?.user) {
+      result[id].registered_at = data.user.created_at ?? null;
+      result[id].last_sign_in_at = data.user.last_sign_in_at ?? null;
+    }
+  }
+
+  const { data: spaces } = await supabaseAdmin
+    .from("family_users")
+    .select("user_id")
+    .in("user_id", ids);
+  for (const row of spaces ?? []) {
+    if (result[row.user_id]) result[row.user_id].has_workspace = true;
+  }
+
+  return result;
+}

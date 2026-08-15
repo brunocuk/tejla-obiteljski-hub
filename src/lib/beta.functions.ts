@@ -33,10 +33,18 @@ export const listBetaInvites = createServerFn({ method: "POST" })
     if (!isAdmin) throw new Error("Forbidden");
     const { data, error } = await context.supabase
       .from("beta_invites")
-      .select("id, token, label, status, created_at, expires_at, used_at")
+      .select("id, token, label, status, created_at, expires_at, used_at, used_by")
       .order("created_at", { ascending: false });
     if (error) throw new Error("Dohvat pozivnica nije uspio.");
-    return data ?? [];
+    const invites = data ?? [];
+    const { loadBetaTesterStatuses } = await import("./beta.server");
+    const statuses = await loadBetaTesterStatuses(
+      invites.map((i) => i.used_by).filter((v): v is string => Boolean(v)),
+    );
+    return invites.map((invite) => ({
+      ...invite,
+      tester: invite.used_by ? (statuses[invite.used_by] ?? null) : null,
+    }));
   });
 
 export const createBetaInvite = createServerFn({ method: "POST" })
