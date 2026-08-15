@@ -108,6 +108,7 @@ export async function fetchPendingInvitation(): Promise<PendingInvitation | null
   const rpc = supabase.rpc as unknown as (
     name: string,
   ) => Promise<{ data: unknown; error: unknown }>;
+  (window as any).__DBG0 = "started";
   const { data, error } = await rpc("pending_family_invitation");
   (window as any).__DBG = { data, error: error ? JSON.parse(JSON.stringify(error)) : null };
   if (error || !data) return null;
