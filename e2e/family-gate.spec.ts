@@ -43,7 +43,7 @@ async function setupBackend(page: Page, scenario: Scenario) {
   await page.addInitScript(
     ({ scenario, projectRef, storageKey, userId }) => {
       const state = { ...scenario };
-      const calls = { accept: 0, create: 0 };
+      const calls = { accept: 0, create: 0, acceptedId: null as string | null };
       (window as unknown as Record<string, unknown>)["__tejlaCalls"] = calls;
 
       const sessionUser = {
@@ -97,6 +97,12 @@ async function setupBackend(page: Page, scenario: Scenario) {
         if (url.includes("/rpc/pending_family_invitation")) return reply(state.invite);
         if (url.includes("/rpc/accept_family_invitation")) {
           calls.accept += 1;
+          try {
+            const body = JSON.parse(String(init?.body ?? "{}")) as { _invitation_id?: string };
+            calls.acceptedId = body._invitation_id ?? null;
+          } catch {
+            calls.acceptedId = null;
+          }
           state.familyId = state.invite?.family_id ?? "family-invited";
           state.members = [linkedMember("Mateja", state.familyId)];
           return reply(state.familyId);
@@ -118,9 +124,10 @@ async function setupBackend(page: Page, scenario: Scenario) {
     async counts() {
       return page.evaluate(
         () =>
-          (window as unknown as Record<string, { accept: number; create: number }>)[
-            "__tejlaCalls"
-          ],
+          (window as unknown as Record<
+            string,
+            { accept: number; create: number; acceptedId: string | null }
+          >)["__tejlaCalls"],
       );
     },
   };
@@ -179,7 +186,10 @@ test.describe("FamilyGate onboarding (browser)", () => {
     await page.getByRole("button", { name: "Prihvati pozivnicu" }).click();
 
     await expect(page.getByRole("link", { name: "Kalendar", exact: true })).toBeVisible();
-    expect((await backend.counts()).accept).toBe(1);
+    const counts = await backend.counts();
+    expect(counts.accept).toBe(1);
+    // The accepted invitation is exactly the one that was rendered.
+    expect(counts.acceptedId).toBe("inv-1");
   });
 
   test("D: declining the invitation falls back to creating an own space", async ({ page }) => {
