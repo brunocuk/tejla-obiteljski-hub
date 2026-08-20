@@ -25,8 +25,14 @@ describe("applySpokenDate", () => {
     expect(out?.dayMonth).toBe("09-15");
   });
 
-  it("sends ambiguous speech to user confirmation instead of guessing", () => {
-    const [out] = applySpokenDate([item({ date: "2026-08-20" })], "dvadesetog osmog osmog");
+  it("treats a repeated month ordinal as one date", () => {
+    const [out] = applySpokenDate([item({ date: "2026-01-05" })], "dvadesetog osmog osmog");
+    expect(out?.dayMonth).toBe("08-20");
+    expect(out?.dateUncertain).toBe(false);
+  });
+
+  it("sends genuinely ambiguous speech to user confirmation instead of guessing", () => {
+    const [out] = applySpokenDate([item({ date: "2026-08-20" })], "petog osmog devetog");
     expect(out?.dateUncertain).toBe(true);
     expect(out?.date).toBe("");
   });
