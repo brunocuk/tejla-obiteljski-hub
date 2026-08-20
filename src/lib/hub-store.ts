@@ -21,6 +21,8 @@ export type ExtractedItem = {
   confidence: number;
   dayMonth: string;
   needsYear: boolean;
+  /** True when the spoken date was ambiguous and the user must confirm it. */
+  dateUncertain?: boolean;
   /** "event" = happens at a time, "task" = something to do (can be completed). */
   type: "event" | "task";
   /** True when the user explicitly asked to be reminded ("podsjeti me"). */
@@ -113,6 +115,7 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
     date: parsed.date,
     dayMonth: parsed.dayMonth,
     needsYear: parsed.needsYear,
+    dateUncertain: Boolean(raw.dateUncertain),
     time: String(raw.time ?? ""),
     location: String(raw.location ?? ""),
     deadline: String(raw.deadline ?? ""),

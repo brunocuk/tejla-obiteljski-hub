@@ -1,3 +1,4 @@
+import { formatDayMonth, formatTime, formatWeekday } from "@/lib/date-hr";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
@@ -31,24 +32,11 @@ export const Route = createFileRoute("/_authenticated/")({
   component: Danas,
 });
 
-const MONTHS_GEN = [
-  "siječnja",
-  "veljače",
-  "ožujka",
-  "travnja",
-  "svibnja",
-  "lipnja",
-  "srpnja",
-  "kolovoza",
-  "rujna",
-  "listopada",
-  "studenoga",
-  "prosinca",
-];
-const WEEKDAYS = ["Nedjelja", "Ponedjeljak", "Utorak", "Srijeda", "Četvrtak", "Petak", "Subota"];
 
 const isoDay = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const capitalizeFirst = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
 function Danas() {
   const [openId, setOpenId] = useState<string | null>(null);
@@ -135,7 +123,7 @@ function Danas() {
     <AppShell>
       <header className="mb-5">
         <p className="text-sm font-medium text-muted-foreground">
-          {WEEKDAYS[now.getDay()]}, {now.getDate()}. {MONTHS_GEN[now.getMonth()]}
+          {capitalizeFirst(formatWeekday(now))}, {formatDayMonth(now)}
         </p>
         <h1 className="mt-1 text-[30px] font-bold leading-tight tracking-tight">
           {greetingFor(now, myName)}
@@ -169,7 +157,7 @@ function Danas() {
                 className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
               >
                 <span className="w-12 text-sm font-semibold tabular-nums text-foreground">
-                  {e.time || "—"}
+                  {e.time ? formatTime(e.time) : "—"}
                 </span>
                 <span className={`size-2 rounded-full ${assigneeStyle(e.members[0] ?? "").dot}`} />
                 <div className="min-w-0">
@@ -263,7 +251,7 @@ function Danas() {
                     {[e.members.join(", "), e.title].filter(Boolean).join(" · ")}
                   </p>
                   <p className="truncate text-sm text-muted-foreground">
-                    {[e.category, e.time, e.amount].filter(Boolean).join(" · ")}
+                    {[e.category, e.time ? formatTime(e.time) : "", e.amount].filter(Boolean).join(" · ")}
                   </p>
                   <ReminderBadge reminders={reminderMap[e.id]} />
                 </div>
@@ -287,7 +275,7 @@ function Danas() {
                 className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
               >
                 <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
-                  {c.time || "—"}
+                  {c.time ? formatTime(c.time) : "—"}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-semibold">{c.title || "Bez naziva"}</p>
@@ -339,7 +327,7 @@ function Danas() {
                     <ReminderBadge reminders={reminderMap[u.id]} />
                   </div>
                   <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-                    {d.getDate()}. {MONTHS_GEN[d.getMonth()]}
+                    {formatDayMonth(d)}
                   </span>
                 </button>
               );

@@ -1,3 +1,4 @@
+import { formatCroatianDate, formatMonthTitle, formatTime, formatWeekday } from "@/lib/date-hr";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
@@ -37,35 +38,6 @@ type CalEvent = {
   meta?: string;
 };
 
-const MONTHS = [
-  "Siječanj",
-  "Veljača",
-  "Ožujak",
-  "Travanj",
-  "Svibanj",
-  "Lipanj",
-  "Srpanj",
-  "Kolovoz",
-  "Rujan",
-  "Listopad",
-  "Studeni",
-  "Prosinac",
-];
-const MONTHS_GEN = [
-  "siječnja",
-  "veljače",
-  "ožujka",
-  "travnja",
-  "svibnja",
-  "lipnja",
-  "srpnja",
-  "kolovoza",
-  "rujna",
-  "listopada",
-  "studenoga",
-  "prosinca",
-];
-const WEEKDAYS = ["nedjelja", "ponedjeljak", "utorak", "srijeda", "četvrtak", "petak", "subota"];
 
 function monthKey(d: string) {
   return d.slice(0, 7);
@@ -161,7 +133,7 @@ function KalendarPage() {
           <ChevronLeft className="size-5" />
         </button>
         <span className="text-sm font-bold tracking-tight">
-          {MONTHS[(m ?? 1) - 1]} {y}
+          {formatMonthTitle(y ?? new Date().getFullYear(), m ?? 1)}
         </span>
         <button
           type="button"
@@ -209,15 +181,15 @@ function KalendarPage() {
 
       <div className="space-y-7">
         {Object.entries(grouped).map(([date, list]) => {
-          const d = new Date(`${date}T00:00:00Z`);
+
           return (
             <section key={date}>
               <div className="mb-3 flex items-baseline gap-2">
                 <h2 className="text-[15px] font-bold tracking-tight">
-                  {d.getUTCDate()}. {MONTHS_GEN[d.getUTCMonth()]} {d.getUTCFullYear()}.
+                  {formatCroatianDate(date)}
                 </h2>
                 <span className="text-xs font-medium text-muted-foreground">
-                  {WEEKDAYS[d.getUTCDay()]}
+                  {formatWeekday(date)}
                 </span>
               </div>
               <div className="card-soft divide-y divide-border">
@@ -229,7 +201,7 @@ function KalendarPage() {
                     className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
                   >
                     <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
-                      {i.time || "—"}
+                      {i.time ? formatTime(i.time) : "—"}
                     </span>
                     <span
                       className={`h-8 w-1 shrink-0 rounded-full ${assigneeStyle(i.members[0] ?? "").dot}`}
@@ -262,7 +234,7 @@ function KalendarPage() {
                   className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
                 >
                   <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
-                    {i.time || "—"}
+                    {i.time ? formatTime(i.time) : "—"}
                   </span>
                   <span
                     className={`h-8 w-1 shrink-0 rounded-full ${assigneeStyle(i.members[0] ?? "").dot}`}

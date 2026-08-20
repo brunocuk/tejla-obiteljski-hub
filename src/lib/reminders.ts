@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { formatInstantLong, formatInstantShort } from "./date-hr";
 import { supabase } from "@/integrations/supabase/client";
 import { draftsFromPattern, type ReminderPattern } from "@/lib/reminder-engine";
 
@@ -291,24 +292,10 @@ export function reminderLabel(draft: ReminderDraft): string {
 
 export const isPast = (iso: string) => new Date(iso).getTime() <= Date.now();
 
-const WEEKDAY_FMT = new Intl.DateTimeFormat("hr-HR", {
-  day: "numeric",
-  month: "long",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-export const formatReminder = (iso: string) => WEEKDAY_FMT.format(new Date(iso));
-
-const SHORT_FMT = new Intl.DateTimeFormat("hr-HR", {
-  day: "numeric",
-  month: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+export const formatReminder = (iso: string) => formatInstantLong(iso);
 
 /** Compact local-time label for the card indicator. */
-export const formatReminderShort = (iso: string) => SHORT_FMT.format(new Date(iso));
+export const formatReminderShort = (iso: string) => formatInstantShort(iso);
 
 export const RECIPIENT_LABELS: Record<RecipientMode, string> = {
   all_parents: "Sve roditelje",

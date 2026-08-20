@@ -22,6 +22,7 @@ Rules:
 - Unknown field => empty string, or empty array for things_to_bring.
 - Dates in YYYY-MM-DD when the year is visible. If the day and month are visible but the year is NOT, put the visible date into the "date" field exactly as written (for example "8.6." or "8. lipnja") and do NOT guess the year.
 - Relative Croatian expressions ("danas", "sutra", "prekosutra", "u petak", "sljedeci utorak", "za tjedan dana") must be resolved to a concrete YYYY-MM-DD using the provided current date. A weekday without "sljedeci" means the next upcoming occurrence.
+- Spoken Croatian ordinal dates ("dvadesetog osmog", "dvadeset i prvog osmog") are resolved deterministically by the app. Never "correct" or reinterpret such a spoken date; copy exactly what was said. If the spoken date is ambiguous, leave "date" empty instead of guessing.
 - Spoken times ("u 8 navecer", "pola 9 ujutro", "u podne") must be converted to 24h HH:MM.
 - Relative reminder expressions ("za 5 minuta", "za pola sata", "za sat vremena", "za 2 sata", "za 3 dana") are counted from the provided current local time, NEVER from the moment of writing. Resolve them into reminder_time (HH:MM) and, when they cross midnight, into the task "date".
 - "podsjeti me X prije" refers to the EVENT time minus X; keep the event time in "time" and never copy the event time into reminder_time.

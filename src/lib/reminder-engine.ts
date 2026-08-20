@@ -1,3 +1,4 @@
+import { formatClock, formatDayMonthNumeric } from "./date-hr";
 import type { RecipientMode, ReminderDraft } from "@/lib/reminders";
 
 /**
@@ -142,8 +143,7 @@ export function draftsFromPattern(
   }));
 }
 
-const TIME_FMT = new Intl.DateTimeFormat("hr-HR", { hour: "2-digit", minute: "2-digit" });
-const DAY_FMT = new Intl.DateTimeFormat("hr-HR", { day: "numeric", month: "numeric" });
+
 
 const isSameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
@@ -160,9 +160,9 @@ export function scheduleSummary(times: string[]): string[] {
       ? "Danas"
       : isSameDay(d, new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
         ? "Sutra"
-        : DAY_FMT.format(d);
+        : formatDayMonthNumeric(d);
     const list = groups.get(label) ?? [];
-    list.push(TIME_FMT.format(d));
+    list.push(formatClock(d));
     groups.set(label, list);
   }
   return [...groups.entries()].map(([label, list]) => `${label}: ${list.join(" · ")}`);
