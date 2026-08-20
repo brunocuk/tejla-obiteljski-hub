@@ -39,7 +39,7 @@ const ORDINAL_STEMS: Record<string, number> = {
   trideset: 30,
 };
 
-const ORDINAL_SUFFIXES = ["og", "oga", "om", "omu", "oj", "im", "i", "a", "e", "u"];
+const ORDINAL_SUFFIXES = ["og", "oga", "eg", "ega", "om", "em", "omu", "oj", "im", "i", "a", "e", "u"];
 
 const ORDINALS: Record<string, number> = (() => {
   const out: Record<string, number> = {};
