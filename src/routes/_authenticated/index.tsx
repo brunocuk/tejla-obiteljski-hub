@@ -1,4 +1,4 @@
-import { formatDayMonth, formatWeekday } from "@/lib/date-hr";
+import { formatDayMonth, formatTime, formatWeekday } from "@/lib/date-hr";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
@@ -157,7 +157,7 @@ function Danas() {
                 className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
               >
                 <span className="w-12 text-sm font-semibold tabular-nums text-foreground">
-                  {e.time || "—"}
+                  {e.time ? formatTime(e.time) : "—"}
                 </span>
                 <span className={`size-2 rounded-full ${assigneeStyle(e.members[0] ?? "").dot}`} />
                 <div className="min-w-0">
@@ -251,7 +251,7 @@ function Danas() {
                     {[e.members.join(", "), e.title].filter(Boolean).join(" · ")}
                   </p>
                   <p className="truncate text-sm text-muted-foreground">
-                    {[e.category, e.time, e.amount].filter(Boolean).join(" · ")}
+                    {[e.category, e.time ? formatTime(e.time) : "", e.amount].filter(Boolean).join(" · ")}
                   </p>
                   <ReminderBadge reminders={reminderMap[e.id]} />
                 </div>
@@ -275,7 +275,7 @@ function Danas() {
                 className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
               >
                 <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
-                  {c.time || "—"}
+                  {c.time ? formatTime(c.time) : "—"}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[15px] font-semibold">{c.title || "Bez naziva"}</p>

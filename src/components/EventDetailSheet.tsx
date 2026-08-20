@@ -1,3 +1,4 @@
+import { formatCroatianDate, formatTime } from "@/lib/date-hr";
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Bell, Check, X } from "lucide-react";
@@ -368,8 +369,8 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
                 </span>
               ) : null}
             </div>
-            <Row label="Datum" value={event.date} />
-            <Row label="Vrijeme" value={event.time} />
+            <Row label="Datum" value={event.date ? formatCroatianDate(event.date) : ""} />
+            <Row label="Vrijeme" value={event.time ? formatTime(event.time) : ""} />
             <Row label="Lokacija" value={event.location} />
             <Row label="Napomena" value={event.notes} />
             <Row label="Kome pripada" value={event.members.join(", ")} />
