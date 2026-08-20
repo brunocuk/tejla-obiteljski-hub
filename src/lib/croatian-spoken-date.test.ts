@@ -19,6 +19,8 @@ describe("parseSpokenCroatianDate", () => {
     ["dvadeset prvog osmog", 21, 8],
     ["dvadeset i prvog osmog", 21, 8],
     ["dvadeset osmog osmog", 28, 8],
+    ["dvadesetog osmog osmog", 20, 8],
+    ["tridesetog prvog prvog", 30, 1],
     ["dvadeset i osmog osmog", 28, 8],
     ["tridesetog prvog", 30, 1],
     ["trideset prvog prvog", 31, 1],
@@ -53,7 +55,7 @@ describe("parseSpokenCroatianDate", () => {
   });
 
   it("flags ambiguous phrases instead of guessing", () => {
-    expect(parseSpokenCroatianDate("dvadesetog osmog osmog").status).toBe("ambiguous");
+    expect(parseSpokenCroatianDate("petog osmog devetog").status).toBe("ambiguous");
     expect(parseSpokenCroatianDate("prvog drugog i petog sestog").status).toBe("ambiguous");
     expect(parseSpokenCroatianDate("dvadeset dvadesetog").status).toBe("ambiguous");
   });
