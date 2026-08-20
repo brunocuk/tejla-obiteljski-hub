@@ -107,3 +107,18 @@ export function formatRelativeDay(iso: string, now: Date = new Date()): string {
   if (diff < -1 && diff >= -7) return `prije ${Math.abs(diff)} dana`;
   return formatCroatianDate(iso);
 }
+
+/** Absolute instant, long form: "1. rujna u 18:30" (used by reminder labels). */
+const instantLong = fmt({ day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+export const formatInstantLong = (iso: string) => instantLong.format(new Date(iso));
+
+/** Absolute instant, compact form: "1. 9. 18:30". */
+const instantShort = fmt({ day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
+export const formatInstantShort = (iso: string) => instantShort.format(new Date(iso));
+
+/** Numeric day and month of a Date: "1. 9.". */
+const dayMonthNumeric = fmt({ day: "numeric", month: "numeric" });
+export const formatDayMonthNumeric = (d: Date) => dayMonthNumeric.format(d);
+
+/** 24h clock of a Date: "18:30". */
+export const formatClock = (d: Date) => timeFmt.format(d);
