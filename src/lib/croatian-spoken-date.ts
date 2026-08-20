@@ -153,15 +153,26 @@ export function parseSpokenCroatianDate(text: string): SpokenDateResult {
   }
   closeRun();
 
-  const pairs = runs.filter((r) => r.length === 2);
-  const long = runs.filter((r) => r.length > 2);
+  // A run may repeat the month ordinal ("dvadesetog osmog osmog" = 20. 8.):
+  // the day is the first number, the month the second, and any further token
+  // that simply restates that same month is a spoken repetition, not a third
+  // number. Anything else stays a genuine multi-number run.
+  const normalized = runs.map((run) => {
+    if (run.length <= 2) return run;
+    const rest = run.slice(2);
+    if (rest.every((t) => t.value === run[1]!.value)) return run.slice(0, 2);
+    return run;
+  });
+
+  const pairs = normalized.filter((r) => r.length === 2);
+  const long = normalized.filter((r) => r.length > 2);
   const expressionOf = (run: NumToken[]) => run.map((n) => n.word).join(" ");
 
   if (long.length > 0) return { status: "ambiguous", expression: expressionOf(long[0]!) };
   if (pairs.length > 1) return { status: "ambiguous", expression: expressionOf(pairs[0]!) };
   if (pairs.length === 0) {
-    if (sawStrayTens && runs.length > 0) {
-      return { status: "ambiguous", expression: expressionOf(runs[0]!) };
+    if (sawStrayTens && normalized.length > 0) {
+      return { status: "ambiguous", expression: expressionOf(normalized[0]!) };
     }
     return { status: "none" };
   }
