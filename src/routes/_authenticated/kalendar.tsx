@@ -133,7 +133,7 @@ function KalendarPage() {
           <ChevronLeft className="size-5" />
         </button>
         <span className="text-sm font-bold tracking-tight">
-          {formatMonthTitle(y, m ?? 1)}
+          {formatMonthTitle(y ?? new Date().getFullYear(), m ?? 1)}
         </span>
         <button
           type="button"
