@@ -173,3 +173,47 @@ export function parseSpokenCroatianDate(text: string): SpokenDateResult {
   if (day < 1 || day > 31 || month < 1 || month > 12) return { status: "ambiguous", expression };
   return { status: "found", day, month, expression };
 }
+
+type DatedItem = {
+  date: string;
+  dayMonth: string;
+  needsYear: boolean;
+  dateUncertain?: boolean;
+};
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * Overrides the AI's guess with the deterministically parsed spoken date.
+ *
+ * The database format never changes: the result is still "YYYY-MM-DD" (or an
+ * empty date plus a confirmation flag). When the phrase is ambiguous the date
+ * is cleared and flagged so the UI can ask instead of guessing.
+ */
+export function applySpokenDate<T extends DatedItem>(items: T[], text: string): T[] {
+  if (items.length === 0 || !text.trim()) return items;
+  const parsed = parseSpokenCroatianDate(text);
+  if (parsed.status === "none") return items;
+
+  // Only take over when the whole capture talks about one date.
+  const distinct = new Set(items.map((i) => i.date.trim()).filter(Boolean));
+  if (distinct.size > 1) return items;
+
+  if (parsed.status === "ambiguous") {
+    return items.map((item) => ({ ...item, date: "", dayMonth: "", needsYear: false, dateUncertain: true }));
+  }
+
+  const dayMonth = `${pad(parsed.month)}-${pad(parsed.day)}`;
+  return items.map((item) => {
+    const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(item.date.trim());
+    if (iso && `${iso[2]}-${iso[3]}` === dayMonth) return item;
+    const year = iso?.[1] ?? "";
+    return {
+      ...item,
+      date: year ? `${year}-${dayMonth}` : "",
+      dayMonth,
+      needsYear: !year,
+      dateUncertain: false,
+    };
+  });
+}

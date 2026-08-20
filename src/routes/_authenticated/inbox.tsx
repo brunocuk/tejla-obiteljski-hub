@@ -7,6 +7,7 @@ import { ManualEventForm } from "@/components/ManualEventForm";
 import { VoiceCapture } from "@/components/VoiceCapture";
 import { normalizeItem, type ExtractedItem } from "@/lib/hub-store";
 import { applyRelativeReminders } from "@/lib/relative-time";
+import { applySpokenDate } from "@/lib/croatian-spoken-date";
 import { apiAuthHeaders } from "@/lib/api-auth";
 import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
 
@@ -140,7 +141,7 @@ function InboxPage() {
       const data = (await res.json()) as { items?: Partial<ExtractedItem>[] };
       const spoken = "text" in payload ? payload.text : "";
       const items = applyRelativeReminders(
-        (data.items ?? []).map(normalizeItem),
+        applySpokenDate((data.items ?? []).map(normalizeItem), spoken),
         spoken,
         new Date(),
       );
