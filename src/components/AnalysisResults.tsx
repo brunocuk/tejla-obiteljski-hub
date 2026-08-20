@@ -369,6 +369,11 @@ export function AnalysisResults({
                       className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
                     />
                   </div>
+                  {it.dateUncertain ? (
+                    <p className="rounded-xl bg-warm px-3 py-2.5 text-[11px] font-semibold text-warm-foreground">
+                      Nisam sigurna koji si datum rekla. Upiši ga ili ga potvrdi.
+                    </p>
+                  ) : null}
                   {it.needsYear && it.dayMonth ? (
                     <div className="space-y-1 rounded-xl bg-warm px-3 py-2.5">
                       <p className="text-[11px] font-semibold text-warm-foreground">
