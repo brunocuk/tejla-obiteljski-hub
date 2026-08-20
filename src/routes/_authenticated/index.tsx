@@ -1,3 +1,4 @@
+import { formatDayMonth, formatWeekday } from "@/lib/date-hr";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, Check } from "lucide-react";
@@ -31,24 +32,11 @@ export const Route = createFileRoute("/_authenticated/")({
   component: Danas,
 });
 
-const MONTHS_GEN = [
-  "siječnja",
-  "veljače",
-  "ožujka",
-  "travnja",
-  "svibnja",
-  "lipnja",
-  "srpnja",
-  "kolovoza",
-  "rujna",
-  "listopada",
-  "studenoga",
-  "prosinca",
-];
-const WEEKDAYS = ["Nedjelja", "Ponedjeljak", "Utorak", "Srijeda", "Četvrtak", "Petak", "Subota"];
 
 const isoDay = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+const capitalizeFirst = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
 function Danas() {
   const [openId, setOpenId] = useState<string | null>(null);
@@ -135,7 +123,7 @@ function Danas() {
     <AppShell>
       <header className="mb-5">
         <p className="text-sm font-medium text-muted-foreground">
-          {WEEKDAYS[now.getDay()]}, {now.getDate()}. {MONTHS_GEN[now.getMonth()]}
+          {capitalizeFirst(formatWeekday(now))}, {formatDayMonth(now)}
         </p>
         <h1 className="mt-1 text-[30px] font-bold leading-tight tracking-tight">
           {greetingFor(now, myName)}
@@ -339,7 +327,7 @@ function Danas() {
                     <ReminderBadge reminders={reminderMap[u.id]} />
                   </div>
                   <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-                    {d.getDate()}. {MONTHS_GEN[d.getMonth()]}
+                    {formatDayMonth(d)}
                   </span>
                 </button>
               );
