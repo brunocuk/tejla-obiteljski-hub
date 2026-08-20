@@ -191,8 +191,27 @@ export const Route = createFileRoute("/api/analyze-image")({
         if (!res.ok) {
           const text = await res.text();
           console.error("AI gateway error", res.status, text);
-          return Response.json({ error: text }, { status: res.status });
+          if (isPdf && res.status === 400) {
+            return Response.json(
+              { error: "PDF nije čitljiv. Pošalji drugi PDF ili fotografiju stranice." },
+              { status: 422 },
+            );
+          }
+          if (res.status === 429) {
+            return Response.json(
+              { error: "Previše zahtjeva. Pokušaj za koju minutu." },
+              { status: 429 },
+            );
+          }
+          if (res.status === 402) {
+            return Response.json(
+              { error: "AI krediti su potrošeni. Nadopuni ih u Lovable postavkama." },
+              { status: 402 },
+            );
+          }
+          return Response.json({ error: "AI obrada nije uspjela." }, { status: res.status });
         }
+
 
         const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
         const content = json.choices?.[0]?.message?.content ?? "";
