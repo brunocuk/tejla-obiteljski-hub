@@ -1,4 +1,4 @@
-import { formatCroatianDate, formatMonthTitle, formatWeekday } from "@/lib/date-hr";
+import { formatCroatianDate, formatMonthTitle, formatTime, formatWeekday } from "@/lib/date-hr";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
@@ -201,7 +201,7 @@ function KalendarPage() {
                     className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
                   >
                     <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
-                      {i.time || "—"}
+                      {i.time ? formatTime(i.time) : "—"}
                     </span>
                     <span
                       className={`h-8 w-1 shrink-0 rounded-full ${assigneeStyle(i.members[0] ?? "").dot}`}
@@ -234,7 +234,7 @@ function KalendarPage() {
                   className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
                 >
                   <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
-                    {i.time || "—"}
+                    {i.time ? formatTime(i.time) : "—"}
                   </span>
                   <span
                     className={`h-8 w-1 shrink-0 rounded-full ${assigneeStyle(i.members[0] ?? "").dot}`}
