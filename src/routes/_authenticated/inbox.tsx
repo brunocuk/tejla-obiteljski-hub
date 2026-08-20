@@ -111,7 +111,10 @@ function InboxPage() {
   };
 
   const runAnalysis = async (
-    payload: { image: string; mimeType: string } | { text: string },
+    payload:
+      | { image: string; mimeType: string }
+      | { file: string; mimeType: string; fileName: string }
+      | { text: string },
     label: string,
   ) => {
     setLoading(true);
@@ -129,7 +132,11 @@ function InboxPage() {
           members: memberNames,
         }),
       });
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        if (res.status === 401) throw new Error("Prijava je istekla. Prijavi se ponovno.");
+        throw new Error(data?.error || "Analiza nije uspjela. Pokušaj ponovno.");
+      }
       const data = (await res.json()) as { items?: Partial<ExtractedItem>[] };
       const spoken = "text" in payload ? payload.text : "";
       const items = applyRelativeReminders(
@@ -140,8 +147,8 @@ function InboxPage() {
       setAnalysis(items);
       setMode("results");
       logRecent(label, items.length);
-    } catch {
-      setError("Analiza nije uspjela. Pokušaj ponovno.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Analiza nije uspjela. Pokušaj ponovno.");
     } finally {
       setLoading(false);
     }
@@ -153,10 +160,25 @@ function InboxPage() {
     if (!file) return;
     setSheetOpen(false);
     const isImage = file.type.startsWith("image/");
+    const isPdf = file.type === "application/pdf";
+    if (isPdf && file.size > 15 * 1024 * 1024) {
+      setError("PDF je prevelik (maksimalno 15 MB). Podijeli ga ili pošalji manji dio.");
+      return;
+    }
+    if (!isImage && !isPdf) {
+      setError("Ova vrsta dokumenta nije podržana. Podržani su PDF, JPG i PNG.");
+      return;
+    }
     setPreview({ url: isImage ? URL.createObjectURL(file) : null, name: file.name });
     const dataUrl = await readAsDataUrl(file);
-    await runAnalysis({ image: dataUrl, mimeType: file.type }, file.name);
+    await runAnalysis(
+      isPdf
+        ? { file: dataUrl, mimeType: "application/pdf", fileName: file.name }
+        : { image: dataUrl, mimeType: file.type },
+      file.name,
+    );
   };
+
 
   const reset = () => {
     if (preview?.url) URL.revokeObjectURL(preview.url);

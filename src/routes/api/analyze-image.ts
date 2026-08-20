@@ -36,6 +36,9 @@ Rules:
 
 type Body = {
   image?: string;
+  /** Base64 data URL of a non-image document (currently PDF only). */
+  file?: string;
+  fileName?: string;
   mimeType?: string;
   text?: string;
   today?: string;
@@ -43,6 +46,10 @@ type Body = {
   speaker?: string;
   members?: string[];
 };
+
+/** Max decoded PDF size we accept (bytes). Base64 is ~1.37x larger. */
+const MAX_PDF_BYTES = 15 * 1024 * 1024;
+
 
 export const Route = createFileRoute("/api/analyze-image")({
   server: {
@@ -53,7 +60,7 @@ export const Route = createFileRoute("/api/analyze-image")({
         if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
         const contentLength = Number(request.headers.get("content-length") ?? 0);
-        if (contentLength > 8 * 1024 * 1024) {
+        if (contentLength > 24 * 1024 * 1024) {
           return Response.json({ error: "Ulaz je prevelik" }, { status: 413 });
         }
 
@@ -68,6 +75,41 @@ export const Route = createFileRoute("/api/analyze-image")({
         if (typeof body.image === "string" && body.image.length > 8 * 1024 * 1024) {
           return Response.json({ error: "Slika je prevelika" }, { status: 413 });
         }
+
+        // ---- PDF branch: sent to the model as a native file block, never as image_url.
+        const rawFile = typeof body.file === "string" ? body.file.trim() : "";
+        const declaredMime = typeof body.mimeType === "string" ? body.mimeType.trim() : "";
+        const isPdf =
+          Boolean(rawFile) &&
+          (declaredMime === "application/pdf" || rawFile.startsWith("data:application/pdf"));
+        if (rawFile && !isPdf) {
+          return Response.json(
+            { error: "Ova vrsta dokumenta nije podržana. Podržani su PDF, JPG i PNG." },
+            { status: 415 },
+          );
+        }
+        let pdfDataUrl = "";
+        const pdfName =
+          typeof body.fileName === "string" && body.fileName.trim()
+            ? body.fileName.trim().slice(0, 120)
+            : "dokument.pdf";
+        if (isPdf) {
+          const base64 = rawFile.startsWith("data:")
+            ? rawFile.slice(rawFile.indexOf(",") + 1)
+            : rawFile;
+          if (!base64) {
+            return Response.json({ error: "PDF je prazan ili neispravan" }, { status: 400 });
+          }
+          const bytes = Math.floor((base64.length * 3) / 4);
+          if (bytes > MAX_PDF_BYTES) {
+            return Response.json(
+              { error: "PDF je prevelik (maksimalno 15 MB). Podijeli ga ili pošalji manji dio." },
+              { status: 413 },
+            );
+          }
+          pdfDataUrl = `data:application/pdf;base64,${base64}`;
+        }
+
         const today = typeof body.today === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.today)
           ? body.today
           : new Date().toISOString().slice(0, 10);
@@ -88,8 +130,8 @@ export const Route = createFileRoute("/api/analyze-image")({
         ]
           .filter(Boolean)
           .join("\n");
-        if (!pastedText && (!body.image || typeof body.image !== "string")) {
-          return Response.json({ error: "Missing image or text" }, { status: 400 });
+        if (!pastedText && !isPdf && (!body.image || typeof body.image !== "string")) {
+          return Response.json({ error: "Missing image, file or text" }, { status: 400 });
         }
         const dataUrl = body.image
           ? body.image.startsWith("data:")
@@ -104,13 +146,25 @@ export const Route = createFileRoute("/api/analyze-image")({
                 text: `Izdvoji sve obveze iz ovog teksta i vrati iskljucivo JSON:\n\n${pastedText}`,
               },
             ]
-          : [
-              {
-                type: "text",
-                text: "Izdvoji sve obveze iz ovog dokumenta i vrati iskljucivo JSON.",
-              },
-              { type: "image_url", image_url: { url: dataUrl } },
-            ];
+          : isPdf
+            ? [
+                {
+                  type: "text",
+                  text: "Izdvoji sve obveze iz SVIH stranica ovog PDF dokumenta i vrati iskljucivo JSON.",
+                },
+                {
+                  type: "file",
+                  file: { filename: pdfName, file_data: pdfDataUrl },
+                },
+              ]
+            : [
+                {
+                  type: "text",
+                  text: "Izdvoji sve obveze iz ovog dokumenta i vrati iskljucivo JSON.",
+                },
+                { type: "image_url", image_url: { url: dataUrl } },
+              ];
+
 
         const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -137,8 +191,27 @@ export const Route = createFileRoute("/api/analyze-image")({
         if (!res.ok) {
           const text = await res.text();
           console.error("AI gateway error", res.status, text);
-          return Response.json({ error: text }, { status: res.status });
+          if (isPdf && res.status === 400) {
+            return Response.json(
+              { error: "PDF nije čitljiv. Pošalji drugi PDF ili fotografiju stranice." },
+              { status: 422 },
+            );
+          }
+          if (res.status === 429) {
+            return Response.json(
+              { error: "Previše zahtjeva. Pokušaj za koju minutu." },
+              { status: 429 },
+            );
+          }
+          if (res.status === 402) {
+            return Response.json(
+              { error: "AI krediti su potrošeni. Nadopuni ih u Lovable postavkama." },
+              { status: 402 },
+            );
+          }
+          return Response.json({ error: "AI obrada nije uspjela." }, { status: res.status });
         }
+
 
         const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
         const content = json.choices?.[0]?.message?.content ?? "";
