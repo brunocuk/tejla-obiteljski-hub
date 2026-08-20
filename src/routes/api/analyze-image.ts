@@ -36,6 +36,9 @@ Rules:
 
 type Body = {
   image?: string;
+  /** Base64 data URL of a non-image document (currently PDF only). */
+  file?: string;
+  fileName?: string;
   mimeType?: string;
   text?: string;
   today?: string;
@@ -43,6 +46,10 @@ type Body = {
   speaker?: string;
   members?: string[];
 };
+
+/** Max decoded PDF size we accept (bytes). Base64 is ~1.37x larger. */
+const MAX_PDF_BYTES = 15 * 1024 * 1024;
+
 
 export const Route = createFileRoute("/api/analyze-image")({
   server: {
