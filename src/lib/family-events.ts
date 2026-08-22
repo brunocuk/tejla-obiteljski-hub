@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { WHOLE_FAMILY } from "@/lib/family";
 import type { ExtractedItem } from "@/lib/hub-store";
 import { cancelPendingReminders, restorePausedReminders } from "@/lib/reminders";
-import { notifyAssignment } from "@/lib/assignment-push.functions";
+import { notifyAssignment } from "@/lib/notifications.functions";
 
 /**
  * Instant assignment push. Fire-and-forget: a push problem must never break

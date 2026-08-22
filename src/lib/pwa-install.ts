@@ -2,6 +2,23 @@
 
 export type Platform = "ios" | "android" | "desktop";
 
+/**
+ * Which shell is running Tejla. "native" is reserved for the future Flutter
+ * app (it sets `window.__TEJLA_NATIVE__` or a UA marker), where installing a
+ * PWA is meaningless — the onboarding step disappears on its own.
+ */
+export type ClientKind = "web" | "native";
+
+export function getClientKind(): ClientKind {
+  if (typeof window === "undefined") return "web";
+  const flagged = (window as unknown as { __TEJLA_NATIVE__?: boolean }).__TEJLA_NATIVE__ === true;
+  const ua = typeof navigator === "undefined" ? "" : navigator.userAgent;
+  return flagged || /TejlaNative/i.test(ua) ? "native" : "web";
+}
+
+/** Home-screen install only ever applies to the web/PWA client. */
+export const installStepApplies = () => getClientKind() === "web" && !isInstalled();
+
 type InstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
