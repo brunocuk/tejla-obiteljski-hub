@@ -15,6 +15,9 @@ import { useFamilyReminders } from "@/lib/reminders";
 import { AllTasksSheet } from "@/components/AllTasksSheet";
 
 export const Route = createFileRoute("/_authenticated/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    zadatak: typeof search["zadatak"] === "string" ? (search["zadatak"] as string) : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Danas — Tejla" },
@@ -39,7 +42,9 @@ const isoDay = (d: Date) =>
 const capitalizeFirst = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
 function Danas() {
-  const [openId, setOpenId] = useState<string | null>(null);
+  // Deep link from an assignment push: /?zadatak=<event id>
+  const { zadatak } = Route.useSearch();
+  const [openId, setOpenId] = useState<string | null>(zadatak ?? null);
   const [tasksOpen, setTasksOpen] = useState(false);
   const { data: familyId } = useMyFamilyId();
   const { data: myUserId } = useMyUserId();
