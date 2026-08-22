@@ -4,6 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { WHOLE_FAMILY } from "@/lib/family";
 import type { ExtractedItem } from "@/lib/hub-store";
 import { cancelPendingReminders, restorePausedReminders } from "@/lib/reminders";
+import { notifyAssignment } from "@/lib/assignment-push.functions";
+
+/**
+ * Instant assignment push. Fire-and-forget: a push problem must never break
+ * saving. The server deduplicates, so re-saving an unchanged assignee is quiet.
+ */
+function pingAssignees(eventId: string) {
+  void notifyAssignment({ data: { eventId } }).catch((err) => {
+    console.error("assignment push failed", err);
+  });
+}
 
 export type FamilyEvent = {
   id: string;
@@ -161,6 +172,7 @@ export async function updateFamilyEvent(
       .insert(memberIds.map((id) => ({ event_id: eventId, family_member_id: id })));
     if (linkError) throw linkError;
   }
+  pingAssignees(eventId);
 }
 
 /** Marks a task done/undone. Completing it cancels every pending reminder. */
@@ -232,6 +244,7 @@ export async function saveManualEvent(
     if (linkError) throw linkError;
   }
 
+  pingAssignees(inserted.id as string);
   return inserted.id as string;
 }
 
@@ -287,6 +300,7 @@ export async function saveFamilyEvents(
       if (linkError) throw linkError;
     }
     createdIds[itemIndex] = inserted.id as string;
+    pingAssignees(inserted.id as string);
   }
 
   return createdIds;
