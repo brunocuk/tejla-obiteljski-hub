@@ -12,7 +12,9 @@ export const Route = createFileRoute("/_authenticated")({
   },
   component: () => (
     <FamilyGate>
-      <Outlet />
+      <OnboardingGate>
+        <Outlet />
+      </OnboardingGate>
     </FamilyGate>
   ),
 });
