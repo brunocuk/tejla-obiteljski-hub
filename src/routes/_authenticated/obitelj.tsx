@@ -453,6 +453,13 @@ function ClanoviPage() {
         </>
       ) : null}
 
+      <section className="mt-8">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          Postavke
+        </p>
+        <SetupSteps />
+      </section>
+
       <button
         type="button"
         onClick={handleSignOut}
