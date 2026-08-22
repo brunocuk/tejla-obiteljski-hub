@@ -39,7 +39,13 @@ const isoDay = (d: Date) =>
 const capitalizeFirst = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
 function Danas() {
-  const [openId, setOpenId] = useState<string | null>(null);
+  // Deep link from an assignment push: /?zadatak=<event id>. This subtree is
+  // client-only, so reading the URL directly is safe.
+  const [openId, setOpenId] = useState<string | null>(() =>
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search).get("zadatak"),
+  );
   const [tasksOpen, setTasksOpen] = useState(false);
   const { data: familyId } = useMyFamilyId();
   const { data: myUserId } = useMyUserId();

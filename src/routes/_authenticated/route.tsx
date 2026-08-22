@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { FamilyGate } from "@/components/FamilyGate";
+import { OnboardingGate } from "@/components/Onboarding";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -11,7 +12,9 @@ export const Route = createFileRoute("/_authenticated")({
   },
   component: () => (
     <FamilyGate>
-      <Outlet />
+      <OnboardingGate>
+        <Outlet />
+      </OnboardingGate>
     </FamilyGate>
   ),
 });
