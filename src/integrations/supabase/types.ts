@@ -29,35 +29,6 @@ export type Database = {
         }
         Relationships: []
       }
-      assignment_notifications: {
-        Row: {
-          created_at: string
-          event_id: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          event_id: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          event_id?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "assignment_notifications_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "family_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       beta_invites: {
         Row: {
           created_at: string
@@ -94,6 +65,42 @@ export type Database = {
           updated_at?: string
           used_at?: string | null
           used_by?: string | null
+        }
+        Relationships: []
+      }
+      device_push_tokens: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          disabled_at: string | null
+          id: string
+          last_seen_at: string
+          platform: string
+          provider: string
+          token: string
+          user_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          disabled_at?: string | null
+          id?: string
+          last_seen_at?: string
+          platform: string
+          provider?: string
+          token: string
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          disabled_at?: string | null
+          id?: string
+          last_seen_at?: string
+          platform?: string
+          provider?: string
+          token?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -447,6 +454,100 @@ export type Database = {
             columns: ["family_member_id"]
             isOneToOne: true
             referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_deliveries: {
+        Row: {
+          channel: string
+          created_at: string
+          error: string | null
+          id: string
+          notification_event_id: string
+          sent_at: string | null
+          status: string
+          target_ref: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          notification_event_id: string
+          sent_at?: string | null
+          status?: string
+          target_ref: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          error?: string | null
+          id?: string
+          notification_event_id?: string
+          sent_at?: string | null
+          status?: string
+          target_ref?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_deliveries_notification_event_id_fkey"
+            columns: ["notification_event_id"]
+            isOneToOne: false
+            referencedRelation: "notification_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_events: {
+        Row: {
+          body: string
+          created_at: string
+          dedupe_key: string
+          deep_link: string
+          family_id: string
+          id: string
+          kind: string
+          payload: Json
+          subject_id: string | null
+          subject_type: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          dedupe_key: string
+          deep_link?: string
+          family_id: string
+          id?: string
+          kind: string
+          payload?: Json
+          subject_id?: string | null
+          subject_type?: string
+          title?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          dedupe_key?: string
+          deep_link?: string
+          family_id?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          subject_id?: string | null
+          subject_type?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_events_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
             referencedColumns: ["id"]
           },
         ]
