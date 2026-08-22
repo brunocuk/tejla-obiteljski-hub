@@ -24,7 +24,9 @@ if (typeof window !== "undefined") {
 
 export function onInstallAvailabilityChange(fn: () => void) {
   listeners.add(fn);
-  return () => listeners.delete(fn);
+  return () => {
+    listeners.delete(fn);
+  };
 }
 
 export const canPromptInstall = () => deferredPrompt !== null;
