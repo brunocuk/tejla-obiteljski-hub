@@ -5,6 +5,8 @@ import { enablePush, pushStatus, syncSubscription, type PushStatus } from "@/lib
 import {
   canPromptInstall,
   detectPlatform,
+  getClientKind,
+  installStepApplies,
   isInstalled,
   onInstallAvailabilityChange,
   promptInstall,
@@ -214,10 +216,12 @@ export function NotificationsStep({ index = 2 }: { index?: number }) {
 
 /** Both steps, reusable in Postavke. */
 export function SetupSteps() {
+  const [webClient, setWebClient] = useState(true);
+  useEffect(() => setWebClient(getClientKind() === "web"), []);
   return (
     <div className="space-y-3">
-      <InstallStep />
-      <NotificationsStep />
+      {webClient ? <InstallStep /> : null}
+      <NotificationsStep index={webClient ? 2 : 1} />
     </div>
   );
 }
@@ -226,8 +230,11 @@ function OnboardingScreen({ onDone, onSkip }: { onDone: () => void; onSkip: () =
   const [ready, setReady] = useState(false);
   const [bothDone, setBothDone] = useState(false);
 
+  const [webClient, setWebClient] = useState(true);
+
   const refresh = useCallback(() => {
-    setBothDone(isInstalled() && pushStatus() === "granted");
+    setWebClient(getClientKind() === "web");
+    setBothDone(!installStepApplies() && pushStatus() === "granted");
   }, []);
 
   useEffect(() => {
@@ -257,14 +264,16 @@ function OnboardingScreen({ onDone, onSkip }: { onDone: () => void; onSkip: () =
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-10">
-      <h1 className="text-[28px] font-bold leading-tight tracking-tight">Još samo dva koraka</h1>
+      <h1 className="text-[28px] font-bold leading-tight tracking-tight">
+        {webClient ? "Još samo dva koraka" : "Još samo jedan korak"}
+      </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Da ti se Tejla može javiti kad je zatrebaš.
       </p>
 
       <div className="mt-6 space-y-3">
-        <InstallStep />
-        <NotificationsStep />
+        {webClient ? <InstallStep /> : null}
+        <NotificationsStep index={webClient ? 2 : 1} />
       </div>
 
       <button
@@ -283,7 +292,7 @@ function OnboardingScreen({ onDone, onSkip }: { onDone: () => void; onSkip: () =
         Preskoči zasad
       </button>
       <p className="mt-3 text-center text-xs text-muted-foreground">
-        Oba koraka kasnije nađeš u Članovi → Postavke.
+        Postavke kasnije nađeš u Članovi → Postavke.
       </p>
     </main>
   );
@@ -301,8 +310,8 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
       setDecided(stored);
       return;
     }
-    // A device that is already installed and allowed needs no onboarding.
-    if (isInstalled() && pushStatus() === "granted") {
+    // Nothing left to set up (installed web app, or a native client) — skip.
+    if (!installStepApplies() && pushStatus() === "granted") {
       setOnboardingState(uid, "done");
       setDecided("done");
       return;
