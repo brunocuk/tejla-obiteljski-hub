@@ -53,7 +53,10 @@ export async function promptInstall(): Promise<"accepted" | "dismissed" | "unava
   if (!deferredPrompt) return "unavailable";
   await deferredPrompt.prompt();
   const { outcome } = await deferredPrompt.userChoice;
-  if (outcome === "accepted") deferredPrompt = null;
+  if (outcome === "accepted") {
+    deferredPrompt = null;
+    rememberInstalled();
+  }
   listeners.forEach((fn) => fn());
   return outcome;
 }
