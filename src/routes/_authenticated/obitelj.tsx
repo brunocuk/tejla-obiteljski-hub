@@ -9,12 +9,14 @@ import {
   Pencil,
   Plus,
   Shield,
+  Trash2,
   UserMinus,
   UserPlus,
   X,
 } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { MemberDataSheet } from "@/components/MemberDataSheet";
+import { DeleteAccountSheet } from "@/components/DeleteAccountSheet";
 import { removeFamilyMember } from "@/lib/member-data";
 import { supabase } from "@/integrations/supabase/client";
 import { memberStyle } from "@/lib/family";
@@ -157,6 +159,7 @@ function ClanoviPage() {
 
   const [manageFor, setManageFor] = useState<FamilyMemberRow | null>(null);
   const [dataFor, setDataFor] = useState<FamilyMemberRow | null>(null);
+  const [deleteAccount, setDeleteAccount] = useState(false);
 
   const parents = members.filter((m: FamilyMemberRow) => m.member_type === "parent");
   const kids = members.filter((m: FamilyMemberRow) => m.member_type === "child");
@@ -462,7 +465,19 @@ function ClanoviPage() {
         Odjavi se
       </button>
 
+      <button
+        type="button"
+        onClick={() => setDeleteAccount(true)}
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-3xl px-6 py-3 text-sm font-semibold text-destructive"
+      >
+        <Trash2 className="size-4" strokeWidth={2} />
+        Obriši račun
+      </button>
+
+      {deleteAccount ? <DeleteAccountSheet onClose={() => setDeleteAccount(false)} /> : null}
+
       <BetaAdminLink />
+
 
       {inviteFor ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30">
