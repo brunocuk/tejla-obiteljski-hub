@@ -26,7 +26,7 @@ export function DeleteAccountSheet({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState("");
 
   const blocked = Boolean(data?.blocked);
-  const needsOwner = Boolean(data?.needsOwnerTransferFallback ?? data?.needs_owner_transfer);
+  const needsOwner = Boolean(data?.needs_owner_transfer);
   const candidates = data?.adult_candidates ?? [];
 
   async function run() {
