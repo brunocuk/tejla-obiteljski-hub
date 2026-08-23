@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_deletion_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          data_cleared_at: string | null
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          data_cleared_at?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          data_cleared_at?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       app_admins: {
         Row: {
           created_at: string
@@ -144,7 +174,7 @@ export type Database = {
         Row: {
           cancelled_at: string | null
           created_at: string
-          created_by: string
+          created_by: string | null
           event_id: string
           id: string
           pattern: string
@@ -157,7 +187,7 @@ export type Database = {
         Insert: {
           cancelled_at?: string | null
           created_at?: string
-          created_by: string
+          created_by?: string | null
           event_id: string
           id?: string
           pattern?: string
@@ -170,7 +200,7 @@ export type Database = {
         Update: {
           cancelled_at?: string | null
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           event_id?: string
           id?: string
           pattern?: string
@@ -218,7 +248,7 @@ export type Database = {
           completed: boolean
           completed_at: string | null
           created_at: string
-          created_by: string
+          created_by: string | null
           date: string | null
           deadline: string | null
           family_id: string
@@ -238,7 +268,7 @@ export type Database = {
           completed?: boolean
           completed_at?: string | null
           created_at?: string
-          created_by: string
+          created_by?: string | null
           date?: string | null
           deadline?: string | null
           family_id: string
@@ -258,7 +288,7 @@ export type Database = {
           completed?: boolean
           completed_at?: string | null
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           date?: string | null
           deadline?: string | null
           family_id?: string
@@ -608,6 +638,7 @@ export type Database = {
       accept_family_invitation:
         | { Args: never; Returns: string }
         | { Args: { _invitation_id?: string }; Returns: string }
+      account_deletion_preview: { Args: never; Returns: Json }
       can_access_event: { Args: { _event_id: string }; Returns: boolean }
       can_edit_event: { Args: { _event_id: string }; Returns: boolean }
       can_edit_event_row: {
@@ -622,6 +653,10 @@ export type Database = {
       create_family: {
         Args: { _family_name: string; _my_name: string }
         Returns: string
+      }
+      delete_my_account: {
+        Args: { _new_owner_user_id?: string }
+        Returns: Json
       }
       is_app_admin: { Args: never; Returns: boolean }
       is_family_adult: { Args: { _family_id: string }; Returns: boolean }
