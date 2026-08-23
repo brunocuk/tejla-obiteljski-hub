@@ -9,7 +9,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { EventDetailSheet } from "@/components/EventDetailSheet";
 import { useMyFamilyId, useMyUserId, useFamilyMembers } from "@/lib/family-workspace";
 import { greetingFor, tejlaMessage } from "@/lib/tejla-voice";
-import { NotificationOptIn } from "@/components/NotificationOptIn";
+import { SetupBlock } from "@/components/SetupBlock";
 import { ReminderBadge } from "@/components/ReminderBadge";
 import { useFamilyReminders } from "@/lib/reminders";
 import { AllTasksSheet } from "@/components/AllTasksSheet";
@@ -140,7 +140,7 @@ function Danas() {
         ) : null}
       </header>
 
-      <NotificationOptIn />
+      <SetupBlock />
 
       {calmDay && !isPending ? null : (
       <section className="mb-8">

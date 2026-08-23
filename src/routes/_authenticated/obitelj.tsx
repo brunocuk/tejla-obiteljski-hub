@@ -14,7 +14,6 @@ import {
   X,
 } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { SetupSteps } from "@/components/Onboarding";
 import { MemberDataSheet } from "@/components/MemberDataSheet";
 import { removeFamilyMember } from "@/lib/member-data";
 import { supabase } from "@/integrations/supabase/client";
@@ -453,13 +452,6 @@ function ClanoviPage() {
           ) : null}
         </>
       ) : null}
-
-      <section className="mt-8">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Postavke
-        </p>
-        <SetupSteps />
-      </section>
 
       <button
         type="button"

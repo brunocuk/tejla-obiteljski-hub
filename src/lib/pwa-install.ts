@@ -35,6 +35,7 @@ if (typeof window !== "undefined") {
   });
   window.addEventListener("appinstalled", () => {
     deferredPrompt = null;
+    rememberInstalled();
     listeners.forEach((fn) => fn());
   });
 }
@@ -52,7 +53,10 @@ export async function promptInstall(): Promise<"accepted" | "dismissed" | "unava
   if (!deferredPrompt) return "unavailable";
   await deferredPrompt.prompt();
   const { outcome } = await deferredPrompt.userChoice;
-  if (outcome === "accepted") deferredPrompt = null;
+  if (outcome === "accepted") {
+    deferredPrompt = null;
+    rememberInstalled();
+  }
   listeners.forEach((fn) => fn());
   return outcome;
 }
@@ -69,7 +73,33 @@ export function detectPlatform(): Platform {
   return "desktop";
 }
 
-export const isInstalled = () =>
-  typeof window !== "undefined" &&
-  (window.matchMedia?.("(display-mode: standalone)").matches ||
-    (navigator as unknown as { standalone?: boolean }).standalone === true);
+const INSTALLED_KEY = "tejla-pwa-installed";
+
+/** Remembers a successful install so the current browser tab stops offering it. */
+export function rememberInstalled() {
+  try {
+    window.localStorage.setItem(INSTALLED_KEY, "1");
+  } catch {
+    /* private mode — falls back to display-mode detection */
+  }
+}
+
+function remembersInstalled() {
+  try {
+    return window.localStorage.getItem(INSTALLED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export const isInstalled = () => {
+  if (typeof window === "undefined") return false;
+  const standalone =
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    (navigator as unknown as { standalone?: boolean }).standalone === true;
+  if (standalone) {
+    rememberInstalled();
+    return true;
+  }
+  return remembersInstalled();
+};
