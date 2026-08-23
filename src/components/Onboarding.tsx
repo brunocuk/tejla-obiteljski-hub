@@ -292,7 +292,7 @@ function OnboardingScreen({ onDone, onSkip }: { onDone: () => void; onSkip: () =
         Preskoči zasad
       </button>
       <p className="mt-3 text-center text-xs text-muted-foreground">
-        Postavke kasnije nađeš u Članovi → Postavke.
+        Ove korake kasnije nađeš na ekranu Danas.
       </p>
     </main>
   );
