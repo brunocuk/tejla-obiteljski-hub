@@ -9,12 +9,14 @@ import {
   Pencil,
   Plus,
   Shield,
+  Trash2,
   UserMinus,
   UserPlus,
   X,
 } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { MemberDataSheet } from "@/components/MemberDataSheet";
+import { DeleteAccountSheet } from "@/components/DeleteAccountSheet";
 import { removeFamilyMember } from "@/lib/member-data";
 import { supabase } from "@/integrations/supabase/client";
 import { memberStyle } from "@/lib/family";
@@ -157,6 +159,7 @@ function ClanoviPage() {
 
   const [manageFor, setManageFor] = useState<FamilyMemberRow | null>(null);
   const [dataFor, setDataFor] = useState<FamilyMemberRow | null>(null);
+  const [deleteAccount, setDeleteAccount] = useState(false);
 
   const parents = members.filter((m: FamilyMemberRow) => m.member_type === "parent");
   const kids = members.filter((m: FamilyMemberRow) => m.member_type === "child");
