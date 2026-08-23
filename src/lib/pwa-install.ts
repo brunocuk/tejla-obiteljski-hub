@@ -35,6 +35,7 @@ if (typeof window !== "undefined") {
   });
   window.addEventListener("appinstalled", () => {
     deferredPrompt = null;
+    rememberInstalled();
     listeners.forEach((fn) => fn());
   });
 }
