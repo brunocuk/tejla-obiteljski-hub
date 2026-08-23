@@ -36,7 +36,7 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
     const userId = context.userId;
 
     const { error } = await context.supabase.rpc("delete_my_account", {
-      _new_owner_user_id: data.newOwnerUserId,
+      _new_owner_user_id: data.newOwnerUserId ?? undefined,
     });
     if (error) {
       throw new Error(error.message || "Brisanje računa nije uspjelo.");
