@@ -462,7 +462,19 @@ function ClanoviPage() {
         Odjavi se
       </button>
 
+      <button
+        type="button"
+        onClick={() => setDeleteAccount(true)}
+        className="mt-3 flex w-full items-center justify-center gap-2 rounded-3xl px-6 py-3 text-sm font-semibold text-destructive"
+      >
+        <Trash2 className="size-4" strokeWidth={2} />
+        Obriši račun
+      </button>
+
+      {deleteAccount ? <DeleteAccountSheet onClose={() => setDeleteAccount(false)} /> : null}
+
       <BetaAdminLink />
+
 
       {inviteFor ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30">
