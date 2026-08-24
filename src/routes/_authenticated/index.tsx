@@ -301,52 +301,6 @@ function Danas() {
         </section>
       ) : null}
 
-      <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Sljedećih 7 dana
-        </h2>
-        <div className="card-soft divide-y divide-border">
-          {isPending ? (
-            <p className="px-5 py-6 text-center text-sm text-muted-foreground">Učitavam obveze…</p>
-          ) : upcoming.length === 0 ? (
-            <p className="px-5 py-6 text-center text-sm text-muted-foreground">
-              Nema obveza u sljedećih 7 dana.
-            </p>
-          ) : (
-            upcoming.map((u) => {
-              const d = new Date(`${u.date}T00:00:00`);
-              return (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => setOpenId(u.id)}
-                  className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
-                >
-                  <span
-                    className={`size-2 rounded-full ${assigneeStyle(u.members[0] ?? "").dot}`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[15px] font-semibold">
-                      {u.members.join(", ") || "Cijela obitelj"}
-                    </p>
-                    <p className="truncate text-sm text-muted-foreground">{u.title}</p>
-                    <ReminderBadge reminders={reminderMap[u.id]} />
-                  </div>
-                  <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-                    {formatDayMonth(d)}
-                  </span>
-                </button>
-              );
-            })
-          )}
-        </div>
-        <Link
-          to="/kalendar"
-          className="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-primary-soft px-4 py-3 text-sm font-semibold text-accent-foreground"
-        >
-          Otvori kalendar <ArrowRight className="size-4" />
-        </Link>
-      </section>
 
       {openEvent ? <EventDetailSheet event={openEvent} onClose={() => setOpenId(null)} /> : null}
       {tasksOpen ? (
