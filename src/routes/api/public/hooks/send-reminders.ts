@@ -25,73 +25,21 @@ type ReminderRow = {
   family_events: EventRow | null;
 };
 
-const HH = (t: string | null) => (t ? t.slice(0, 5) : "");
 
-const TZ = "Europe/Zagreb";
-
-/** Converts a Zagreb-local date/time into a real UTC instant. */
-function zagrebToUtc(dateStr: string, timeStr: string | null): Date {
-  const naive = new Date(`${dateStr}T${timeStr ? timeStr.slice(0, 8) : "09:00:00"}Z`);
-  // Offset of that instant in Zagreb, derived by reformatting it in the zone.
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: TZ,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(naive);
-  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
-  const asZagreb = Date.UTC(
-    get("year"),
-    get("month") - 1,
-    get("day"),
-    get("hour") % 24,
-    get("minute"),
-    get("second"),
-  );
-  return new Date(naive.getTime() - (asZagreb - naive.getTime()));
-}
-
-function whenLabel(eventDate: string | null, eventTime: string | null, remindAt: string) {
-  if (!eventDate) return "";
-  const now = new Date(remindAt);
-  const target = zagrebToUtc(eventDate, eventTime);
-  const diffMs = target.getTime() - now.getTime();
-  const hours = Math.round(diffMs / 3_600_000);
-  if (hours <= 0) return "Sada";
-  if (hours < 24)
-    return hours <= 1
-      ? "Za 1 sat"
-      : `Za ${hours} sata/sati`.replace("sata/sati", hours < 5 ? "sata" : "sati");
-  const days = Math.round(hours / 24);
-  if (days === 1) return "Sutra";
-  return `Za ${days} dana`;
-}
-
+/**
+ * Privacy-safe push body. The lock screen must never expose the member name,
+ * the obligation title, location, amount, notes or "ponijeti" — all of that
+ * stays inside the app, reachable through the deep link.
+ */
 function buildMessage(reminder: ReminderRow) {
   const e = reminder.family_events!;
-  const names = (e.event_members ?? [])
-    .map((m) => m.family_members?.name?.trim())
-    .filter(Boolean)
-    .join(", ");
-  const when = whenLabel(e.date, e.time, reminder.remind_at);
-  const time = HH(e.time);
-  const bring = Array.isArray(e.things_to_bring)
-    ? e.things_to_bring.map(String).filter(Boolean)
-    : [];
-
-  const head = [when, names, e.title.trim()].filter(Boolean).join(" · ");
-  const parts = [head];
-  if (time) parts.push(`u ${time}`);
-  if (e.amount) parts.push(String(e.amount));
-  let body = parts.filter(Boolean).join(" ");
-  if (bring.length > 0) body += `. Ponijeti: ${bring.join(", ")}`;
-
-  return { title: "Tejla podsjetnik", body: body.slice(0, 160), url: "/" };
+  return {
+    title: "Tejla podsjetnik",
+    body: "Imaš obvezu uskoro. Otvori Tejlu za detalje.",
+    url: `/?zadatak=${e.id}`,
+  };
 }
+
 
 export const Route = createFileRoute("/api/public/hooks/send-reminders")({
   server: {

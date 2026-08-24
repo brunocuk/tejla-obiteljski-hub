@@ -33,8 +33,7 @@ export const Route = createFileRoute("/api/transcribe")({
         });
 
         if (!res.ok) {
-          const text = await res.text();
-          console.error("AI transcription error", res.status, text);
+          console.error("TRANSCRIPTION_ERROR", res.status);
           return Response.json({ error: "Transkripcija nije uspjela" }, { status: res.status });
         }
 
