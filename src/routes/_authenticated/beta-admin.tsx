@@ -106,7 +106,8 @@ function BetaAdminPage() {
       </Link>
       <h1 className="text-2xl font-bold tracking-tight">Beta pozivnice</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Svaka pozivnica vrijedi 7 dana i može se iskoristiti samo jednom.
+        Pozivnica vrijedi 6 tjedana za aktivaciju i može se iskoristiti samo jednom. Nakon
+        aktivacije korisnički račun ostaje aktivan.
       </p>
 
       <div className="card-soft mt-6 space-y-3 p-5">
