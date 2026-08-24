@@ -17,6 +17,8 @@ import {
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { MemberDataSheet } from "@/components/MemberDataSheet";
 import { DeleteAccountSheet } from "@/components/DeleteAccountSheet";
+import { TejlaMessagesToggle } from "@/components/TejlaMessagesToggle";
+
 import { removeFamilyMember } from "@/lib/member-data";
 import { supabase } from "@/integrations/supabase/client";
 import { memberStyle } from "@/lib/family";
