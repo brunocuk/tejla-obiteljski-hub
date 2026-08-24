@@ -151,6 +151,7 @@ describe("Onboarding — Tejline poruke step", () => {
     renderGate();
     await screen.findByText("Tejline poruke ✨");
     const html = document.body.innerHTML;
+    expect(html.indexOf("Postavi Tejlu na po")).toBeLessThan(html.indexOf("Uključi obavijesti"));
     expect(html.indexOf("Uključi obavijesti")).toBeLessThan(html.indexOf("Tejline poruke"));
   });
 });
