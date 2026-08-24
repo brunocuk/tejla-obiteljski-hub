@@ -136,10 +136,10 @@ const COUNTDOWN_TEXT: Record<CountdownCategory, { d3: string; d1: string }> = {
 /** Selected Croatian holidays with a fixed, non-sensitive greeting. */
 const HOLIDAYS: Record<string, { key: string; body: string }> = {
   "01-01": { key: "holiday:nova-godina", body: "Sretna Nova! ✨ Danas ne moraš ništa planirati." },
-  "05-01": { key: "holiday:praznik-rada", body: "Danas je praznik rada. Naglasak na praznik. 😌" },
+  "05-01": { key: "holiday:praznik-rada", body: "Danas je Praznik rada. Naglasak na praznik. 😌" },
   "06-25": {
     key: "holiday:dan-drzavnosti",
-    body: "Danas je praznik. Nadam se da si to već znala. 😄",
+    body: "Danas je praznik. Nadam se da ti ovo nije nova informacija. 😄",
   },
   "08-05": { key: "holiday:dan-pobjede", body: "Danas je praznik. Tejla danas nema ništa za dodati." },
   "08-15": { key: "holiday:velika-gospa", body: "Danas je blagdan. Uživaj u slobodnom danu." },
@@ -155,7 +155,7 @@ const HOLIDAYS: Record<string, { key: string; body: string }> = {
  * no AI call and no randomness.
  */
 export const GENERAL_MESSAGES: { key: string; body: string }[] = [
-  { key: "general:take_time", body: "Jesi danas ostavila malo vremena i za sebe?" },
+  { key: "general:take_time", body: "Je li danas ostalo malo vremena i za tebe?" },
   { key: "general:not_everything_today", body: "Ne mora baš sve stati u danas." },
   { key: "general:tomorrow", body: "Ako nešto može čekati sutra — neka čeka." },
   { key: "general:just_because", body: "Napravi danas nešto samo zato što ti se radi." },
