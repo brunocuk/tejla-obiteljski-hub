@@ -54,6 +54,17 @@ function currentMonth() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
+export function calendarEventVisible(
+  event: CalEvent,
+  options: { filter: string; showPast: boolean; now: Date },
+): boolean {
+  const memberMatch = options.filter === "Svi" || event.members.includes(options.filter);
+  if (!memberMatch) return false;
+  if (!event.date) return true; // undated always stay visible
+  if (options.showPast) return true;
+  return daysFromToday(event.date, options.now) >= 0;
+}
+
 function KalendarPage() {
   const { data: familyId } = useMyFamilyId();
   const { data: members } = useFamilyMembers(familyId);
