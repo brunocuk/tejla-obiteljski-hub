@@ -51,11 +51,14 @@ function StepCard({
   index,
   title,
   done,
+  neutral = false,
   children,
 }: {
   index: number;
   title: string;
   done: boolean;
+  /** Answered but intentionally off — no green check, no "todo" emphasis. */
+  neutral?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -63,7 +66,11 @@ function StepCard({
       <div className="flex items-center gap-3">
         <span
           className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-            done ? "bg-sage text-foreground" : "bg-primary-soft text-accent-foreground"
+            done
+              ? "bg-sage text-foreground"
+              : neutral
+                ? "bg-muted text-muted-foreground"
+                : "bg-primary-soft text-accent-foreground"
           }`}
         >
           {done ? <Check className="size-4" strokeWidth={2.4} /> : index}
@@ -74,6 +81,7 @@ function StepCard({
     </div>
   );
 }
+
 
 /** Step 1 — put Tejla on the home screen. Real state, no manual checkbox. */
 export function InstallStep({ index = 1 }: { index?: number }) {
