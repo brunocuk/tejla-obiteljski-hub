@@ -62,7 +62,8 @@ export function calendarEventVisible(
   if (!memberMatch) return false;
   if (!event.date) return true; // undated always stay visible
   if (options.showPast) return true;
-  return daysFromToday(event.date, options.now) >= 0;
+  // Invalid dates are treated as today/future so they are not silently lost.
+  return (daysFromToday(event.date, options.now) ?? 0) >= 0;
 }
 
 export function KalendarPage() {
