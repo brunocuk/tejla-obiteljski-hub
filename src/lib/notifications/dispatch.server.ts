@@ -21,13 +21,21 @@ export async function dispatchNotifications(events: NotificationEvent[]) {
       try {
         available = await channel.hasTargets(event.user_id);
       } catch (err) {
-        console.error(`[notifications] ${channel.channel} target lookup failed`, err);
+        console.error(
+          `[notifications] ${channel.channel} TARGET_LOOKUP_FAILED`,
+          (err as { status?: number })?.status ?? "",
+          (err as { code?: string })?.code ?? "",
+        );
       }
       if (!available) continue;
       try {
         results.push(await channel.send(event));
       } catch (err) {
-        console.error(`[notifications] ${channel.channel} delivery failed`, err);
+        console.error(
+          `[notifications] ${channel.channel} DELIVERY_FAILED`,
+          (err as { status?: number })?.status ?? "",
+          (err as { code?: string })?.code ?? "",
+        );
       }
       break; // one channel per recipient
     }
