@@ -220,7 +220,7 @@ function InboxPage() {
     <AppShell>
       <PageHeader
         title="Inbox"
-        subtitle="Pošalji bilo što — AI prepoznaje važno i pretvara to u termine, zadatke i podsjetnike."
+        subtitle="Pošalji bilo što — Tejla prepoznaje važno i pretvara to u termine, zadatke i podsjetnike."
       />
 
       <input
@@ -281,8 +281,8 @@ function InboxPage() {
 
       {loading ? (
         <div className="card-soft mt-5 px-5 py-8 text-center">
-          <p className="text-sm font-semibold">Pregledavam…</p>
-          <p className="mt-1 text-sm text-muted-foreground">AI čita sadržaj i traži obveze.</p>
+          <p className="text-sm font-semibold">Tejla pregledava…</p>
+          <p className="mt-1 text-sm text-muted-foreground">Tražim obveze i važne datume.</p>
         </div>
       ) : null}
 
