@@ -31,6 +31,10 @@ const mocks = vi.hoisted(() => ({
   reminders: {} as Record<string, never[]>,
 }));
 
+vi.mock("@/components/AppShell", () => ({
+  AppShell: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 vi.mock("@/lib/family-workspace", async () => ({
   useMyFamilyId: () => ({ data: "f-1" }),
   useFamilyMembers: () => ({ data: mocks.members }),
