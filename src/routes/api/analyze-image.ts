@@ -33,6 +33,7 @@ Rules:
 - confidence is a number between 0 and 1.
 - Never make medical or legal interpretations; only extract scheduling and task information.
 - Text values must be in Croatian, as written in the input.
+- All user-facing output text must be Croatian in Latin script. Never output Cyrillic.
 - If nothing relevant is found, return {"items":[]}.`;
 
 type Body = {
