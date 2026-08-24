@@ -86,7 +86,7 @@ function BetaAdminPage() {
   }
 
   async function handleCreate() {
-    await create({ data: { label, days: 7 } });
+    await create({ data: { label, days: 42 } });
     setLabel("");
     await queryClient.invalidateQueries({ queryKey: ["beta-invites"] });
   }
