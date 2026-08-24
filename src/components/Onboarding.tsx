@@ -343,7 +343,7 @@ function OnboardingScreen({
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-10">
       <h1 className="text-[28px] font-bold leading-tight tracking-tight">
-        {webClient ? "Još samo dva koraka" : "Još samo jedan korak"}
+        {webClient ? "Još samo par koraka" : "Još samo dva koraka"}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Da ti se Tejla može javiti kad je zatrebaš.
@@ -352,6 +352,7 @@ function OnboardingScreen({
       <div className="mt-6 space-y-3">
         {webClient ? <InstallStep /> : null}
         <NotificationsStep index={webClient ? 2 : 1} />
+        <TejlaMessagesStep index={webClient ? 3 : 2} uid={uid} />
       </div>
 
       <button
@@ -376,7 +377,7 @@ function OnboardingScreen({
   );
 }
 
-/** Shows the two-step setup once per account, right after the first sign-in. */
+/** Shows the setup steps once per account, right after the first sign-in. */
 export function OnboardingGate({ children }: { children: ReactNode }) {
   const { data: uid } = useMyUserId();
   const [decided, setDecided] = useState<"done" | "skipped" | null | undefined>(undefined);
@@ -388,8 +389,10 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
       setDecided(stored);
       return;
     }
-    // Nothing left to set up (installed web app, or a native client) — skip.
-    if (!installStepApplies() && pushStatus() === "granted") {
+    // Nothing left to set up AND the Tejla-messages question already answered.
+    // The answer flag is separate from the preference itself, because "false"
+    // is a legitimate answer ("Ne sada").
+    if (!installStepApplies() && pushStatus() === "granted" && tejlaMessagesAnswered(uid)) {
       setOnboardingState(uid, "done");
       setDecided("done");
       return;
@@ -402,6 +405,8 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
 
   return (
     <OnboardingScreen
+      uid={uid}
+
       onDone={() => {
         setOnboardingState(uid, "done");
         setDecided("done");
