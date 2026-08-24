@@ -21,24 +21,54 @@ export const Route = createFileRoute("/api/transcribe")({
           return Response.json({ error: "Snimka je predugačka" }, { status: 413 });
         }
 
-        const form = new FormData();
-        form.append("file", file, file.name || "voice.webm");
-        form.append("model", "openai/gpt-4o-mini-transcribe");
-        form.append("language", "hr");
+        const {
+          TRANSCRIBE_BIAS_PROMPT,
+          TRANSCRIBE_RETRY_PROMPT,
+          TRANSCRIBE_UNUSABLE_MESSAGE,
+          isUsableTranscript,
+          hasCyrillic,
+        } = await import("@/lib/transcript-guard");
 
-        const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
-          method: "POST",
-          headers: { "Lovable-API-Key": key, "X-Lovable-AIG-SDK": "fetch" },
-          body: form,
-        });
+        const transcribe = async (prompt: string) => {
+          const form = new FormData();
+          form.append("file", file, file.name || "voice.webm");
+          form.append("model", "openai/gpt-4o-mini-transcribe");
+          form.append("language", "hr");
+          form.append("prompt", prompt);
 
-        if (!res.ok) {
-          console.error("TRANSCRIPTION_ERROR", res.status);
-          return Response.json({ error: "Transkripcija nije uspjela" }, { status: res.status });
+          const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
+            method: "POST",
+            headers: { "Lovable-API-Key": key, "X-Lovable-AIG-SDK": "fetch" },
+            body: form,
+          });
+
+          if (!res.ok) {
+            console.error("TRANSCRIPTION_ERROR", res.status);
+            return { ok: false as const, status: res.status };
+          }
+          const json = (await res.json()) as { text?: string };
+          return { ok: true as const, text: (json.text ?? "").trim() };
+        };
+
+        let attempt = await transcribe(TRANSCRIBE_BIAS_PROMPT);
+        if (!attempt.ok) {
+          return Response.json({ error: "Transkripcija nije uspjela" }, { status: attempt.status });
         }
 
-        const json = (await res.json()) as { text?: string };
-        return Response.json({ text: (json.text ?? "").trim() });
+        if (hasCyrillic(attempt.text)) {
+          // Exactly one automatic retry with a stronger script instruction.
+          const retry = await transcribe(TRANSCRIBE_RETRY_PROMPT);
+          if (!retry.ok) {
+            return Response.json({ error: "Transkripcija nije uspjela" }, { status: retry.status });
+          }
+          attempt = retry;
+        }
+
+        if (!isUsableTranscript(attempt.text)) {
+          return Response.json({ error: TRANSCRIBE_UNUSABLE_MESSAGE }, { status: 422 });
+        }
+
+        return Response.json({ text: attempt.text });
       },
     },
   },
