@@ -105,7 +105,7 @@ export function KalendarPage() {
     [events],
   );
 
-  const visible = allEvents.filter((e) => filter === "Svi" || e.members.includes(filter));
+  const visible = allEvents.filter((e) => calendarEventVisible(e, { filter, showPast, now }));
   const inMonth = visible
     .filter((e) => e.date && monthKey(e.date) === cursor)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
