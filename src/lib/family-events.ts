@@ -11,8 +11,9 @@ import { notifyAssignment } from "@/lib/notifications.functions";
  * saving. The server deduplicates, so re-saving an unchanged assignee is quiet.
  */
 function pingAssignees(eventId: string) {
-  void notifyAssignment({ data: { eventId } }).catch((err) => {
-    console.error("assignment push failed", err);
+  void notifyAssignment({ data: { eventId } }).catch(() => {
+    // Never log the error payload: it can echo event content.
+    console.error("ASSIGNMENT_PUSH_FAILED");
   });
 }
 

@@ -258,6 +258,13 @@ function InboxPage() {
         </button>
       ) : null}
 
+      {(mode === "idle" || mode === "text" || mode === "voice") && !loading ? (
+        <p className="mt-4 px-1 text-center text-xs leading-relaxed text-muted-foreground">
+          Prije slanja provjeri sadržaj. Ne šalji i ne izgovaraj nepotrebne osobne ili osjetljive
+          podatke drugih osoba.
+        </p>
+      ) : null}
+
       {info ? (
         <p className="mt-4 rounded-2xl bg-primary-soft px-4 py-3 text-center text-sm font-semibold text-accent-foreground">
           {info}
