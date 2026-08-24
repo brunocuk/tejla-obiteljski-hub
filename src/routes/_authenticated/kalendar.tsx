@@ -65,13 +65,15 @@ export function calendarEventVisible(
   return daysFromToday(event.date, options.now) >= 0;
 }
 
-function KalendarPage() {
+export function KalendarPage() {
   const { data: familyId } = useMyFamilyId();
   const { data: members } = useFamilyMembers(familyId);
   const { data: events, isPending } = useFamilyEvents(familyId);
   const { data: reminderMap = {} } = useFamilyReminders(familyId);
   const [cursor, setCursor] = useState(currentMonth);
   const [filter, setFilter] = useState("Svi");
+  const [showPast, setShowPast] = useState(false);
+  const now = useMemo(() => new Date(), []);
   const [openId, setOpenId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const openEvent: FamilyEvent | null = (events ?? []).find((e) => e.id === openId) ?? null;
