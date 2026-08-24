@@ -213,63 +213,90 @@ function nextWeekend(today: string, weekday: number): [string, string] {
   return [saturday, addDays(saturday, 1)];
 }
 
-/** Ordered candidate list; holidays first, then countdowns, then calm states. */
+/**
+ * Ordered candidate list. Morning window: holidays, then countdowns.
+ * Evening window: calm states, then the general pool as the last resort.
+ */
 export function buildCandidates(ctx: NudgeContext): NudgeCandidate[] {
   const { now, events } = ctx;
   const out: NudgeCandidate[] = [];
+  const morning = isMorningWindow(now.hour);
+  const evening = isEveningWindow(now.hour);
 
-  const holiday = HOLIDAYS[now.date.slice(5)];
-  if (holiday) {
-    out.push({
-      messageKey: holiday.key,
-      bucket: now.date.slice(0, 4),
-      body: holiday.body,
-      deepLink: "/",
-      subjectId: null,
-    });
-  }
-
-  for (const offset of [1, 3]) {
-    const day = addDays(now.date, offset);
-    for (const event of dated(events, day)) {
-      const category = normalizeCategory(event.category);
-      if (!category) continue;
+  if (morning) {
+    const holiday = HOLIDAYS[now.date.slice(5)];
+    if (holiday) {
       out.push({
-        messageKey: `countdown:${category}:${offset}`,
-        bucket: `${event.id}:d${offset}`,
-        body: offset === 1 ? COUNTDOWN_TEXT[category].d1 : COUNTDOWN_TEXT[category].d3,
-        deepLink: `/?zadatak=${event.id}`,
-        subjectId: event.id,
-      });
-    }
-  }
-
-  const tomorrow = addDays(now.date, 1);
-  if (dated(events, tomorrow).length === 0) {
-    out.push({
-      messageKey: "calm:empty_tomorrow",
-      bucket: tomorrow,
-      body: "Sutra ti je kalendar prazan.",
-      deepLink: "/",
-      subjectId: null,
-    });
-  }
-
-  // Only announced on Thu/Fri, and only when both weekend days are free.
-  if (now.weekday === 4 || now.weekday === 5) {
-    const [sat, sun] = nextWeekend(now.date, now.weekday);
-    if (dated(events, sat).length === 0 && dated(events, sun).length === 0) {
-      out.push({
-        messageKey: "calm:quiet_weekend",
-        bucket: sat,
-        body: "Ovaj vikend izgleda mirno.",
+        messageKey: holiday.key,
+        bucket: now.date.slice(0, 4),
+        body: holiday.body,
         deepLink: "/",
         subjectId: null,
       });
     }
+
+    for (const offset of [1, 3]) {
+      const day = addDays(now.date, offset);
+      for (const event of dated(events, day)) {
+        const category = normalizeCategory(event.category);
+        if (!category) continue;
+        out.push({
+          messageKey: `countdown:${category}:${offset}`,
+          bucket: `${event.id}:d${offset}`,
+          body: offset === 1 ? COUNTDOWN_TEXT[category].d1 : COUNTDOWN_TEXT[category].d3,
+          deepLink: `/?zadatak=${event.id}`,
+          subjectId: event.id,
+        });
+      }
+    }
+  }
+
+  if (evening) {
+    const tomorrow = addDays(now.date, 1);
+    if (dated(events, tomorrow).length === 0) {
+      out.push({
+        messageKey: "calm:empty_tomorrow",
+        bucket: tomorrow,
+        body: "Sutra nemaš ništa u kalendaru. Da, stvarno. 😌",
+        deepLink: "/",
+        subjectId: null,
+      });
+    }
+
+    // Only announced on Thu/Fri, and only when both weekend days are free.
+    if (now.weekday === 4 || now.weekday === 5) {
+      const [sat, sun] = nextWeekend(now.date, now.weekday);
+      if (dated(events, sat).length === 0 && dated(events, sun).length === 0) {
+        out.push({
+          messageKey: "calm:quiet_weekend",
+          bucket: sat,
+          body: "Vikend ti je prazan. Nemoj odmah nešto upisati. 😄",
+          deepLink: "/",
+          subjectId: null,
+        });
+      }
+    }
+
+    // Lowest priority: always appended last, so a contextual message wins.
+    const general = pickGeneral(now.date);
+    out.push({
+      messageKey: general.key,
+      bucket: now.date,
+      body: general.body,
+      deepLink: "/",
+      subjectId: null,
+    });
   }
 
   return out;
+}
+
+/** Deterministic rotation through the general pool (no randomness, no AI). */
+export function pickGeneral(date: string): { key: string; body: string } {
+  const index = Math.floor(Date.parse(`${date}T00:00:00Z`) / 86_400_000);
+  return GENERAL_MESSAGES[
+    ((index % GENERAL_MESSAGES.length) + GENERAL_MESSAGES.length) % GENERAL_MESSAGES.length
+  ]!;
 }
 
 /** Quota gate: max 1/day, max 2 per rolling 7 days, per-template cooldown. */
@@ -288,8 +315,16 @@ export function quotaBlocks(
   ) {
     return true;
   }
+  // Any general message blocks the whole pool for the cooldown period.
+  if (
+    isGeneralKey(candidate.messageKey) &&
+    withinDays(GENERAL_COOLDOWN_DAYS).some((r) => isGeneralKey(r.messageKey))
+  ) {
+    return true;
+  }
   return false;
 }
+
 
 /** The single message to send now, or null. */
 export function pickNudge(ctx: NudgeContext): NudgeCandidate | null {
