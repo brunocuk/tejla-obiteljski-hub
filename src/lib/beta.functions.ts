@@ -51,7 +51,8 @@ export const createBetaInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { label?: string; days?: number }) => ({
     label: String(input?.label ?? "").trim(),
-    days: Math.min(Math.max(Number(input?.days ?? 7) || 7, 1), 60),
+    // Activation window only: 6 weeks. Redeemed invites never expire the account.
+    days: Math.min(Math.max(Number(input?.days ?? 42) || 42, 1), 60),
   }))
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("is_app_admin");
