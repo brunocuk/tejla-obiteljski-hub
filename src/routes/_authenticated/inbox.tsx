@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/inbox")({
       {
         name: "description",
         content:
-          "Ubaci fotografiju, screenshot, PDF ili tekst — AI izdvaja obveze i termine, a ti ih odmah spremaš.",
+          "Pošalji sadržaj, a Tejla izdvaja obveze i termine koje odmah možeš spremiti.",
       },
       { property: "og:title", content: "Inbox — Tejla" },
       {
