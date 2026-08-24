@@ -1,0 +1,1 @@
+ALTER TABLE public.beta_invites ALTER COLUMN expires_at SET DEFAULT (now() + interval '42 days');
