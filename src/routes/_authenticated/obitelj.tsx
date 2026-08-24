@@ -47,7 +47,9 @@ import {
   canEditMemberName,
   canInviteMemberToAccount,
   canRemoveMemberFromFamily,
+  canManageMemberData,
   isArchivedMember,
+
   useFamilyMembers,
   useMyFamily,
   useMyFamilyId,
