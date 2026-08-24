@@ -50,7 +50,8 @@ describe("transcript guard", () => {
 const makeRequest = () => {
   const form = new FormData();
   form.append("file", new File([new Uint8Array([1, 2, 3])], "voice.webm", { type: "audio/webm" }));
-  return new Request("http://localhost/api/transcribe", { method: "POST", body: form });
+  // Use a lightweight request stub so the parsed File keeps the environment's File class.
+  return { formData: async () => form, headers: new Headers() } as unknown as Request;
 };
 
 async function postTranscribe() {
