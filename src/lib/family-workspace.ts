@@ -8,7 +8,21 @@ export type FamilyMemberRow = {
   member_type: "parent" | "child";
   linked_user_id: string | null;
   created_at: string;
+  /** Set when the person deleted their account: the row is a read-only history trace. */
+  archived_at?: string | null;
 };
+
+/** A GDPR tombstone kept only so past events keep their participants. */
+export function isArchivedMember(
+  member: Pick<FamilyMemberRow, "archived_at"> | null | undefined,
+): boolean {
+  return Boolean(member?.archived_at);
+}
+
+/** Members that may still be assigned new obligations. */
+export function assignableMembers<T extends Pick<FamilyMemberRow, "archived_at">>(rows: T[]): T[] {
+  return rows.filter((m) => !isArchivedMember(m));
+}
 
 export async function fetchMyFamilyId(): Promise<string | null> {
   const { data: userData } = await supabase.auth.getUser();
