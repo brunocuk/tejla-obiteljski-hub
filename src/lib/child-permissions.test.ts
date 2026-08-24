@@ -131,7 +131,10 @@ describe("database guards", () => {
     .reverse()
     .map((f) => readFileSync(join(dir, f), "utf8"));
 
-  const sql = files.find((s) => s.includes("guard_event_reminder_write"));
+  const sql = files.find((s) =>
+    s.includes("FUNCTION public.guard_event_reminder_write()\n RETURNS trigger") ||
+    /CREATE OR REPLACE FUNCTION public\.guard_event_reminder_write\(\)/.test(s),
+  );
 
   it("has the child permissions migration", () => {
     expect(sql).toBeTruthy();
