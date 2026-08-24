@@ -1,19 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
+  GENERAL_MESSAGES,
   NUDGE_KIND,
   SEND_HOURS,
   WEEKLY_LIMIT,
   addDays,
   dedupeKey,
+  isEveningWindow,
+  isMorningWindow,
   isQuietHour,
   normalizeCategory,
+  pickGeneral,
   pickNudge,
   quotaBlocks,
   zagrebNow,
   type CalendarEvent,
   type NudgeContext,
 } from "@/lib/notifications/tejla-messages";
+
 import { TEJLA_MESSAGES_DEFAULT } from "@/lib/notification-prefs";
 
 const ev = (over: Partial<CalendarEvent>): CalendarEvent => ({
@@ -83,11 +88,13 @@ describe("timezone / DST", () => {
   });
 });
 
+const evening = { ...baseNow, hour: 18 };
+
 describe("pravila", () => {
-  it("prazan sutrašnji dan", () => {
-    const pick = pickNudge(ctx());
+  it("prazan sutrašnji dan (večernji prozor)", () => {
+    const pick = pickNudge(ctx({ now: evening }));
     expect(pick?.messageKey).toBe("calm:empty_tomorrow");
-    expect(pick?.body).toBe("Sutra ti je kalendar prazan.");
+    expect(pick?.body).toBe("Sutra nemaš ništa u kalendaru. Da, stvarno. 😌");
   });
 
   it("countdown 3 dana za whitelist kategoriju", () => {
@@ -95,19 +102,20 @@ describe("pravila", () => {
       ctx({ events: [ev({ date: addDays(baseNow.date, 3) }), ev({ id: "e2", date: addDays(baseNow.date, 1), category: "Sastanak" })] }),
     );
     expect(pick?.messageKey).toBe("countdown:putovanje:3");
+    expect(pick?.body).toBe("Još 3 dana do putovanja. 🧳");
   });
 
-  it("countdown 1 dan ima prednost pred praznim sutra", () => {
+  it("countdown 1 dan ima prednost pred ostalim jutarnjim kandidatima", () => {
     const pick = pickNudge({
       now: baseNow,
       events: [ev({ date: addDays(baseNow.date, 1), category: "Koncert" })],
       recent: [],
     });
     expect(pick?.messageKey).toBe("countdown:koncert:1");
-    expect(pick?.body).toContain("koncerta");
+    expect(pick?.body).toBe("Još jedno spavanje do koncerta. 🎶");
   });
 
-  it("miran vikend samo četvrtkom/petkom", () => {
+  it("miran vikend samo četvrtkom/petkom navečer", () => {
     const thursday = pickNudge(ctx({ now: { date: "2026-08-27", hour: 18, weekday: 4 }, recent: [{ messageKey: "calm:empty_tomorrow", date: "2026-08-27" }] }));
     expect(thursday).toBeNull(); // dnevni limit
     const fri = pickNudge(
@@ -116,20 +124,100 @@ describe("pravila", () => {
         events: [ev({ date: "2026-08-29", category: "Putovanje" })],
       }),
     );
-    // vikend nije miran (subota ima događaj) → bira countdown
-    expect(fri?.messageKey).toBe("countdown:putovanje:1");
+    // subota ima događaj → vikend nije miran, a sutra nije prazno → ostaje general
+    expect(fri?.messageKey.startsWith("general:")).toBe(true);
+
+    const quiet = pickNudge(ctx({ now: { date: "2026-08-28", hour: 18, weekday: 5 } }));
+    expect(quiet?.messageKey).toBe("calm:empty_tomorrow");
+    const weekendOnly = pickNudge(
+      ctx({
+        now: { date: "2026-08-27", hour: 18, weekday: 4 },
+        events: [ev({ date: "2026-08-28", category: "Ispit" })],
+      }),
+    );
+    expect(weekendOnly?.messageKey).toBe("calm:quiet_weekend");
+    expect(weekendOnly?.body).toBe("Vikend ti je prazan. Nemoj odmah nešto upisati. 😄");
   });
 
   it("blagdan ima prioritet", () => {
     const pick = pickNudge(ctx({ now: { date: "2026-12-25", hour: 9, weekday: 5 } }));
     expect(pick?.messageKey).toBe("holiday:bozic");
+    expect(pick?.body).toBe("Sretan Božić. Tejla danas šuti. 🎄");
   });
 
   it("dovršeni događaj ne blokira 'prazno sutra'", () => {
     const pick = pickNudge(
-      ctx({ events: [ev({ date: addDays(baseNow.date, 1), completed: true, category: "Ispit" })] }),
+      ctx({ now: evening, events: [ev({ date: addDays(baseNow.date, 1), completed: true, category: "Ispit" })] }),
     );
     expect(pick?.messageKey).toBe("calm:empty_tomorrow");
+  });
+});
+
+describe("vremenski prozori", () => {
+  it("blagdan i countdown su samo jutarnje poruke", () => {
+    expect(pickNudge(ctx({ now: { date: "2026-12-25", hour: 18, weekday: 5 } }))?.messageKey).not.toBe(
+      "holiday:bozic",
+    );
+    const eveningCountdown = pickNudge(
+      ctx({ now: evening, events: [ev({ date: addDays(baseNow.date, 1), category: "Koncert" })] }),
+    );
+    expect(eveningCountdown?.messageKey.startsWith("countdown:")).toBe(false);
+  });
+
+  it("mirni dani i general su samo večernje poruke", () => {
+    expect(pickNudge(ctx({ now: baseNow }))).toBeNull(); // 09:00, nema jutarnjeg konteksta
+    expect(pickNudge(ctx({ now: evening }))?.messageKey).toBe("calm:empty_tomorrow");
+  });
+
+  it("SEND_HOURS pokrivaju oba prozora", () => {
+    expect(SEND_HOURS).toEqual([9, 18]);
+    expect(isMorningWindow(9)).toBe(true);
+    expect(isEveningWindow(18)).toBe(true);
+    expect(isMorningWindow(18)).toBe(false);
+    expect(isEveningWindow(9)).toBe(false);
+  });
+});
+
+describe("općenite poruke", () => {
+  const busyEvening = (recent: NudgeContext["recent"] = []) =>
+    ctx({
+      now: { date: "2026-08-24", hour: 18, weekday: 1 },
+      events: [ev({ date: "2026-08-25", category: "Ispit" })],
+      recent,
+    });
+
+  it("šalje se tek kad nema nijednog kontekstualnog kandidata", () => {
+    expect(pickNudge(busyEvening())?.messageKey.startsWith("general:")).toBe(true);
+    // kontekst uvijek pobjeđuje
+    expect(pickNudge(ctx({ now: evening }))?.messageKey).toBe("calm:empty_tomorrow");
+  });
+
+  it("najviše jedna općenita poruka u 21 dan", () => {
+    const recent = [{ messageKey: "general:tomorrow", date: addDays("2026-08-24", -14) }];
+    expect(pickNudge(busyEvening(recent))).toBeNull();
+    const old = [{ messageKey: "general:tomorrow", date: addDays("2026-08-24", -22) }];
+    expect(pickNudge(busyEvening(old))?.messageKey.startsWith("general:")).toBe(true);
+  });
+
+  it("ulazi u limit 2 poruke u 7 dana", () => {
+    const recent = [
+      { messageKey: "holiday:bozic", date: addDays("2026-08-24", -2) },
+      { messageKey: "countdown:koncert:3", date: addDays("2026-08-24", -4) },
+    ];
+    expect(pickNudge(busyEvening(recent))).toBeNull();
+  });
+
+  it("rotacija je deterministička i bez AI-ja", () => {
+    expect(pickGeneral("2026-08-24").key).toBe(pickGeneral("2026-08-24").key);
+    const keys = new Set([0, 1, 2, 3, 4].map((i) => pickGeneral(addDays("2026-08-24", i)).key));
+    expect(keys.size).toBe(GENERAL_MESSAGES.length);
+    expect(GENERAL_MESSAGES.map((m) => m.key)).toEqual([
+      "general:take_time",
+      "general:not_everything_today",
+      "general:tomorrow",
+      "general:just_because",
+      "general:quiet_day",
+    ]);
   });
 });
 
@@ -151,11 +239,12 @@ describe("whitelist i privatnost", () => {
     const pick = pickNudge(
       ctx({ events: [ev({ date: addDays(baseNow.date, 3), category: "Rođendan" })] }),
     );
-    expect(pick?.body).toBe("Još 3 dana do rođendana.");
+    expect(pick?.body).toBe("Još 3 dana do rođendana. 🎂");
     const src = readFileSync("src/lib/notifications/tejla-messages.ts", "utf8");
     expect(src).not.toContain("event.title");
   });
 });
+
 
 describe("kvote i deduplikacija", () => {
   const candidate = { messageKey: "calm:empty_tomorrow", bucket: "2026-08-25", body: "x", deepLink: "/", subjectId: null };
