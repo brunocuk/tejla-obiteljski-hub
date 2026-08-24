@@ -14,8 +14,9 @@ export function TejlaMessagesToggle() {
       <div className="min-w-0 flex-1">
         <p className="text-[15px] font-semibold">Tejline poruke</p>
         <p className="mt-0.5 text-sm text-muted-foreground">
-          Povremene korisne i lijepe poruke povezane s tvojim planovima.
+          Povremene poruke izvan tvojih podsjetnika.
         </p>
+
       </div>
       <button
         type="button"

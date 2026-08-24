@@ -13,13 +13,29 @@ import {
   type Platform,
 } from "@/lib/pwa-install";
 import { useMyUserId } from "@/lib/family-workspace";
+import { useSetTejlaMessages, useTejlaMessagesEnabled } from "@/lib/notification-prefs";
 
 const storageKey = (uid: string) => `tejla-onboarding-${uid}`;
+/** Separate from the preference: records that the question was asked at all. */
+const messagesAskedKey = (uid: string) => `tejla-onboarding-messages-${uid}`;
 
 export function onboardingState(uid: string): "done" | "skipped" | null {
   if (typeof window === "undefined") return null;
   const v = window.localStorage.getItem(storageKey(uid));
   return v === "done" || v === "skipped" ? v : null;
+}
+
+export function tejlaMessagesAnswered(uid: string): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(messagesAskedKey(uid)) === "answered";
+}
+
+export function markTejlaMessagesAnswered(uid: string) {
+  try {
+    window.localStorage.setItem(messagesAskedKey(uid), "answered");
+  } catch {
+    /* private mode — worst case the step shows again on a fresh session */
+  }
 }
 
 function setOnboardingState(uid: string, value: "done" | "skipped") {
@@ -29,6 +45,7 @@ function setOnboardingState(uid: string, value: "done" | "skipped") {
     /* private mode — the gate simply shows again next time */
   }
 }
+
 
 function StepCard({
   index,
@@ -214,7 +231,76 @@ export function NotificationsStep({ index = 2 }: { index?: number }) {
   );
 }
 
-/** Both steps, reusable in Postavke. */
+/**
+ * Step 3 — Tejla's occasional messages. Pure preference write, never touches
+ * push permission or the user's own reminders.
+ */
+export function TejlaMessagesStep({ index, uid }: { index: number; uid: string }) {
+  const { data: enabled, isLoading } = useTejlaMessagesEnabled();
+  const setEnabled = useSetTejlaMessages();
+  const [answered, setAnswered] = useState(false);
+
+  // A device without local onboarding state must respect the stored preference.
+  if (enabled === true) {
+    return (
+      <StepCard index={index} title="Tejline poruke ✨" done>
+        <p className="text-sm text-muted-foreground">
+          Uključene su. Možeš ih isključiti na ekranu Članovi.
+        </p>
+      </StepCard>
+    );
+  }
+
+  if (answered) {
+    return (
+      <StepCard index={index} title="Tejline poruke ✨" done>
+        <p className="text-sm text-muted-foreground">
+          U redu, bez njih. Kasnije ih uključiš na ekranu Članovi.
+        </p>
+      </StepCard>
+    );
+  }
+
+  return (
+    <StepCard index={index} title="Tejline poruke ✨" done={false}>
+      <p className="text-sm text-muted-foreground">Ovo nisu podsjetnici za tvoje obveze.</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Tejla ti ponekad pošalje lijepu ili korisnu poruku povezanu s tvojim planovima — primjerice
+        da se bliži putovanje ili da ti je sutra kalendar prazan.
+      </p>
+      <button
+        type="button"
+        disabled={isLoading || setEnabled.isPending}
+        onClick={async () => {
+          await setEnabled.mutateAsync(true);
+          markTejlaMessagesAnswered(uid);
+          setAnswered(true);
+        }}
+        className="mt-3 w-full rounded-2xl px-4 py-3 text-sm font-bold text-primary-foreground disabled:opacity-60"
+        style={{ backgroundImage: "var(--gradient-primary)" }}
+      >
+        Želim Tejline poruke
+      </button>
+      <button
+        type="button"
+        disabled={setEnabled.isPending}
+        onClick={() => {
+          // "Ne sada" writes nothing — the default stays false.
+          markTejlaMessagesAnswered(uid);
+          setAnswered(true);
+        }}
+        className="mt-2 w-full rounded-2xl border border-border px-4 py-3 text-sm font-semibold disabled:opacity-60"
+      >
+        Ne sada
+      </button>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Podsjetnici za tvoje obveze rade neovisno o ovoj postavci.
+      </p>
+    </StepCard>
+  );
+}
+
+/** Install + notifications, reusable in Postavke. Tejla messages live in Članovi. */
 export function SetupSteps() {
   const [webClient, setWebClient] = useState(true);
   useEffect(() => setWebClient(getClientKind() === "web"), []);
@@ -226,7 +312,15 @@ export function SetupSteps() {
   );
 }
 
-function OnboardingScreen({ onDone, onSkip }: { onDone: () => void; onSkip: () => void }) {
+function OnboardingScreen({
+  uid,
+  onDone,
+  onSkip,
+}: {
+  uid: string;
+  onDone: () => void;
+  onSkip: () => void;
+}) {
   const [ready, setReady] = useState(false);
   const [bothDone, setBothDone] = useState(false);
 
@@ -236,6 +330,7 @@ function OnboardingScreen({ onDone, onSkip }: { onDone: () => void; onSkip: () =
     setWebClient(getClientKind() === "web");
     setBothDone(!installStepApplies() && pushStatus() === "granted");
   }, []);
+
 
   useEffect(() => {
     refresh();
@@ -265,7 +360,7 @@ function OnboardingScreen({ onDone, onSkip }: { onDone: () => void; onSkip: () =
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-10">
       <h1 className="text-[28px] font-bold leading-tight tracking-tight">
-        {webClient ? "Još samo dva koraka" : "Još samo jedan korak"}
+        {webClient ? "Još samo par koraka" : "Još samo dva koraka"}
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Da ti se Tejla može javiti kad je zatrebaš.
@@ -274,6 +369,7 @@ function OnboardingScreen({ onDone, onSkip }: { onDone: () => void; onSkip: () =
       <div className="mt-6 space-y-3">
         {webClient ? <InstallStep /> : null}
         <NotificationsStep index={webClient ? 2 : 1} />
+        <TejlaMessagesStep index={webClient ? 3 : 2} uid={uid} />
       </div>
 
       <button
@@ -298,7 +394,7 @@ function OnboardingScreen({ onDone, onSkip }: { onDone: () => void; onSkip: () =
   );
 }
 
-/** Shows the two-step setup once per account, right after the first sign-in. */
+/** Shows the setup steps once per account, right after the first sign-in. */
 export function OnboardingGate({ children }: { children: ReactNode }) {
   const { data: uid } = useMyUserId();
   const [decided, setDecided] = useState<"done" | "skipped" | null | undefined>(undefined);
@@ -310,8 +406,10 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
       setDecided(stored);
       return;
     }
-    // Nothing left to set up (installed web app, or a native client) — skip.
-    if (!installStepApplies() && pushStatus() === "granted") {
+    // Nothing left to set up AND the Tejla-messages question already answered.
+    // The answer flag is separate from the preference itself, because "false"
+    // is a legitimate answer ("Ne sada").
+    if (!installStepApplies() && pushStatus() === "granted" && tejlaMessagesAnswered(uid)) {
       setOnboardingState(uid, "done");
       setDecided("done");
       return;
@@ -324,6 +422,8 @@ export function OnboardingGate({ children }: { children: ReactNode }) {
 
   return (
     <OnboardingScreen
+      uid={uid}
+
       onDone={() => {
         setOnboardingState(uid, "done");
         setDecided("done");
