@@ -83,6 +83,7 @@ export function DeleteAccountSheet({ onClose }: { onClose: () => void }) {
               <ul className="list-disc space-y-1 pl-5">
                 <li>tvoja prijava i profil (ime, e-mail)</li>
                 <li>tvoje članstvo u obiteljskom prostoru</li>
+                <li>obveze i događaji u kojima si bio jedini sudionik, sa svim podsjetnicima</li>
                 <li>tvoje obavijesti i uređaji za push poruke</li>
                 <li>tvoje osobne postavke</li>
               </ul>
@@ -93,10 +94,12 @@ export function DeleteAccountSheet({ onClose }: { onClose: () => void }) {
                 </p>
               ) : data?.has_family ? (
                 <p>
-                  Zajednički obiteljski podaci ostaju drugim članovima. Skidaš se s budućih obaveza,
-                  a povijesni zapisi ostaju bez tvojih osobnih podataka.
+                  Obveze i događaji u kojima si bio jedini sudionik trajno se brišu. Zajednički
+                  obiteljski podaci ostaju drugim članovima bez tvojih osobnih podataka: skidaš se s
+                  budućih obaveza, a na povijesnim zapisima ostaješ kao „Bivši član”.
                 </p>
               ) : null}
+
             </div>
 
             {blocked ? (
