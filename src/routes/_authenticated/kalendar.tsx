@@ -1,4 +1,10 @@
-import { formatCroatianDate, formatMonthTitle, formatTime, formatWeekday } from "@/lib/date-hr";
+import {
+  daysFromToday,
+  formatCroatianDate,
+  formatMonthTitle,
+  formatTime,
+  formatWeekday,
+} from "@/lib/date-hr";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
@@ -48,13 +54,27 @@ function currentMonth() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 }
 
-function KalendarPage() {
+export function calendarEventVisible(
+  event: CalEvent,
+  options: { filter: string; showPast: boolean; now: Date },
+): boolean {
+  const memberMatch = options.filter === "Svi" || event.members.includes(options.filter);
+  if (!memberMatch) return false;
+  if (!event.date) return true; // undated always stay visible
+  if (options.showPast) return true;
+  // Invalid dates are treated as today/future so they are not silently lost.
+  return (daysFromToday(event.date, options.now) ?? 0) >= 0;
+}
+
+export function KalendarPage() {
   const { data: familyId } = useMyFamilyId();
   const { data: members } = useFamilyMembers(familyId);
   const { data: events, isPending } = useFamilyEvents(familyId);
   const { data: reminderMap = {} } = useFamilyReminders(familyId);
   const [cursor, setCursor] = useState(currentMonth);
   const [filter, setFilter] = useState("Svi");
+  const [showPast, setShowPast] = useState(false);
+  const now = useMemo(() => new Date(), []);
   const [openId, setOpenId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const openEvent: FamilyEvent | null = (events ?? []).find((e) => e.id === openId) ?? null;
@@ -86,7 +106,7 @@ function KalendarPage() {
     [events],
   );
 
-  const visible = allEvents.filter((e) => filter === "Svi" || e.members.includes(filter));
+  const visible = allEvents.filter((e) => calendarEventVisible(e, { filter, showPast, now }));
   const inMonth = visible
     .filter((e) => e.date && monthKey(e.date) === cursor)
     .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
@@ -165,6 +185,18 @@ function KalendarPage() {
             </button>
           );
         })}
+      </div>
+
+      <div className="mb-5 flex justify-end">
+        <button
+          type="button"
+          aria-pressed={showPast}
+          aria-label={showPast ? "Sakrij prošle obaveze" : "Prikaži prošle obaveze"}
+          onClick={() => setShowPast((s) => !s)}
+          className="text-xs font-medium text-muted-foreground transition-colors active:opacity-60"
+        >
+          {showPast ? "Sakrij prošle" : "Prikaži prošle"}
+        </button>
       </div>
 
       {isPending ? (
