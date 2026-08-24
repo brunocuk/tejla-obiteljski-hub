@@ -470,7 +470,10 @@ function ClanoviPage() {
         </>
       ) : null}
 
+      <TejlaMessagesToggle />
+
       <button
+
         type="button"
         onClick={handleSignOut}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-3xl border border-border px-6 py-3 text-sm font-semibold text-muted-foreground"
