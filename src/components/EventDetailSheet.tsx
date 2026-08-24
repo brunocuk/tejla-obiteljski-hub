@@ -10,7 +10,7 @@ import {
   type FamilyEvent,
 } from "@/lib/family-events";
 import {
-  isArchivedMember,
+  eventAssigneeChoices,
   useFamilyMembers,
   useMyFamilyId,
   useMyUserId,
@@ -47,9 +47,7 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
   const { data: familyId } = useMyFamilyId();
   const { data: allMembers = [] } = useFamilyMembers(familyId);
   // Former members stay visible on events they already belong to, but cannot be added.
-  const members = allMembers.filter(
-    (m) => !isArchivedMember(m) || event.member_ids.includes(m.id),
-  );
+  const members = eventAssigneeChoices(allMembers, event.member_ids);
   const { data: userId } = useMyUserId();
   const { data: savedReminders = [] } = useEventReminders(event.id);
   const { data: allEvents = [] } = useFamilyEvents(familyId);

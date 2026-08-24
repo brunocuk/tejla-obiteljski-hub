@@ -44,6 +44,9 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   addFamilyMember,
   inviteResultMessage,
+  canEditMemberName,
+  canInviteMemberToAccount,
+  canRemoveMemberFromFamily,
   isArchivedMember,
   useFamilyMembers,
   useMyFamily,
@@ -322,7 +325,7 @@ function ClanoviPage() {
                     }
                     onManage={isAdult ? () => setManageFor(p) : undefined}
                     onEdit={
-                      !isArchivedMember(p) && myUserId && p.linked_user_id === myUserId
+                      canEditMemberName(p, myUserId)
                         ? () => {
                             setEditingName(p.name ?? "");
                             setNameError("");
@@ -353,7 +356,7 @@ function ClanoviPage() {
                     rule={isArchivedMember(k) ? undefined : childRule(k)}
                     onManage={isAdult ? () => setManageFor(k) : undefined}
                     onEdit={
-                      !isArchivedMember(k) && myUserId && k.linked_user_id === myUserId
+                      canEditMemberName(k, myUserId)
                         ? () => {
                             setEditingName(k.name ?? "");
                             setNameError("");
@@ -547,7 +550,7 @@ function ClanoviPage() {
           member={manageFor}
           familyId={familyId ?? ""}
           allMembers={members}
-          canInvite={isOwner && !isArchivedMember(manageFor)}
+          canInvite={canInviteMemberToAccount(manageFor, Boolean(isOwner))}
           onInvite={() => {
             const target = manageFor;
             setManageFor(null);
@@ -562,9 +565,7 @@ function ClanoviPage() {
             setDataFor(target);
           }}
           onClose={() => setManageFor(null)}
-          canRemove={
-            isAdult && manageFor.linked_user_id !== myUserId && !isArchivedMember(manageFor)
-          }
+          canRemove={canRemoveMemberFromFamily(manageFor, isAdult, myUserId)}
           onRemoved={async () => {
             setManageFor(null);
             await queryClient.invalidateQueries({ queryKey: ["family-members", familyId] });
