@@ -49,9 +49,10 @@ export const deleteMyAccount = createServerFn({ method: "POST" })
       throw new Error("Račun je pripremljen za brisanje, ali nije dovršen. Pokušaj ponovno.");
     }
 
+    // Audit trail keeps only request id, status and timestamps - no link to the person.
     await supabaseAdmin
       .from("account_deletion_requests")
-      .update({ status: "completed", completed_at: new Date().toISOString() })
+      .update({ status: "completed", completed_at: new Date().toISOString(), user_id: null })
       .eq("user_id", userId);
 
     return { ok: true };
@@ -75,7 +76,7 @@ export const finishPendingAccountDeletion = createServerFn({ method: "POST" })
 
     await supabaseAdmin
       .from("account_deletion_requests")
-      .update({ status: "completed", completed_at: new Date().toISOString() })
+      .update({ status: "completed", completed_at: new Date().toISOString(), user_id: null })
       .eq("user_id", context.userId);
 
     return { pending: false, finished: true };
