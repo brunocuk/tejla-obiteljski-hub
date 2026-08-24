@@ -669,6 +669,10 @@ export type Database = {
         Args: { _event_id: string; _family_id: string }
         Returns: boolean
       }
+      can_toggle_event_row: {
+        Args: { _event_id: string; _family_id: string }
+        Returns: boolean
+      }
       can_view_event: { Args: { _event_id: string }; Returns: boolean }
       can_view_event_row: {
         Args: { _event_id: string; _family_id: string }
