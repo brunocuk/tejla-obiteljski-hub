@@ -65,11 +65,11 @@ describe.skipIf(!hasDb)("RLS policy helper functions", () => {
     const acl = psql(
       "select has_function_privilege('authenticated','public.can_access_event(uuid)','EXECUTE')",
     ).trim();
-    expect(acl).toBe("true");
+    expect(acl).toBe("t");
 
     const anon = psql(
       "select has_function_privilege('anon','public.can_access_event(uuid)','EXECUTE')",
     ).trim();
-    expect(anon).toBe("false");
+    expect(anon).toBe("f");
   });
 });
