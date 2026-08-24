@@ -23,6 +23,7 @@ import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as BetaInviteTokenRouteImport } from './routes/beta-invite.$token'
 import { Route as ApiPublicVapidKeyRouteImport } from './routes/api/public/vapid-key'
 import { Route as ApiPublicHooksSendRemindersRouteImport } from './routes/api/public/hooks/send-reminders'
+import { Route as ApiPublicHooksTejlaMessagesRouteImport } from './routes/api/public/hooks/tejla-messages'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 
@@ -96,6 +97,12 @@ const ApiPublicHooksSendRemindersRoute =
     path: '/api/public/hooks/send-reminders',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksTejlaMessagesRoute =
+  ApiPublicHooksTejlaMessagesRouteImport.update({
+    id: '/api/public/hooks/tejla-messages',
+    path: '/api/public/hooks/tejla-messages',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
   id: '/lovable/email/auth/preview',
   path: '/lovable/email/auth/preview',
@@ -121,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/beta-invite/$token': typeof BetaInviteTokenRoute
   '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
   '/api/public/hooks/send-reminders': typeof ApiPublicHooksSendRemindersRoute
+  '/api/public/hooks/tejla-messages': typeof ApiPublicHooksTejlaMessagesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
 }
@@ -138,6 +146,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
   '/api/public/hooks/send-reminders': typeof ApiPublicHooksSendRemindersRoute
+  '/api/public/hooks/tejla-messages': typeof ApiPublicHooksTejlaMessagesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
 }
@@ -157,6 +166,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
   '/api/public/hooks/send-reminders': typeof ApiPublicHooksSendRemindersRoute
+  '/api/public/hooks/tejla-messages': typeof ApiPublicHooksTejlaMessagesRoute
   '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
   '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
 }
@@ -176,6 +186,7 @@ export interface FileRouteTypes {
     | '/beta-invite/$token'
     | '/api/public/vapid-key'
     | '/api/public/hooks/send-reminders'
+    | '/api/public/hooks/tejla-messages'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -193,6 +204,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/public/vapid-key'
     | '/api/public/hooks/send-reminders'
+    | '/api/public/hooks/tejla-messages'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
   id:
@@ -211,6 +223,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/api/public/vapid-key'
     | '/api/public/hooks/send-reminders'
+    | '/api/public/hooks/tejla-messages'
     | '/lovable/email/auth/preview'
     | '/lovable/email/auth/webhook'
   fileRoutesById: FileRoutesById
@@ -224,6 +237,7 @@ export interface RootRouteChildren {
   BetaInviteTokenRoute: typeof BetaInviteTokenRoute
   ApiPublicVapidKeyRoute: typeof ApiPublicVapidKeyRoute
   ApiPublicHooksSendRemindersRoute: typeof ApiPublicHooksSendRemindersRoute
+  ApiPublicHooksTejlaMessagesRoute: typeof ApiPublicHooksTejlaMessagesRoute
   LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
   LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
 }
@@ -328,6 +342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSendRemindersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/tejla-messages': {
+      id: '/api/public/hooks/tejla-messages'
+      path: '/api/public/hooks/tejla-messages'
+      fullPath: '/api/public/hooks/tejla-messages'
+      preLoaderRoute: typeof ApiPublicHooksTejlaMessagesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lovable/email/auth/preview': {
       id: '/lovable/email/auth/preview'
       path: '/lovable/email/auth/preview'
@@ -375,6 +396,7 @@ const rootRouteChildren: RootRouteChildren = {
   BetaInviteTokenRoute: BetaInviteTokenRoute,
   ApiPublicVapidKeyRoute: ApiPublicVapidKeyRoute,
   ApiPublicHooksSendRemindersRoute: ApiPublicHooksSendRemindersRoute,
+  ApiPublicHooksTejlaMessagesRoute: ApiPublicHooksTejlaMessagesRoute,
   LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
   LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
 }

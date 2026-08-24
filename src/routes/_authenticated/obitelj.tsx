@@ -17,6 +17,8 @@ import {
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { MemberDataSheet } from "@/components/MemberDataSheet";
 import { DeleteAccountSheet } from "@/components/DeleteAccountSheet";
+import { TejlaMessagesToggle } from "@/components/TejlaMessagesToggle";
+
 import { removeFamilyMember } from "@/lib/member-data";
 import { supabase } from "@/integrations/supabase/client";
 import { memberStyle } from "@/lib/family";
@@ -470,7 +472,10 @@ function ClanoviPage() {
         </>
       ) : null}
 
+      <TejlaMessagesToggle />
+
       <button
+
         type="button"
         onClick={handleSignOut}
         className="mt-4 flex w-full items-center justify-center gap-2 rounded-3xl border border-border px-6 py-3 text-sm font-semibold text-muted-foreground"
