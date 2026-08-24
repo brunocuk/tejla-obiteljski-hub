@@ -64,6 +64,15 @@ export function canAssignNewObligation(member: MemberPolicyInput): boolean {
   return !isArchivedMember(member);
 }
 
+/**
+ * UI policy: whose "Podaci i brisanje" section is shown. Archived tombstones
+ * exist only to keep past events' participants, so their data can't be purged.
+ */
+export function canManageMemberData(member: MemberPolicyInput): boolean {
+  return !isArchivedMember(member);
+}
+
+
 export async function fetchMyFamilyId(): Promise<string | null> {
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
