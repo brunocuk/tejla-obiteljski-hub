@@ -144,16 +144,19 @@ describe("Onboarding — Tejline poruke step", () => {
   });
 
   it("status after enabling shows the enabled state with a check", async () => {
-    renderGate();
+    const { unmount } = renderGate();
     await userEvent.click(await screen.findByRole("button", { name: "Želim Tejline poruke" }));
     await waitFor(() => expect(mocks.setEnabled).toHaveBeenCalledWith(true));
-    // The preference query now resolves to true on any device.
+    unmount();
+    // The preference now resolves to true, so the status reflects the DB value.
     mocks.enabled = true;
-    const title = await screen.findByText(/Tejline poruke/);
+    renderGate();
+    const title = await screen.findByText("Tejline poruke su uključene ✨");
     const card = title.closest(".card-soft")!;
     expect(card.textContent).toContain("Povremene poruke izvan tvojih podsjetnika.");
     expect(card.querySelector("svg")).not.toBeNull();
   });
+
 
 
   it("auto-skip does not fire before the messages question was answered", async () => {
