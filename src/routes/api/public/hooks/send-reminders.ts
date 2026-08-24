@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { buildPushPayload } from "@block65/webcrypto-web-push";
+import { rejectUnauthorizedCron } from "@/lib/cron-auth";
+
 
 type EventRow = {
   id: string;
@@ -45,12 +47,9 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = request.headers.get("apikey");
-        const expected =
-          process.env["SUPABASE_ANON_KEY"] ?? process.env["SUPABASE_PUBLISHABLE_KEY"] ?? "";
-        if (!expected || apiKey !== expected) {
-          return new Response("Unauthorized", { status: 401 });
-        }
+        const denied = rejectUnauthorizedCron(request);
+        if (denied) return denied;
+
 
         const vapid = {
           subject: process.env["VAPID_SUBJECT"] ?? "mailto:noreply@example.com",

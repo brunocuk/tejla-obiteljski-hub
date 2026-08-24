@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SEND_HOURS, zagrebNow } from "@/lib/notifications/tejla-messages";
+import { rejectUnauthorizedCron } from "@/lib/cron-auth";
 
 /**
  * Scheduler endpoint for "Tejline poruke".
@@ -12,12 +13,9 @@ export const Route = createFileRoute("/api/public/hooks/tejla-messages")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const apiKey = request.headers.get("apikey");
-        const expected =
-          process.env["SUPABASE_ANON_KEY"] ?? process.env["SUPABASE_PUBLISHABLE_KEY"] ?? "";
-        if (!expected || apiKey !== expected) {
-          return new Response("Unauthorized", { status: 401 });
-        }
+        const denied = rejectUnauthorizedCron(request);
+        if (denied) return denied;
+
 
         const now = zagrebNow(new Date());
         if (!SEND_HOURS.includes(now.hour)) {
