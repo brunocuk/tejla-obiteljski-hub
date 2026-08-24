@@ -241,11 +241,12 @@ export function TejlaMessagesStep({ index, uid }: { index: number; uid: string }
   const [answered, setAnswered] = useState(false);
 
   // A device without local onboarding state must respect the stored preference.
+  // The status always mirrors the real preference, never just "step completed".
   if (enabled === true) {
     return (
-      <StepCard index={index} title="Tejline poruke ✨" done>
+      <StepCard index={index} title="Tejline poruke su uključene ✨" done>
         <p className="text-sm text-muted-foreground">
-          Uključene su. Možeš ih isključiti na ekranu Članovi.
+          Povremene poruke izvan tvojih podsjetnika.
         </p>
       </StepCard>
     );
@@ -253,13 +254,14 @@ export function TejlaMessagesStep({ index, uid }: { index: number; uid: string }
 
   if (answered) {
     return (
-      <StepCard index={index} title="Tejline poruke ✨" done>
+      <StepCard index={index} title="Tejline poruke nisu uključene" done={false} neutral>
         <p className="text-sm text-muted-foreground">
-          U redu, bez njih. Kasnije ih uključiš na ekranu Članovi.
+          Možeš ih uključiti kasnije na ekranu Članovi.
         </p>
       </StepCard>
     );
   }
+
 
   return (
     <StepCard index={index} title="Tejline poruke ✨" done={false}>
