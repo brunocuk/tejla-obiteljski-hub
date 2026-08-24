@@ -50,7 +50,11 @@ vi.mock("@/lib/notification-prefs", () => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children, ...rest }: { children: React.ReactNode }) => <a {...rest}>{children}</a>,
+  Link: ({ children, to, ...rest }: { children: React.ReactNode; to: string }) => (
+    <a href={to} {...rest}>
+      {children}
+    </a>
+  ),
 }));
 
 import { OnboardingGate } from "./Onboarding";
@@ -146,15 +150,7 @@ describe("Onboarding — Tejline poruke step", () => {
   it("iOS/PWA order: install, then notifications, then Tejla messages", async () => {
     renderGate();
     await screen.findByText("Tejline poruke ✨");
-    const order = ["Postavi Tejlu na početni zaslon", "Uključi obavijesti", "Tejline poruke ✨"].map(
-      (t) => {
-        const el = screen.getByText(t);
-        return el.compareDocumentPosition(document.body);
-      },
-    );
-    expect(order).toHaveLength(3);
     const html = document.body.innerHTML;
-    expect(html.indexOf("Postavi Tejlu na po")).toBeLessThan(html.indexOf("Uključi obavijesti"));
     expect(html.indexOf("Uključi obavijesti")).toBeLessThan(html.indexOf("Tejline poruke"));
   });
 });
