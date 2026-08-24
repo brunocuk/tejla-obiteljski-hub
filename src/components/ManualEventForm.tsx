@@ -3,8 +3,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { saveManualEvent } from "@/lib/family-events";
 import {
   assignableMembers,
+  assigneeChoicesForActor,
+  isAdultRole,
+  reminderRecipientModes,
   useFamilyMembers,
   useMyFamilyId,
+  useMyFamilyRole,
   useMyUserId,
 } from "@/lib/family-workspace";
 import { ReminderEditor } from "@/components/ReminderEditor";
@@ -25,8 +29,16 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
   const { data: familyId } = useMyFamilyId();
   const { data: allMembers = [] } = useFamilyMembers(familyId);
   // Archived (former) members are history only and cannot take new obligations.
-  const members = assignableMembers(allMembers);
   const { data: userId } = useMyUserId();
+  const { data: myRole } = useMyFamilyRole();
+  const isAdult = isAdultRole(myRole);
+  const myMemberId = allMembers.find((m) => m.linked_user_id === userId)?.id ?? null;
+  // A child may only take on obligations themselves.
+  const members = assigneeChoicesForActor(assignableMembers(allMembers), {
+    isAdult,
+    myUserId: userId,
+    myMemberId,
+  });
   const [form, setForm] = useState({
     title: "",
     date: "",
@@ -45,9 +57,17 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
   const [recipientUserIds, setRecipientUserIds] = useState<string[]>([]);
   const [touched, setTouched] = useState(false);
 
-  const adults = members
-    .filter((m) => m.member_type === "parent" && m.linked_user_id)
-    .map((m) => ({ name: m.name, userId: m.linked_user_id as string }));
+  const adults = isAdult
+    ? members
+        .filter((m) => m.member_type === "parent" && m.linked_user_id)
+        .map((m) => ({ name: m.name, userId: m.linked_user_id as string }))
+    : [];
+
+  // Children always assign to themselves, so the choice is made up front.
+  useEffect(() => {
+    if (isAdult || !myMemberId) return;
+    setSelected((prev) => (prev.length > 0 ? prev : [myMemberId]));
+  }, [isAdult, myMemberId]);
 
   // Suggested reminders follow the category/date/time until the user edits them.
   useEffect(() => {
@@ -234,6 +254,7 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
         }}
         isTask={kind === "task"}
         recipient={recipient}
+        allowedRecipientModes={reminderRecipientModes(isAdult)}
         recipientUserIds={recipientUserIds}
         adults={adults}
         onRecipientChange={(mode, ids) => {
