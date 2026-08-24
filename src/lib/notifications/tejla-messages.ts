@@ -126,25 +126,53 @@ export function normalizeCategory(raw: string | null | undefined): CountdownCate
 /* ------------------------------------------------------------------ */
 
 const COUNTDOWN_TEXT: Record<CountdownCategory, { d3: string; d1: string }> = {
-  putovanje: { d3: "Još 3 dana do putovanja.", d1: "Još samo jedno spavanje do putovanja." },
-  godišnji: { d3: "Još malo pa godišnji.", d1: "Sutra počinje godišnji." },
-  koncert: { d3: "Još 3 dana do koncerta.", d1: "Još samo jedno spavanje do koncerta." },
-  rođendan: { d3: "Još 3 dana do rođendana.", d1: "Sutra je rođendan." },
+  putovanje: { d3: "Još 3 dana do putovanja. 🧳", d1: "Još jedno spavanje do putovanja. 🧳" },
+  godišnji: { d3: "Još malo pa godišnji.", d1: "Sutra počinje godišnji. Konačno. 😌" },
+  koncert: { d3: "Još 3 dana do koncerta. 🎶", d1: "Još jedno spavanje do koncerta. 🎶" },
+  rođendan: { d3: "Još 3 dana do rođendana. 🎂", d1: "Sutra je rođendan. 🎂" },
   izlet: { d3: "Još 3 dana do izleta.", d1: "Sutra je izlet." },
 };
 
 /** Selected Croatian holidays with a fixed, non-sensitive greeting. */
 const HOLIDAYS: Record<string, { key: string; body: string }> = {
-  "01-01": { key: "holiday:nova-godina", body: "Sretna nova godina. Neka bude mirna i lijepa." },
-  "05-01": { key: "holiday:praznik-rada", body: "Praznik rada — nadam se da danas ništa ne moraš." },
-  "06-25": { key: "holiday:dan-drzavnosti", body: "Dan državnosti. Lijep dan za nešto obiteljsko." },
-  "08-05": { key: "holiday:dan-pobjede", body: "Dan pobjede i domovinske zahvalnosti." },
-  "08-15": { key: "holiday:velika-gospa", body: "Velika Gospa. Ugodan blagdan." },
-  "11-01": { key: "holiday:svi-sveti", body: "Svi sveti. Miran dan." },
-  "12-24": { key: "holiday:badnjak", body: "Badnjak je. Uživaj u večeri s obitelji." },
-  "12-25": { key: "holiday:bozic", body: "Sretan Božić." },
-  "12-31": { key: "holiday:stara-godina", body: "Zadnji dan godine. Lijepo ga zaokruži." },
+  "01-01": { key: "holiday:nova-godina", body: "Sretna Nova! ✨ Danas ne moraš ništa planirati." },
+  "05-01": { key: "holiday:praznik-rada", body: "Danas je praznik rada. Naglasak na praznik. 😌" },
+  "06-25": {
+    key: "holiday:dan-drzavnosti",
+    body: "Danas je praznik. Nadam se da si to već znala. 😄",
+  },
+  "08-05": { key: "holiday:dan-pobjede", body: "Danas je praznik. Tejla danas nema ništa za dodati." },
+  "08-15": { key: "holiday:velika-gospa", body: "Danas je blagdan. Uživaj u slobodnom danu." },
+  "11-01": { key: "holiday:svi-sveti", body: "Danas samo polako. 🤍" },
+  "12-24": { key: "holiday:badnjak", body: "Badnjak je. Za danas je dosta planiranja. 🎄" },
+  "12-25": { key: "holiday:bozic", body: "Sretan Božić. Tejla danas šuti. 🎄" },
+  "12-31": { key: "holiday:stara-godina", body: "Zadnji dan godine. Ostalo može čekati sutra. ✨" },
 };
+
+/**
+ * Lowest-priority pool. Never overrides a contextual message and is capped at
+ * one per GENERAL_COOLDOWN_DAYS. Rotation is deterministic (date-derived), so
+ * no AI call and no randomness.
+ */
+export const GENERAL_MESSAGES: { key: string; body: string }[] = [
+  { key: "general:take_time", body: "Jesi danas ostavila malo vremena i za sebe?" },
+  { key: "general:not_everything_today", body: "Ne mora baš sve stati u danas." },
+  { key: "general:tomorrow", body: "Ako nešto može čekati sutra — neka čeka." },
+  { key: "general:just_because", body: "Napravi danas nešto samo zato što ti se radi." },
+  { key: "general:quiet_day", body: "Danas nema zadatka. Samo ti želim miran dan." },
+];
+
+/** At most one general message per user in this many days. */
+export const GENERAL_COOLDOWN_DAYS = 21;
+
+export const isGeneralKey = (key: string) => key.startsWith("general:");
+
+/** Morning window (holidays + countdowns) vs evening window (calm + general). */
+export const MORNING_HOUR = 9;
+export const EVENING_HOUR = 18;
+export const isMorningWindow = (hour: number) => hour >= QUIET_END_HOUR && hour < 12;
+export const isEveningWindow = (hour: number) => hour >= 12 && hour < QUIET_START_HOUR;
+
 
 export type CalendarEvent = {
   id: string;
