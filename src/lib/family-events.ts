@@ -38,6 +38,8 @@ export type FamilyEvent = {
   completed_at: string | null;
   /** Event this task belongs to ("Prije toga"). */
   linked_event_id: string | null;
+  /** Who entered it; decides what a child member may change. */
+  created_by: string | null;
 };
 
 const asText = (v: string | null | undefined) => (v ?? "").trim();
