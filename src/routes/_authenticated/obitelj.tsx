@@ -47,7 +47,9 @@ import {
   canEditMemberName,
   canInviteMemberToAccount,
   canRemoveMemberFromFamily,
+  canManageMemberData,
   isArchivedMember,
+
   useFamilyMembers,
   useMyFamily,
   useMyFamilyId,
@@ -803,20 +805,26 @@ function MemberManageSheet({
           </>
         )}
 
-        <h3 className="pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          Podaci i brisanje
-        </h3>
-        <button
-          type="button"
-          onClick={onOpenData}
-          className="flex w-full items-center justify-between gap-2 rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-accent-foreground"
-        >
-          <span className="flex items-center gap-2">
-            <Database className="size-4" strokeWidth={2.2} />
-            Podaci i brisanje
-          </span>
-          <ChevronRight className="size-4" strokeWidth={2.4} />
-        </button>
+        {!canManageMemberData(member) ? null : (
+
+          <>
+            <h3 className="pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Podaci i brisanje
+            </h3>
+            <button
+              type="button"
+              onClick={onOpenData}
+              className="flex w-full items-center justify-between gap-2 rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-accent-foreground"
+            >
+              <span className="flex items-center gap-2">
+                <Database className="size-4" strokeWidth={2.2} />
+                Podaci i brisanje
+              </span>
+              <ChevronRight className="size-4" strokeWidth={2.4} />
+            </button>
+          </>
+        )}
+
 
         {canRemove ? (
           <div className="mt-2 space-y-3 border-t border-border pt-4">
