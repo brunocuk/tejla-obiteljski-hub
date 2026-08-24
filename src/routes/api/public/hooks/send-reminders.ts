@@ -71,27 +71,20 @@ function whenLabel(eventDate: string | null, eventTime: string | null, remindAt:
   return `Za ${days} dana`;
 }
 
+/**
+ * Privacy-safe push body. The lock screen must never expose the member name,
+ * the obligation title, location, amount, notes or "ponijeti" — all of that
+ * stays inside the app, reachable through the deep link.
+ */
 function buildMessage(reminder: ReminderRow) {
   const e = reminder.family_events!;
-  const names = (e.event_members ?? [])
-    .map((m) => m.family_members?.name?.trim())
-    .filter(Boolean)
-    .join(", ");
-  const when = whenLabel(e.date, e.time, reminder.remind_at);
-  const time = HH(e.time);
-  const bring = Array.isArray(e.things_to_bring)
-    ? e.things_to_bring.map(String).filter(Boolean)
-    : [];
-
-  const head = [when, names, e.title.trim()].filter(Boolean).join(" · ");
-  const parts = [head];
-  if (time) parts.push(`u ${time}`);
-  if (e.amount) parts.push(String(e.amount));
-  let body = parts.filter(Boolean).join(" ");
-  if (bring.length > 0) body += `. Ponijeti: ${bring.join(", ")}`;
-
-  return { title: "Tejla podsjetnik", body: body.slice(0, 160), url: "/" };
+  return {
+    title: "Tejla podsjetnik",
+    body: "Imaš obvezu uskoro. Otvori Tejlu za detalje.",
+    url: `/?zadatak=${e.id}`,
+  };
 }
+
 
 export const Route = createFileRoute("/api/public/hooks/send-reminders")({
   server: {
