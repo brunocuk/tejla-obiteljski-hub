@@ -803,7 +803,8 @@ function MemberManageSheet({
           </>
         )}
 
-        {isArchived ? null : (
+        {!canManageMemberData(member) ? null : (
+
           <>
             <h3 className="pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               Podaci i brisanje
