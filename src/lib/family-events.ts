@@ -38,6 +38,8 @@ export type FamilyEvent = {
   completed_at: string | null;
   /** Event this task belongs to ("Prije toga"). */
   linked_event_id: string | null;
+  /** Who entered it; decides what a child member may change. */
+  created_by: string | null;
 };
 
 const asText = (v: string | null | undefined) => (v ?? "").trim();
@@ -71,7 +73,7 @@ export function useFamilyEvents(familyId: string | null | undefined) {
       const { data, error } = await supabase
         .from("family_events")
         .select(
-          "id, title, category, date, time, location, notes, deadline, amount, things_to_bring, type, completed, completed_at, linked_event_id, event_members(family_member_id, family_members(name))",
+          "id, title, category, date, time, location, notes, deadline, amount, things_to_bring, type, completed, completed_at, linked_event_id, created_by, event_members(family_member_id, family_members(name))",
         )
         .eq("family_id", familyId!)
         .order("date", { ascending: true });
@@ -98,6 +100,7 @@ export function useFamilyEvents(familyId: string | null | undefined) {
         completed: Boolean(row.completed),
         completed_at: row.completed_at,
         linked_event_id: row.linked_event_id,
+        created_by: row.created_by ?? null,
       }));
     },
   });

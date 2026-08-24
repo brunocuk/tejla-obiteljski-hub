@@ -10,9 +10,14 @@ import {
   type FamilyEvent,
 } from "@/lib/family-events";
 import {
+  assigneeChoicesForActor,
   eventAssigneeChoices,
+  eventPermissions,
+  isAdultRole,
+  reminderRecipientModes,
   useFamilyMembers,
   useMyFamilyId,
+  useMyFamilyRole,
   useMyUserId,
 } from "@/lib/family-workspace";
 import { ReminderEditor } from "@/components/ReminderEditor";
@@ -47,8 +52,17 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
   const { data: familyId } = useMyFamilyId();
   const { data: allMembers = [] } = useFamilyMembers(familyId);
   // Former members stay visible on events they already belong to, but cannot be added.
-  const members = eventAssigneeChoices(allMembers, event.member_ids);
   const { data: userId } = useMyUserId();
+  const { data: myRole } = useMyFamilyRole();
+  const isAdult = isAdultRole(myRole);
+  const myMemberId = allMembers.find((m) => m.linked_user_id === userId)?.id ?? null;
+  const actor = { isAdult, myUserId: userId, myMemberId };
+  const perms = eventPermissions(event, actor);
+  // A child may only put themselves on an obligation.
+  const members = assigneeChoicesForActor(
+    eventAssigneeChoices(allMembers, event.member_ids),
+    actor,
+  );
   const { data: savedReminders = [] } = useEventReminders(event.id);
   const { data: allEvents = [] } = useFamilyEvents(familyId);
   const isTask = event.type === "task";
@@ -73,9 +87,11 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
   const [reminders, setReminders] = useState<ReminderDraft[]>([]);
   const [recipient, setRecipient] = useState<RecipientMode>("creator_only");
   const [recipientUserIds, setRecipientUserIds] = useState<string[]>([]);
-  const adults = members
-    .filter((m) => m.member_type === "parent" && m.linked_user_id)
-    .map((m) => ({ name: m.name, userId: m.linked_user_id as string }));
+  const adults = isAdult
+    ? members
+        .filter((m) => m.member_type === "parent" && m.linked_user_id)
+        .map((m) => ({ name: m.name, userId: m.linked_user_id as string }))
+    : [];
 
   const pending = savedReminders.filter((r) => !r.sent_at);
 
@@ -303,6 +319,7 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
               reminders={reminders}
               onChange={setReminders}
               recipient={recipient}
+              allowedRecipientModes={reminderRecipientModes(isAdult)}
               recipientUserIds={recipientUserIds}
               adults={adults}
               onRecipientChange={(mode, ids) => {
@@ -444,7 +461,7 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
               </div>
             ) : (
               <>
-                {isTask ? (
+                {isTask && perms.canToggleComplete ? (
                   <button
                     type="button"
                     onClick={toggleDone}
@@ -459,6 +476,7 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
                     {event.completed ? "Označi kao nedovršeno" : "Riješeno"}
                   </button>
                 ) : null}
+                {perms.canEdit ? (
                 <button
                   type="button"
                   onClick={() => setEditing(true)}
@@ -470,6 +488,8 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
                 >
                   Uredi
                 </button>
+                ) : null}
+                {perms.canDelete ? (
                 <button
                   type="button"
                   onClick={() => setConfirmDelete(true)}
@@ -477,6 +497,12 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
                 >
                   Obriši obavezu
                 </button>
+                ) : null}
+                {!perms.canEdit ? (
+                  <p className="text-center text-xs font-medium text-muted-foreground">
+                    Ovu obavezu je unijela odrasla osoba.
+                  </p>
+                ) : null}
               </>
             )}
           </div>
