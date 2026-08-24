@@ -72,6 +72,53 @@ export function canManageMemberData(member: MemberPolicyInput): boolean {
   return !isArchivedMember(member);
 }
 
+/** Adults own the family space; children only manage their own obligations. */
+export function isAdultRole(role: string | null | undefined): boolean {
+  return role === "owner" || role === "parent";
+}
+
+export type EventPermissionInput = {
+  created_by?: string | null;
+  type?: string | null;
+  member_ids: string[];
+};
+
+export type ActorContext = {
+  isAdult: boolean;
+  myUserId?: string | null;
+  myMemberId?: string | null;
+};
+
+/**
+ * UI mirror of the database rules. Adults keep full control; a child may only
+ * manage what they created, plus the completion state of a task assigned to
+ * them by an adult.
+ */
+export function eventPermissions(event: EventPermissionInput, actor: ActorContext) {
+  if (actor.isAdult) return { canEdit: true, canDelete: true, canToggleComplete: true };
+  const mine = Boolean(actor.myUserId && event.created_by === actor.myUserId);
+  const participant = Boolean(actor.myMemberId && event.member_ids.includes(actor.myMemberId));
+  return {
+    canEdit: mine,
+    canDelete: mine,
+    canToggleComplete: mine || (event.type === "task" && participant),
+  };
+}
+
+/** Who a new obligation may be assigned to: a child may only pick themselves. */
+export function assigneeChoicesForActor<T extends Pick<FamilyMemberRow, "id">>(
+  rows: T[],
+  actor: ActorContext,
+): T[] {
+  if (actor.isAdult) return rows;
+  return rows.filter((m) => m.id === actor.myMemberId);
+}
+
+/** Reminder recipient modes a child may use: only themselves. */
+export function reminderRecipientModes(isAdult: boolean): ("creator_only" | "all_parents" | "selected")[] {
+  return isAdult ? ["creator_only", "all_parents", "selected"] : ["creator_only"];
+}
+
 
 export async function fetchMyFamilyId(): Promise<string | null> {
   const { data: userData } = await supabase.auth.getUser();
