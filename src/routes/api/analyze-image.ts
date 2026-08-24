@@ -190,8 +190,7 @@ export const Route = createFileRoute("/api/analyze-image")({
         });
 
         if (!res.ok) {
-          const text = await res.text();
-          console.error("AI gateway error", res.status, text);
+          console.error("AI_GATEWAY_ERROR", res.status);
           if (isPdf && res.status === 400) {
             return Response.json(
               { error: "PDF nije čitljiv. Pošalji drugi PDF ili fotografiju stranice." },
@@ -221,7 +220,7 @@ export const Route = createFileRoute("/api/analyze-image")({
           const parsed = JSON.parse(match ? match[0] : content) as { items?: unknown };
           return Response.json({ items: Array.isArray(parsed.items) ? parsed.items : [] });
         } catch {
-          console.error("Failed to parse AI output", content);
+          console.error("AI_OUTPUT_PARSE_FAILED");
           return Response.json({ error: "Tejla nije uspjela pročitati rezultat obrade." }, { status: 502 });
         }
       },

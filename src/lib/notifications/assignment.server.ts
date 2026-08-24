@@ -55,29 +55,12 @@ export async function recordAssignmentNotifications(
     .eq("family_id", event.family_id);
   const allowed = new Set((spaceUsers ?? []).map((u) => u.user_id));
 
-  // Who assigned it.
-  let actorName = "";
-  const { data: actorMember } = await supabaseAdmin
-    .from("family_members")
-    .select("name")
-    .eq("family_id", event.family_id)
-    .eq("linked_user_id", actorUserId)
-    .maybeSingle();
-  actorName = (actorMember?.name ?? "").trim();
-  if (!actorName) {
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("name")
-      .eq("id", actorUserId)
-      .maybeSingle();
-    actorName = (profile?.name ?? "").trim();
-  }
-
   const isTask = event.type === "task";
-  const what = isTask ? "novi zadatak" : "novi termin";
-  const lead = actorName ? `${actorName} ti je dodijelio/la ${what}` : `Dodijeljen ti je ${what}`;
-  const title = (event.title ?? "").trim();
-  const body = (title ? `${lead}: „${title}”` : lead).slice(0, 200);
+  // Privacy-safe: the push body (and the stored notification event) must never
+  // carry the obligation title or any other event detail — those stay in-app.
+  const body = isTask
+    ? "Dodijeljen ti je novi zadatak. Otvori Tejlu za detalje."
+    : "Dodijeljen ti je novi termin. Otvori Tejlu za detalje.";
 
   const created: NotificationEvent[] = [];
   for (const userId of candidates) {
