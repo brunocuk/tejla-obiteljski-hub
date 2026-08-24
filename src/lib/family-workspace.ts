@@ -8,7 +8,61 @@ export type FamilyMemberRow = {
   member_type: "parent" | "child";
   linked_user_id: string | null;
   created_at: string;
+  /** Set when the person deleted their account: the row is a read-only history trace. */
+  archived_at?: string | null;
 };
+
+/** A GDPR tombstone kept only so past events keep their participants. */
+export function isArchivedMember(
+  member: Pick<FamilyMemberRow, "archived_at"> | null | undefined,
+): boolean {
+  return Boolean(member?.archived_at);
+}
+
+/** Members that may still be assigned new obligations. */
+export function assignableMembers<T extends Pick<FamilyMemberRow, "archived_at">>(rows: T[]): T[] {
+  return rows.filter((m) => !isArchivedMember(m));
+}
+
+/**
+ * Choices for an existing event: archived members stay listed only where they
+ * already are participants, so saved history keeps its people.
+ */
+export function eventAssigneeChoices<T extends Pick<FamilyMemberRow, "id" | "archived_at">>(
+  rows: T[],
+  currentMemberIds: string[],
+): T[] {
+  return rows.filter((m) => !isArchivedMember(m) || currentMemberIds.includes(m.id));
+}
+
+type MemberPolicyInput = Pick<FamilyMemberRow, "linked_user_id" | "archived_at">;
+
+/** UI policy: who may be invited to their own account. */
+export function canInviteMemberToAccount(member: MemberPolicyInput, isOwner: boolean): boolean {
+  return isOwner && !isArchivedMember(member) && !member.linked_user_id;
+}
+
+/** UI policy: whose display name may be edited (only your own, never a tombstone). */
+export function canEditMemberName(
+  member: MemberPolicyInput,
+  myUserId: string | null | undefined,
+): boolean {
+  return !isArchivedMember(member) && Boolean(myUserId) && member.linked_user_id === myUserId;
+}
+
+/** UI policy: who may be removed from the family. */
+export function canRemoveMemberFromFamily(
+  member: MemberPolicyInput,
+  isAdult: boolean,
+  myUserId: string | null | undefined,
+): boolean {
+  return isAdult && !isArchivedMember(member) && member.linked_user_id !== myUserId;
+}
+
+/** UI policy: who may receive new (future) obligations. */
+export function canAssignNewObligation(member: MemberPolicyInput): boolean {
+  return !isArchivedMember(member);
+}
 
 export async function fetchMyFamilyId(): Promise<string | null> {
   const { data: userData } = await supabase.auth.getUser();

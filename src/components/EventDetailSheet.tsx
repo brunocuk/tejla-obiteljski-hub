@@ -9,7 +9,12 @@ import {
   useFamilyEvents,
   type FamilyEvent,
 } from "@/lib/family-events";
-import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
+import {
+  eventAssigneeChoices,
+  useFamilyMembers,
+  useMyFamilyId,
+  useMyUserId,
+} from "@/lib/family-workspace";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
   EVENT_CATEGORIES,
@@ -40,7 +45,9 @@ function Row({ label, value }: { label: string; value: string }) {
 export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClose: () => void }) {
   const queryClient = useQueryClient();
   const { data: familyId } = useMyFamilyId();
-  const { data: members = [] } = useFamilyMembers(familyId);
+  const { data: allMembers = [] } = useFamilyMembers(familyId);
+  // Former members stay visible on events they already belong to, but cannot be added.
+  const members = eventAssigneeChoices(allMembers, event.member_ids);
   const { data: userId } = useMyUserId();
   const { data: savedReminders = [] } = useEventReminders(event.id);
   const { data: allEvents = [] } = useFamilyEvents(familyId);

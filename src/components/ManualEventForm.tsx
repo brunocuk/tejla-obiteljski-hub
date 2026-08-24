@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { saveManualEvent } from "@/lib/family-events";
-import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
+import {
+  assignableMembers,
+  useFamilyMembers,
+  useMyFamilyId,
+  useMyUserId,
+} from "@/lib/family-workspace";
 import { ReminderEditor } from "@/components/ReminderEditor";
 import {
   EVENT_CATEGORIES,
@@ -18,7 +23,9 @@ const fieldClass =
 export function ManualEventForm({ onClose }: { onClose: () => void }) {
   const queryClient = useQueryClient();
   const { data: familyId } = useMyFamilyId();
-  const { data: members = [] } = useFamilyMembers(familyId);
+  const { data: allMembers = [] } = useFamilyMembers(familyId);
+  // Archived (former) members are history only and cannot take new obligations.
+  const members = assignableMembers(allMembers);
   const { data: userId } = useMyUserId();
   const [form, setForm] = useState({
     title: "",

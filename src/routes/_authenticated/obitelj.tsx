@@ -44,6 +44,10 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   addFamilyMember,
   inviteResultMessage,
+  canEditMemberName,
+  canInviteMemberToAccount,
+  canRemoveMemberFromFamily,
+  isArchivedMember,
   useFamilyMembers,
   useMyFamily,
   useMyFamilyId,
@@ -311,13 +315,17 @@ function ClanoviPage() {
                 {parents.map((p) => (
                   <Row
                     key={p.id}
-                    name={p.name?.trim() || "Bez imena"}
+                    name={isArchivedMember(p) ? "Bivši član" : p.name?.trim() || "Bez imena"}
                     role={
-                      p.linked_user_id ? "Odrasla osoba · ima račun" : "Odrasla osoba · bez računa"
+                      isArchivedMember(p)
+                        ? "Povijesni zapis"
+                        : p.linked_user_id
+                          ? "Odrasla osoba · ima račun"
+                          : "Odrasla osoba · bez računa"
                     }
                     onManage={isAdult ? () => setManageFor(p) : undefined}
                     onEdit={
-                      myUserId && p.linked_user_id === myUserId
+                      canEditMemberName(p, myUserId)
                         ? () => {
                             setEditingName(p.name ?? "");
                             setNameError("");
@@ -339,12 +347,16 @@ function ClanoviPage() {
                 {kids.map((k) => (
                   <Row
                     key={k.id}
-                    name={k.name?.trim() || "Bez imena"}
-                    role={`Dijete · ${k.linked_user_id ? "ima račun" : "bez računa"}`}
-                    rule={childRule(k)}
+                    name={isArchivedMember(k) ? "Bivši član" : k.name?.trim() || "Bez imena"}
+                    role={
+                      isArchivedMember(k)
+                        ? "Povijesni zapis"
+                        : `Dijete · ${k.linked_user_id ? "ima račun" : "bez računa"}`
+                    }
+                    rule={isArchivedMember(k) ? undefined : childRule(k)}
                     onManage={isAdult ? () => setManageFor(k) : undefined}
                     onEdit={
-                      myUserId && k.linked_user_id === myUserId
+                      canEditMemberName(k, myUserId)
                         ? () => {
                             setEditingName(k.name ?? "");
                             setNameError("");
@@ -538,7 +550,7 @@ function ClanoviPage() {
           member={manageFor}
           familyId={familyId ?? ""}
           allMembers={members}
-          canInvite={isOwner}
+          canInvite={canInviteMemberToAccount(manageFor, Boolean(isOwner))}
           onInvite={() => {
             const target = manageFor;
             setManageFor(null);
@@ -553,7 +565,7 @@ function ClanoviPage() {
             setDataFor(target);
           }}
           onClose={() => setManageFor(null)}
-          canRemove={isAdult && manageFor.linked_user_id !== myUserId}
+          canRemove={canRemoveMemberFromFamily(manageFor, isAdult, myUserId)}
           onRemoved={async () => {
             setManageFor(null);
             await queryClient.invalidateQueries({ queryKey: ["family-members", familyId] });
@@ -604,7 +616,8 @@ function MemberManageSheet({
   const [error, setError] = useState("");
 
   const others = allMembers.filter((m) => m.id !== member.id);
-  const isChild = member.member_type === "child";
+  const isArchived = isArchivedMember(member);
+  const isChild = member.member_type === "child" && !isArchived;
   const displayName = member.name?.trim() || "člana";
   const [removeStep, setRemoveStep] = useState<null | "choose" | "purge">(null);
   const [removing, setRemoving] = useState(false);
@@ -653,7 +666,9 @@ function MemberManageSheet({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30">
       <div className="max-h-[88vh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-3xl bg-background p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold tracking-tight">{member.name || "Član"}</h2>
+          <h2 className="text-lg font-bold tracking-tight">
+            {isArchived ? "Bivši član" : member.name || "Član"}
+          </h2>
           <button
             type="button"
             aria-label="Zatvori"
@@ -663,6 +678,13 @@ function MemberManageSheet({
             <X className="size-5" />
           </button>
         </div>
+
+        {isArchived ? (
+          <p className="rounded-2xl border border-border px-4 py-3 text-sm font-medium text-muted-foreground">
+            Povijesni zapis. Ova je osoba obrisala svoj račun — zapis postoji samo zato da prošli
+            događaji zadrže svoje sudionike. Ne može se uređivati, pozvati ni dobiti nove obveze.
+          </p>
+        ) : null}
 
         {isChild ? (
           <>
@@ -754,6 +776,8 @@ function MemberManageSheet({
           </>
         ) : null}
 
+        {isArchived ? null : (
+          <>
         <h3 className="pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           Vlastiti račun
         </h3>
@@ -774,6 +798,9 @@ function MemberManageSheet({
           <p className="rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-muted-foreground">
             Nema vlastiti račun
           </p>
+        )}
+
+          </>
         )}
 
         <h3 className="pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">

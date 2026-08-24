@@ -372,6 +372,7 @@ export type Database = {
       }
       family_members: {
         Row: {
+          archived_at: string | null
           created_at: string
           family_id: string
           id: string
@@ -380,6 +381,7 @@ export type Database = {
           name: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           family_id: string
           id?: string
@@ -388,6 +390,7 @@ export type Database = {
           name?: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           family_id?: string
           id?: string

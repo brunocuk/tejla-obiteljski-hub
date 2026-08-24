@@ -9,7 +9,12 @@ import { normalizeItem, type ExtractedItem } from "@/lib/hub-store";
 import { applyRelativeReminders } from "@/lib/relative-time";
 import { applySpokenDate } from "@/lib/croatian-spoken-date";
 import { apiAuthHeaders } from "@/lib/api-auth";
-import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
+import {
+  assignableMembers,
+  useFamilyMembers,
+  useMyFamilyId,
+  useMyUserId,
+} from "@/lib/family-workspace";
 
 export const Route = createFileRoute("/_authenticated/inbox")({
   head: () => ({
@@ -98,7 +103,7 @@ function InboxPage() {
   const { data: userId } = useMyUserId();
   const { data: familyMembers } = useFamilyMembers(familyId);
   const speaker = (familyMembers ?? []).find((m) => m.linked_user_id === userId)?.name ?? "";
-  const memberNames = (familyMembers ?? []).map((m) => m.name);
+  const memberNames = assignableMembers(familyMembers ?? []).map((m) => m.name);
 
   useEffect(() => setRecent(readRecent()), []);
 

@@ -3,7 +3,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check } from "lucide-react";
 import { WHOLE_FAMILY, resolveAssignee } from "@/lib/family";
 import type { ExtractedItem } from "@/lib/hub-store";
-import { useFamilyMembers, useMyFamilyId, useMyUserId } from "@/lib/family-workspace";
+import {
+  assignableMembers,
+  useFamilyMembers,
+  useMyFamilyId,
+  useMyUserId,
+} from "@/lib/family-workspace";
 import { formatCroatianDate, isIsoDate } from "@/lib/date-hr";
 import { saveFamilyEvents } from "@/lib/family-events";
 import { ReminderEditor } from "@/components/ReminderEditor";
@@ -82,11 +87,12 @@ export function AnalysisResults({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const { data: familyId } = useMyFamilyId();
-  const { data: members } = useFamilyMembers(familyId);
+  const { data: allMembers } = useFamilyMembers(familyId);
+  const members = assignableMembers(allMembers ?? []);
   const { data: userId } = useMyUserId();
-  const memberRows = (members ?? []).map((m) => ({ id: m.id, name: m.name }));
+  const memberRows = members.map((m) => ({ id: m.id, name: m.name }));
   const assigneeOptions = [...memberRows.map((m) => m.name), WHOLE_FAMILY];
-  const adults = (members ?? [])
+  const adults = members
     .filter((m) => m.member_type === "parent" && m.linked_user_id)
     .map((m) => ({ name: m.name, userId: m.linked_user_id as string }));
   const [reminders, setReminders] = useState<Record<number, ReminderDraft[]>>({});
