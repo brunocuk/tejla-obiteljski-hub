@@ -90,7 +90,11 @@ export const sendFamilyInvite = createServerFn({ method: "POST" })
       if (message.includes("already been registered") || message.includes("already registered")) {
         return { ok: true, existingAccount: true };
       }
-      console.error("[invite]", inviteError.message);
+      console.error(
+        "[invite] INVITE_SEND_FAILED",
+        (inviteError as { status?: number })?.status ?? "",
+        (inviteError as { code?: string })?.code ?? "",
+      );
       throw new Error("Slanje e-mail poziva nije uspjelo.");
     }
 

@@ -222,13 +222,8 @@ export function AnalysisResults({
       onSaved(ids.length);
     } catch (e) {
       const detail = e as { message?: string; code?: string; details?: string; hint?: string };
-      console.error(
-        "[analysis] save failed",
-        detail?.code ?? "",
-        detail?.message ?? String(e),
-        detail?.details ?? "",
-        detail?.hint ?? "",
-      );
+      console.error("[analysis] ANALYSIS_SAVE_FAILED", detail?.code ?? "");
+
       setError(
         detail?.message
           ? `Obavezu nije bilo moguće spremiti: ${detail.message}`

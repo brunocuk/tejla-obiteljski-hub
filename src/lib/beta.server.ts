@@ -64,7 +64,11 @@ export async function redeemBetaInviteServer(input: {
     if (message.includes("already") && message.includes("registered")) {
       return { ok: false as const, state: "invalid" as BetaInviteState, existing: true };
     }
-    console.error("[beta-redeem]", error?.message);
+    console.error(
+      "[beta-redeem] BETA_CREATE_USER_FAILED",
+      (error as { status?: number } | null)?.status ?? "",
+      (error as { code?: string } | null)?.code ?? "",
+    );
     throw new Error("Izrada računa nije uspjela. Pokušaj ponovno.");
   }
 
