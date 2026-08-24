@@ -53,7 +53,7 @@ describe.skipIf(!hasDb)("RLS policy helper functions", () => {
       .filter(Boolean)
       .map((l) => {
         const [signature, granted] = l.split("|");
-        return { signature: signature!, granted: granted === "t" };
+        return { signature: signature!, granted: granted === "true" };
       });
 
     expect(rows.length).toBeGreaterThan(0);
@@ -65,11 +65,11 @@ describe.skipIf(!hasDb)("RLS policy helper functions", () => {
     const acl = psql(
       "select has_function_privilege('authenticated','public.can_access_event(uuid)','EXECUTE')",
     ).trim();
-    expect(acl).toBe("t");
+    expect(acl).toBe("true");
 
     const anon = psql(
       "select has_function_privilege('anon','public.can_access_event(uuid)','EXECUTE')",
     ).trim();
-    expect(anon).toBe("f");
+    expect(anon).toBe("false");
   });
 });
