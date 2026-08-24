@@ -85,8 +85,8 @@ export type EventPermissionInput = {
 
 export type ActorContext = {
   isAdult: boolean;
-  myUserId?: string | null;
-  myMemberId?: string | null;
+  myUserId?: string | null | undefined;
+  myMemberId?: string | null | undefined;
 };
 
 /**
