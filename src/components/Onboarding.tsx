@@ -214,7 +214,76 @@ export function NotificationsStep({ index = 2 }: { index?: number }) {
   );
 }
 
-/** Both steps, reusable in Postavke. */
+/**
+ * Step 3 — Tejla's occasional messages. Pure preference write, never touches
+ * push permission or the user's own reminders.
+ */
+export function TejlaMessagesStep({ index, uid }: { index: number; uid: string }) {
+  const { data: enabled, isLoading } = useTejlaMessagesEnabled();
+  const setEnabled = useSetTejlaMessages();
+  const [answered, setAnswered] = useState(false);
+
+  // A device without local onboarding state must respect the stored preference.
+  if (enabled === true) {
+    return (
+      <StepCard index={index} title="Tejline poruke ✨" done>
+        <p className="text-sm text-muted-foreground">
+          Uključene su. Možeš ih isključiti na ekranu Članovi.
+        </p>
+      </StepCard>
+    );
+  }
+
+  if (answered) {
+    return (
+      <StepCard index={index} title="Tejline poruke ✨" done>
+        <p className="text-sm text-muted-foreground">
+          U redu, bez njih. Kasnije ih uključiš na ekranu Članovi.
+        </p>
+      </StepCard>
+    );
+  }
+
+  return (
+    <StepCard index={index} title="Tejline poruke ✨" done={false}>
+      <p className="text-sm text-muted-foreground">Ovo nisu podsjetnici za tvoje obveze.</p>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Tejla ti ponekad pošalje lijepu ili korisnu poruku povezanu s tvojim planovima — primjerice
+        da se bliži putovanje ili da ti je sutra kalendar prazan.
+      </p>
+      <button
+        type="button"
+        disabled={isLoading || setEnabled.isPending}
+        onClick={async () => {
+          await setEnabled.mutateAsync(true);
+          markTejlaMessagesAnswered(uid);
+          setAnswered(true);
+        }}
+        className="mt-3 w-full rounded-2xl px-4 py-3 text-sm font-bold text-primary-foreground disabled:opacity-60"
+        style={{ backgroundImage: "var(--gradient-primary)" }}
+      >
+        Želim Tejline poruke
+      </button>
+      <button
+        type="button"
+        disabled={setEnabled.isPending}
+        onClick={() => {
+          // "Ne sada" writes nothing — the default stays false.
+          markTejlaMessagesAnswered(uid);
+          setAnswered(true);
+        }}
+        className="mt-2 w-full rounded-2xl border border-border px-4 py-3 text-sm font-semibold disabled:opacity-60"
+      >
+        Ne sada
+      </button>
+      <p className="mt-3 text-xs text-muted-foreground">
+        Podsjetnici za tvoje obveze rade neovisno o ovoj postavci.
+      </p>
+    </StepCard>
+  );
+}
+
+/** Install + notifications, reusable in Postavke. Tejla messages live in Članovi. */
 export function SetupSteps() {
   const [webClient, setWebClient] = useState(true);
   useEffect(() => setWebClient(getClientKind() === "web"), []);
@@ -226,7 +295,15 @@ export function SetupSteps() {
   );
 }
 
-function OnboardingScreen({ onDone, onSkip }: { onDone: () => void; onSkip: () => void }) {
+function OnboardingScreen({
+  uid,
+  onDone,
+  onSkip,
+}: {
+  uid: string;
+  onDone: () => void;
+  onSkip: () => void;
+}) {
   const [ready, setReady] = useState(false);
   const [bothDone, setBothDone] = useState(false);
 
@@ -236,6 +313,7 @@ function OnboardingScreen({ onDone, onSkip }: { onDone: () => void; onSkip: () =
     setWebClient(getClientKind() === "web");
     setBothDone(!installStepApplies() && pushStatus() === "granted");
   }, []);
+
 
   useEffect(() => {
     refresh();
