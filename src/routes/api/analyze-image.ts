@@ -206,11 +206,11 @@ export const Route = createFileRoute("/api/analyze-image")({
           }
           if (res.status === 402) {
             return Response.json(
-              { error: "AI krediti su potrošeni. Nadopuni ih u Lovable postavkama." },
+              { error: "Tejla trenutačno ne može obraditi sadržaj. Pokušaj ponovno malo kasnije." },
               { status: 402 },
             );
           }
-          return Response.json({ error: "AI obrada nije uspjela." }, { status: res.status });
+          return Response.json({ error: "Tejla nije uspjela obraditi sadržaj." }, { status: res.status });
         }
 
 
@@ -222,7 +222,7 @@ export const Route = createFileRoute("/api/analyze-image")({
           return Response.json({ items: Array.isArray(parsed.items) ? parsed.items : [] });
         } catch {
           console.error("Failed to parse AI output", content);
-          return Response.json({ error: "Neuspjesno citanje AI odgovora" }, { status: 502 });
+          return Response.json({ error: "Tejla nije uspjela pročitati rezultat obrade." }, { status: 502 });
         }
       },
     },
