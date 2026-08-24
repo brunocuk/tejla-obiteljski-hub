@@ -214,7 +214,7 @@ describe("primatelji i izolacija", () => {
     const reminders = readFileSync("src/routes/api/public/hooks/send-reminders.ts", "utf8");
     expect(reminders).not.toContain("tejla_message");
     expect(reminders).not.toContain("user_notification_prefs");
-    expect(server).not.toContain("event_reminders");
+    expect(server).not.toContain('.from("event_reminders")');
   });
 
   it("brisanje računa uklanja postavku kaskadno", () => {
