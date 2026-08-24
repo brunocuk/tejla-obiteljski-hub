@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.can_edit_event(uuid) TO authenticated;
