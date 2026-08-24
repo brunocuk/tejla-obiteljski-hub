@@ -124,11 +124,40 @@ describe("Onboarding — Tejline poruke step", () => {
   it("new device + preference already true does not ask again", async () => {
     mocks.enabled = true;
     renderGate();
-    expect(await screen.findByText("Tejline poruke ✨")).toBeInTheDocument();
+    expect(await screen.findByText("Tejline poruke su uključene ✨")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Želim Tejline poruke" })).not.toBeInTheDocument();
-    expect(screen.getByText(/Uključene su/)).toBeInTheDocument();
+    expect(
+      screen.getByText("Povremene poruke izvan tvojih podsjetnika."),
+    ).toBeInTheDocument();
     expect(mocks.setEnabled).not.toHaveBeenCalled();
   });
+
+  it("status after „Ne sada” shows not enabled, without a green check", async () => {
+    renderGate();
+    await userEvent.click(await screen.findByRole("button", { name: "Ne sada" }));
+    const title = await screen.findByText("Tejline poruke nisu uključene");
+    expect(title).toBeInTheDocument();
+    expect(screen.getByText("Možeš ih uključiti kasnije na ekranu Članovi.")).toBeInTheDocument();
+    const card = title.closest(".card-soft")!;
+    expect(card.querySelector("svg.lucide-check")).toBeNull();
+    expect(mocks.setEnabled).not.toHaveBeenCalled();
+  });
+
+  it("status after enabling shows the enabled state with a check", async () => {
+    const { unmount } = renderGate();
+    await userEvent.click(await screen.findByRole("button", { name: "Želim Tejline poruke" }));
+    await waitFor(() => expect(mocks.setEnabled).toHaveBeenCalledWith(true));
+    unmount();
+    // The preference now resolves to true, so the status reflects the DB value.
+    mocks.enabled = true;
+    renderGate();
+    const title = await screen.findByText("Tejline poruke su uključene ✨");
+    const card = title.closest(".card-soft")!;
+    expect(card.textContent).toContain("Povremene poruke izvan tvojih podsjetnika.");
+    expect(card.querySelector("svg")).not.toBeNull();
+  });
+
+
 
   it("auto-skip does not fire before the messages question was answered", async () => {
     mocks.installApplies = false;

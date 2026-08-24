@@ -51,11 +51,14 @@ function StepCard({
   index,
   title,
   done,
+  neutral = false,
   children,
 }: {
   index: number;
   title: string;
   done: boolean;
+  /** Answered but intentionally off — no green check, no "todo" emphasis. */
+  neutral?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -63,7 +66,11 @@ function StepCard({
       <div className="flex items-center gap-3">
         <span
           className={`flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-            done ? "bg-sage text-foreground" : "bg-primary-soft text-accent-foreground"
+            done
+              ? "bg-sage text-foreground"
+              : neutral
+                ? "bg-muted text-muted-foreground"
+                : "bg-primary-soft text-accent-foreground"
           }`}
         >
           {done ? <Check className="size-4" strokeWidth={2.4} /> : index}
@@ -74,6 +81,7 @@ function StepCard({
     </div>
   );
 }
+
 
 /** Step 1 — put Tejla on the home screen. Real state, no manual checkbox. */
 export function InstallStep({ index = 1 }: { index?: number }) {
@@ -241,11 +249,12 @@ export function TejlaMessagesStep({ index, uid }: { index: number; uid: string }
   const [answered, setAnswered] = useState(false);
 
   // A device without local onboarding state must respect the stored preference.
+  // The status always mirrors the real preference, never just "step completed".
   if (enabled === true) {
     return (
-      <StepCard index={index} title="Tejline poruke ✨" done>
+      <StepCard index={index} title="Tejline poruke su uključene ✨" done>
         <p className="text-sm text-muted-foreground">
-          Uključene su. Možeš ih isključiti na ekranu Članovi.
+          Povremene poruke izvan tvojih podsjetnika.
         </p>
       </StepCard>
     );
@@ -253,13 +262,14 @@ export function TejlaMessagesStep({ index, uid }: { index: number; uid: string }
 
   if (answered) {
     return (
-      <StepCard index={index} title="Tejline poruke ✨" done>
+      <StepCard index={index} title="Tejline poruke nisu uključene" done={false} neutral>
         <p className="text-sm text-muted-foreground">
-          U redu, bez njih. Kasnije ih uključiš na ekranu Članovi.
+          Možeš ih uključiti kasnije na ekranu Članovi.
         </p>
       </StepCard>
     );
   }
+
 
   return (
     <StepCard index={index} title="Tejline poruke ✨" done={false}>
