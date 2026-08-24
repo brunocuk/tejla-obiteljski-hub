@@ -37,6 +37,7 @@ export function ReminderEditor({
   adults = [],
   onRecipientChange,
   isTask = false,
+  allowedRecipientModes = ["creator_only", "all_parents", "selected"],
 }: {
   input: ReminderInput;
   reminders: ReminderDraft[];
@@ -49,6 +50,8 @@ export function ReminderEditor({
   onRecipientChange: (mode: RecipientMode, userIds: string[]) => void;
   /** Tasks may repeat until they are marked done; events may not. */
   isTask?: boolean;
+  /** Recipient modes the signed-in person may choose (children: only themselves). */
+  allowedRecipientModes?: RecipientMode[];
 }) {
   const customExisting = reminders.find((r) => r.offset_minutes == null);
   const [custom, setCustom] = useState(() =>
@@ -277,6 +280,7 @@ export function ReminderEditor({
               ["selected", "Odabrane osobe"],
             ] as const
           )
+            .filter(([mode]) => allowedRecipientModes.includes(mode))
             .filter(([mode]) => mode !== "selected" || adults.length > 0)
             .map(([mode, label]) => (
             <button
@@ -294,7 +298,7 @@ export function ReminderEditor({
             </button>
           ))}
         </div>
-        {recipient === "selected" ? (
+        {recipient === "selected" && allowedRecipientModes.includes("selected") ? (
           <div className="mt-2 flex flex-wrap gap-2">
             {adults.map((a) => (
               <button
