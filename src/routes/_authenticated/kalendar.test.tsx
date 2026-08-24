@@ -57,13 +57,13 @@ vi.mock("@/lib/reminders", async () => ({
 import { KalendarPage, calendarEventVisible } from "./kalendar";
 
 function makeEvent(
-  over: Partial<FamilyEvent> & { title: string; date: string },
+  { title, date, id, ...rest }: Partial<FamilyEvent> & { title: string; date: string },
 ): FamilyEvent {
   return {
-    id: over.id ?? over.title,
-    title: over.title,
+    id: id ?? title,
+    title,
     category: "",
-    date: over.date,
+    date,
     time: "",
     location: "",
     notes: "",
@@ -77,7 +77,7 @@ function makeEvent(
     completed_at: null,
     linked_event_id: null,
     created_by: null,
-    ...over,
+    ...rest,
   };
 }
 
