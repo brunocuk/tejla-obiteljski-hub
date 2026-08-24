@@ -1,7 +1,7 @@
 import { formatDayMonth, formatTime, formatWeekday } from "@/lib/date-hr";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { assigneeStyle } from "@/lib/family";
 import { setEventCompleted, useFamilyEvents, type FamilyEvent } from "@/lib/family-events";
@@ -70,7 +70,6 @@ function Danas() {
   const completedVisibleUntil = now.getTime() - 24 * 60 * 60 * 1000;
   const isRecentlyCompleted = (t: FamilyEvent) =>
     !!t.completed_at && new Date(t.completed_at).getTime() > completedVisibleUntil;
-  const in7 = isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7));
   const allRows = events ?? [];
   // Tasks live in their own section; they must not clutter the calendar lists.
   const all = allRows.filter((e) => e.type !== "task");
@@ -86,9 +85,6 @@ function Danas() {
   const todayEvents = all
     .filter((e) => e.date === today)
     .sort((a, b) => a.time.localeCompare(b.time));
-  const upcoming = all
-    .filter((e) => e.date > today && e.date <= in7)
-    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
   const undated = all.filter((e) => !e.date);
 
   const myName = members.find((m) => m.linked_user_id && m.linked_user_id === myUserId)?.name ?? "";
