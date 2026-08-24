@@ -186,6 +186,18 @@ export function KalendarPage() {
         })}
       </div>
 
+      <div className="mb-5 flex justify-end">
+        <button
+          type="button"
+          aria-pressed={showPast}
+          aria-label={showPast ? "Sakrij prošle obaveze" : "Prikaži prošle obaveze"}
+          onClick={() => setShowPast((s) => !s)}
+          className="text-xs font-medium text-muted-foreground transition-colors active:opacity-60"
+        >
+          {showPast ? "Sakrij prošle" : "Prikaži prošle"}
+        </button>
+      </div>
+
       {isPending ? (
         <div className="card-soft px-5 py-8 text-center">
           <p className="text-sm text-muted-foreground">Učitavam obveze…</p>
