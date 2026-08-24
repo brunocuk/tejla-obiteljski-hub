@@ -1,19 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import {
+  GENERAL_MESSAGES,
   NUDGE_KIND,
   SEND_HOURS,
   WEEKLY_LIMIT,
   addDays,
   dedupeKey,
+  isEveningWindow,
+  isMorningWindow,
   isQuietHour,
   normalizeCategory,
+  pickGeneral,
   pickNudge,
   quotaBlocks,
   zagrebNow,
   type CalendarEvent,
   type NudgeContext,
 } from "@/lib/notifications/tejla-messages";
+
 import { TEJLA_MESSAGES_DEFAULT } from "@/lib/notification-prefs";
 
 const ev = (over: Partial<CalendarEvent>): CalendarEvent => ({
