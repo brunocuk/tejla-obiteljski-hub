@@ -13,13 +13,29 @@ import {
   type Platform,
 } from "@/lib/pwa-install";
 import { useMyUserId } from "@/lib/family-workspace";
+import { useSetTejlaMessages, useTejlaMessagesEnabled } from "@/lib/notification-prefs";
 
 const storageKey = (uid: string) => `tejla-onboarding-${uid}`;
+/** Separate from the preference: records that the question was asked at all. */
+const messagesAskedKey = (uid: string) => `tejla-onboarding-messages-${uid}`;
 
 export function onboardingState(uid: string): "done" | "skipped" | null {
   if (typeof window === "undefined") return null;
   const v = window.localStorage.getItem(storageKey(uid));
   return v === "done" || v === "skipped" ? v : null;
+}
+
+export function tejlaMessagesAnswered(uid: string): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(messagesAskedKey(uid)) === "answered";
+}
+
+export function markTejlaMessagesAnswered(uid: string) {
+  try {
+    window.localStorage.setItem(messagesAskedKey(uid), "answered");
+  } catch {
+    /* private mode — worst case the step shows again on a fresh session */
+  }
 }
 
 function setOnboardingState(uid: string, value: "done" | "skipped") {
@@ -29,6 +45,7 @@ function setOnboardingState(uid: string, value: "done" | "skipped") {
     /* private mode — the gate simply shows again next time */
   }
 }
+
 
 function StepCard({
   index,
