@@ -42,7 +42,11 @@ export async function sendTestPushToUser(userId: string) {
         sent += 1;
       }
     } catch (err) {
-      console.error("test push failed", err);
+      console.error(
+        "[push-test] TEST_PUSH_FAILED",
+        (err as { status?: number })?.status ?? "",
+        (err as { code?: string })?.code ?? "",
+      );
     }
   }
   return { sent, total: list.length };
