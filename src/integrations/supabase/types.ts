@@ -228,12 +228,15 @@ export type Database = {
       }
       event_reminders: {
         Row: {
+          at_time: string | null
           cancelled_at: string | null
           created_at: string
           created_by: string | null
+          days_before: number | null
           event_id: string
           id: string
           is_recurring: boolean
+          offset_kind: string
           offset_minutes: number | null
           pattern: string
           recipient_mode: string
@@ -243,12 +246,15 @@ export type Database = {
           series_id: string | null
         }
         Insert: {
+          at_time?: string | null
           cancelled_at?: string | null
           created_at?: string
           created_by?: string | null
+          days_before?: number | null
           event_id: string
           id?: string
           is_recurring?: boolean
+          offset_kind?: string
           offset_minutes?: number | null
           pattern?: string
           recipient_mode?: string
@@ -258,12 +264,15 @@ export type Database = {
           series_id?: string | null
         }
         Update: {
+          at_time?: string | null
           cancelled_at?: string | null
           created_at?: string
           created_by?: string | null
+          days_before?: number | null
           event_id?: string
           id?: string
           is_recurring?: boolean
+          offset_kind?: string
           offset_minutes?: number | null
           pattern?: string
           recipient_mode?: string
