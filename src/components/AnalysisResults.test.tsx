@@ -6,7 +6,8 @@ import { NO_RECURRENCE } from "@/lib/recurrence";
 
 /** AI review card must surface the full recurring event before saving. */
 
-const MEMBERS = [
+const mocks = vi.hoisted(() => ({
+  members: [
   {
     id: "m-1",
     family_id: "f-1",
@@ -14,9 +15,10 @@ const MEMBERS = [
     member_type: "child",
     linked_user_id: null,
     created_at: "2026-01-01T00:00:00Z",
-    archived_at: null,
-  },
-];
+      archived_at: null,
+    },
+  ],
+}));
 
 vi.mock("@/lib/family-workspace", async () => {
   const actual = await vi.importActual<typeof import("@/lib/family-workspace")>(
@@ -26,7 +28,7 @@ vi.mock("@/lib/family-workspace", async () => {
     ...actual,
     useMyFamilyId: () => ({ data: "f-1" }),
     useMyUserId: () => ({ data: "u-me" }),
-    useFamilyMembers: () => ({ data: MEMBERS }),
+    useFamilyMembers: () => ({ data: mocks.members }),
   };
 });
 
