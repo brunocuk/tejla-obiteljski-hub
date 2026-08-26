@@ -294,3 +294,52 @@ d("privileges on the new objects", () => {
     expect(out).toBe("0");
   });
 });
+
+/**
+ * The exclusion filter must exist once per expansion entry point and be
+ * byte-identical between them: the authenticated path and the cron path may
+ * never disagree about which occurrences exist.
+ */
+d("occurrence exclusion filter", () => {
+  const CLAUSE = [
+    "r.status = 'normal'",
+    "coalesce(array_length(_e.recurrence_exclude, 1), 0) > 0",
+    "public.is_excluded_hr(r.effective_date, _e.recurrence_exclude)",
+  ];
+
+  function body(name: string): string {
+    return psql(
+      `SELECT prosrc FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname='${name}';`,
+    );
+  }
+
+  it("is present in the authenticated expansion", () => {
+    const src = body("expand_event_occurrences");
+    for (const part of CLAUSE) expect(src).toContain(part);
+  });
+
+  it("is present in the cron expansion", () => {
+    const src = body("expand_event_occurrences_all");
+    for (const part of CLAUSE) expect(src).toContain(part);
+  });
+
+  it("keeps a skipped override removed and never filters on it", () => {
+    for (const name of ["expand_event_occurrences", "expand_event_occurrences_all"]) {
+      const src = body(name);
+      expect(src).toContain("r.status <> 'skipped'");
+      // Only untouched occurrences may be dropped automatically, so the guard
+      // is anchored on 'normal' and not on the override status in general.
+      expect(src).not.toContain("r.status <> 'modified'");
+    }
+  });
+
+  it("leaves non-recurring rows on the early-return path, before any filter", () => {
+    for (const name of ["expand_event_occurrences", "expand_event_occurrences_all"]) {
+      const src = body(name);
+      const early = src.indexOf("IF _e.recurrence_freq IS NULL THEN");
+      const filter = src.indexOf("public.is_excluded_hr");
+      expect(early).toBeGreaterThan(-1);
+      expect(filter).toBeGreaterThan(early);
+    }
+  });
+});
