@@ -49,6 +49,12 @@ export type ReminderRow = {
   sent_at: string | null;
   pattern?: string | null;
   cancelled_at?: string | null;
+  /** Template of a repeating series: re-evaluated per occurrence. */
+  is_recurring?: boolean | null;
+  offset_kind?: string | null;
+  offset_minutes?: number | null;
+  days_before?: number | null;
+  at_time?: string | null;
 };
 
 /** Re-stamps a list of drafts with the chosen recipients (mode + explicit ids). */
