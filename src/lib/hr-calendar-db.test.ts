@@ -169,10 +169,13 @@ fn("school_calendar_coverage", () => {
 });
 
 d("recurrence_exclude column", () => {
-  it("defaults to an empty array on every existing row", () => {
+  it("holds only whitelisted codes on existing rows", () => {
     const out = psql(`
-      SELECT count(*) FROM public.family_events
-      WHERE recurrence_exclude IS DISTINCT FROM '{}'::text[];
+      SELECT count(*) FROM public.family_events fe
+      WHERE EXISTS (
+        SELECT 1 FROM unnest(fe.recurrence_exclude) c
+        WHERE c NOT IN ('school_breaks_hr','public_holidays_hr','weekends')
+      );
     `);
     expect(out).toBe("0");
   });

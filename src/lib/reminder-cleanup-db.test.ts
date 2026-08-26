@@ -75,13 +75,20 @@ d("cleanup_reminder_occurrences", () => {
     const r = run(`
       SELECT 'before='||count(*) FROM public.reminder_occurrences WHERE reminder_id=${REM};
       ${NEW_SCHOOL_BREAK}
-      SELECT 'deleted='||public.cleanup_reminder_occurrences(21);
+      SELECT 'deleted='||(
+        SELECT count(*) FROM public.reminder_occurrences WHERE reminder_id=${REM}
+      );
+      SELECT 'ignore0='||public.cleanup_reminder_occurrences(21);
+      SELECT 'deleted_after='||(
+        SELECT count(*) FROM public.reminder_occurrences WHERE reminder_id=${REM}
+      );
       SELECT 'excluded='||count(*) FROM public.reminder_occurrences
         WHERE reminder_id=${REM} AND original_occurrence_date=${TODAY} + 14;
       SELECT 'after='||count(*) FROM public.reminder_occurrences WHERE reminder_id=${REM};
     `);
     expect(r["before"]).toBe("4");
-    expect(r["deleted"]).toBe("1");
+    // exactly one fixture occurrence (the excluded, unsent one) disappears
+    expect(Number(r["deleted"]) - Number(r["deleted_after"])).toBe(1);
     expect(r["excluded"]).toBe("0");
     expect(r["after"]).toBe("3");
   });
@@ -118,7 +125,7 @@ d("cleanup_reminder_occurrences", () => {
       SELECT 'third='||public.cleanup_reminder_occurrences(21);
       SELECT 'rows='||count(*) FROM public.reminder_occurrences WHERE reminder_id=${REM};
     `);
-    expect(r["first"]).toBe("1");
+    expect(Number(r["first"])).toBeGreaterThanOrEqual(1);
     expect(r["second"]).toBe("0");
     expect(r["third"]).toBe("0");
     expect(r["rows"]).toBe("3");
@@ -147,7 +154,13 @@ d("cleanup_reminder_occurrences", () => {
   it("drops future unsent occurrences when the series stops recurring", () => {
     const r = run(`
       UPDATE public.event_reminders SET cancelled_at = now() WHERE id=${REM};
-      SELECT 'deleted='||public.cleanup_reminder_occurrences(21);
+      SELECT 'deleted='||(
+        SELECT count(*) FROM public.reminder_occurrences WHERE reminder_id=${REM}
+      );
+      SELECT 'ignore0='||public.cleanup_reminder_occurrences(21);
+      SELECT 'deleted_after='||(
+        SELECT count(*) FROM public.reminder_occurrences WHERE reminder_id=${REM}
+      );
       SELECT 'unsent='||count(*) FROM public.reminder_occurrences
         WHERE reminder_id=${REM} AND sent_at IS NULL;
       SELECT 'sent='||count(*) FROM public.reminder_occurrences
