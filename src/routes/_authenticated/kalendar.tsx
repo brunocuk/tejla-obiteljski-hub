@@ -17,6 +17,7 @@ import { useFamilyMembers, useMyFamilyId } from "@/lib/family-workspace";
 import { ReminderBadge } from "@/components/ReminderBadge";
 import { useFamilyReminders } from "@/lib/reminders";
 import { monthBounds, useFamilyOccurrences } from "@/lib/recurrence";
+import { occurrenceReminderTimes } from "@/lib/recurring-reminders";
 
 export const Route = createFileRoute("/_authenticated/kalendar")({
   head: () => ({
@@ -45,6 +46,8 @@ type CalEvent = {
   meta?: string;
   /** Set for one occurrence of a repeating series (its permanent identity). */
   occurrenceDate?: string;
+  /** Reminder times computed for THIS occurrence (repeating series only). */
+  reminderTimes?: string[];
 };
 
 
@@ -141,12 +144,17 @@ export function KalendarPage() {
             o.effective_date !== o.original_occurrence_date ? "premješteno" : "",
           ]),
           occurrenceDate: o.original_occurrence_date,
+          reminderTimes: occurrenceReminderTimes(
+            reminderMap[base.id],
+            { effective_date: o.effective_date, start_time: o.start_time ?? base.time },
+            base.time || "09:00",
+          ),
         },
       ];
     });
 
     return [...plain, ...repeated];
-  }, [events, occurrences]);
+  }, [events, occurrences, reminderMap]);
 
   const visible = allEvents.filter((e) => calendarEventVisible(e, { filter, showPast, now }));
   const inMonth = visible
@@ -285,7 +293,10 @@ export function KalendarPage() {
                       <p className="truncate text-xs font-medium text-muted-foreground">
                         {[i.members.join(", "), i.meta].filter(Boolean).join(" · ")}
                       </p>
-                      <ReminderBadge reminders={reminderMap[i.id]} />
+                      <ReminderBadge
+                        reminders={i.occurrenceDate ? undefined : reminderMap[i.id]}
+                        times={i.occurrenceDate ? i.reminderTimes : undefined}
+                      />
                     </div>
                   </button>
                 ))}
@@ -318,7 +329,10 @@ export function KalendarPage() {
                     <p className="truncate text-xs font-medium text-muted-foreground">
                       {[i.members.join(", "), i.meta].filter(Boolean).join(" · ")}
                     </p>
-                    <ReminderBadge reminders={reminderMap[i.id]} />
+                    <ReminderBadge
+                        reminders={i.occurrenceDate ? undefined : reminderMap[i.id]}
+                        times={i.occurrenceDate ? i.reminderTimes : undefined}
+                      />
                   </div>
                 </button>
               ))}

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatInstantLong, formatInstantShort } from "./date-hr";
 import { supabase } from "@/integrations/supabase/client";
 import { draftsFromPattern, type ReminderPattern } from "@/lib/reminder-engine";
+import { recurringReminderColumns, ruleFromTemplate } from "@/lib/recurring-reminders";
 
 export const EVENT_CATEGORIES = [
   "Škola",
@@ -49,6 +50,12 @@ export type ReminderRow = {
   sent_at: string | null;
   pattern?: string | null;
   cancelled_at?: string | null;
+  /** Template of a repeating series: re-evaluated per occurrence. */
+  is_recurring?: boolean | null;
+  offset_kind?: string | null;
+  offset_minutes?: number | null;
+  days_before?: number | null;
+  at_time?: string | null;
 };
 
 /** Re-stamps a list of drafts with the chosen recipients (mode + explicit ids). */
@@ -315,7 +322,7 @@ export function useFamilyReminders(familyId: string | null | undefined) {
       const { data, error } = await supabase
         .from("event_reminders")
         .select(
-          "id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at, family_events!inner(family_id)",
+          "id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at, is_recurring, offset_kind, offset_minutes, days_before, at_time, family_events!inner(family_id)",
         )
         .eq("family_events.family_id", familyId!)
         .is("sent_at", null)
@@ -338,7 +345,9 @@ export function useEventReminders(eventId: string | null | undefined) {
     queryFn: async (): Promise<ReminderRow[]> => {
       const { data, error } = await supabase
         .from("event_reminders")
-        .select("id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at")
+        .select(
+          "id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at, is_recurring, offset_kind, offset_minutes, days_before, at_time",
+        )
         .eq("event_id", eventId!)
         .is("cancelled_at", null)
         .order("remind_at", { ascending: true });
@@ -349,6 +358,44 @@ export function useEventReminders(eventId: string | null | undefined) {
 }
 
 export type InsertResult = { inserted: number; skipped: number; skippedTimes: string[] };
+
+/** The series fields a reminder template needs to become per-occurrence. */
+export type ReminderEventContext = {
+  date: string | null;
+  time: string | null;
+  recurrence_freq: string | null;
+} | null;
+
+/**
+ * Rows to insert for an event's reminders.
+ *
+ * A one-off event produces exactly the same row shape as before. Only when the
+ * event is a series does each reminder additionally carry its rule, so the
+ * database can compute a send time for every occurrence.
+ */
+export function buildReminderRows(
+  eventId: string,
+  drafts: ReminderDraft[],
+  userId: string,
+  seriesId: string | null,
+  event: ReminderEventContext,
+) {
+  const recurring = Boolean(event?.recurrence_freq && event?.date);
+  return drafts.map((d) => {
+    const base = {
+      event_id: eventId,
+      remind_at: d.remind_at,
+      recipient_mode: d.recipient_mode,
+      recipient_user_ids: d.recipient_mode === "selected" ? (d.recipient_user_ids ?? []) : [],
+      created_by: userId,
+      pattern: d.pattern ?? "once",
+      series_id: seriesId,
+    };
+    if (!recurring) return base;
+    const rule = ruleFromTemplate(d.remind_at, event!.date!, (event!.time ?? "").slice(0, 5));
+    return { ...base, ...recurringReminderColumns(rule) };
+  });
+}
 
 /** Inserts reminders for an event. Past times are skipped and reported back. */
 export async function insertReminders(
@@ -365,15 +412,12 @@ export async function insertReminders(
   const skipped = skippedTimes.length;
   const seriesId =
     typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : null;
-  const rows = future.map((d) => ({
-    event_id: eventId,
-    remind_at: d.remind_at,
-    recipient_mode: d.recipient_mode,
-    recipient_user_ids: d.recipient_mode === "selected" ? (d.recipient_user_ids ?? []) : [],
-    created_by: userId,
-    pattern: d.pattern ?? "once",
-    series_id: seriesId,
-  }));
+  const { data: eventRow } = await supabase
+    .from("family_events")
+    .select("date, time, recurrence_freq")
+    .eq("id", eventId)
+    .maybeSingle();
+  const rows = buildReminderRows(eventId, future, userId, seriesId, eventRow ?? null);
   if (rows.length === 0) return { inserted: 0, skipped, skippedTimes };
   const { data, error } = await supabase.from("event_reminders").insert(rows).select("id");
   if (error) {
