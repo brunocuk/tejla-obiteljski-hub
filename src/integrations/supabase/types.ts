@@ -170,6 +170,62 @@ export type Database = {
           },
         ]
       }
+      event_occurrence_overrides: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_date: string | null
+          end_time: string | null
+          event_id: string
+          id: string
+          location: string | null
+          notes: string | null
+          original_occurrence_date: string
+          start_time: string | null
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string | null
+          end_time?: string | null
+          event_id: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          original_occurrence_date: string
+          start_time?: string | null
+          status: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_date?: string | null
+          end_time?: string | null
+          event_id?: string
+          id?: string
+          location?: string | null
+          notes?: string | null
+          original_occurrence_date?: string
+          start_time?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_occurrence_overrides_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "family_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_reminders: {
         Row: {
           cancelled_at: string | null
@@ -177,6 +233,8 @@ export type Database = {
           created_by: string | null
           event_id: string
           id: string
+          is_recurring: boolean
+          offset_minutes: number | null
           pattern: string
           recipient_mode: string
           recipient_user_ids: string[]
@@ -190,6 +248,8 @@ export type Database = {
           created_by?: string | null
           event_id: string
           id?: string
+          is_recurring?: boolean
+          offset_minutes?: number | null
           pattern?: string
           recipient_mode?: string
           recipient_user_ids?: string[]
@@ -203,6 +263,8 @@ export type Database = {
           created_by?: string | null
           event_id?: string
           id?: string
+          is_recurring?: boolean
+          offset_minutes?: number | null
           pattern?: string
           recipient_mode?: string
           recipient_user_ids?: string[]
@@ -251,11 +313,17 @@ export type Database = {
           created_by: string | null
           date: string | null
           deadline: string | null
+          end_time: string | null
           family_id: string
           id: string
           linked_event_id: string | null
           location: string | null
           notes: string | null
+          recurrence_byday: string[]
+          recurrence_freq: string | null
+          recurrence_interval: number
+          recurrence_note: string | null
+          recurrence_until: string | null
           things_to_bring: Json
           time: string | null
           title: string
@@ -271,11 +339,17 @@ export type Database = {
           created_by?: string | null
           date?: string | null
           deadline?: string | null
+          end_time?: string | null
           family_id: string
           id?: string
           linked_event_id?: string | null
           location?: string | null
           notes?: string | null
+          recurrence_byday?: string[]
+          recurrence_freq?: string | null
+          recurrence_interval?: number
+          recurrence_note?: string | null
+          recurrence_until?: string | null
           things_to_bring?: Json
           time?: string | null
           title: string
@@ -291,11 +365,17 @@ export type Database = {
           created_by?: string | null
           date?: string | null
           deadline?: string | null
+          end_time?: string | null
           family_id?: string
           id?: string
           linked_event_id?: string | null
           location?: string | null
           notes?: string | null
+          recurrence_byday?: string[]
+          recurrence_freq?: string | null
+          recurrence_interval?: number
+          recurrence_note?: string | null
+          recurrence_until?: string | null
           things_to_bring?: Json
           time?: string | null
           title?: string
@@ -632,6 +712,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      reminder_occurrences: {
+        Row: {
+          cancelled_at: string | null
+          created_at: string
+          effective_date: string
+          id: string
+          original_occurrence_date: string
+          remind_at: string
+          reminder_id: string
+          sent_at: string | null
+        }
+        Insert: {
+          cancelled_at?: string | null
+          created_at?: string
+          effective_date: string
+          id?: string
+          original_occurrence_date: string
+          remind_at: string
+          reminder_id: string
+          sent_at?: string | null
+        }
+        Update: {
+          cancelled_at?: string | null
+          created_at?: string
+          effective_date?: string
+          id?: string
+          original_occurrence_date?: string
+          remind_at?: string
+          reminder_id?: string
+          sent_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminder_occurrences_reminder_id_fkey"
+            columns: ["reminder_id"]
+            isOneToOne: false
+            referencedRelation: "event_reminders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_notification_prefs: {
         Row: {
