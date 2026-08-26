@@ -1,6 +1,40 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { resolveAssignee } from "./family";
 import { normalizeCategory } from "./reminders";
+import {
+  NO_RECURRENCE,
+  WEEKDAY_CODES,
+  type EventRecurrence,
+  type RecurrenceFreq,
+  type WeekdayCode,
+} from "./recurrence";
+
+const FREQS: RecurrenceFreq[] = ["daily", "weekly", "monthly"];
+
+/**
+ * Tejla's raw recurrence object -> the one recurrence shape the app stores.
+ * Anything unrecognized degrades to "no repeat", so a hallucinated rule can
+ * never silently create an endless series.
+ */
+function normalizeRecurrence(raw: unknown, type: "event" | "task"): EventRecurrence {
+  if (type === "task" || !raw || typeof raw !== "object") return NO_RECURRENCE;
+  const r = raw as Record<string, unknown>;
+  const freq = FREQS.find((f) => f === String(r["freq"] ?? "").trim().toLowerCase()) ?? null;
+  if (!freq) return NO_RECURRENCE;
+  const interval = Number(r["interval"]);
+  const until = String(r["until"] ?? "").trim();
+  return {
+    freq,
+    interval: Number.isFinite(interval) && interval >= 1 ? Math.min(52, Math.floor(interval)) : 1,
+    byday: Array.isArray(r["byday"])
+      ? (r["byday"] as unknown[])
+          .map((d) => String(d).trim().toUpperCase())
+          .filter((d): d is WeekdayCode => (WEEKDAY_CODES as readonly string[]).includes(d))
+      : [],
+    until: /^\d{4}-\d{2}-\d{2}$/.test(until) ? until : "",
+    note: String(r["note"] ?? "").trim(),
+  };
+}
 
 const EVENTS_STORAGE_KEY = "family-hub-events";
 
@@ -123,6 +157,7 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
     needsYear: parsed.needsYear,
     dateUncertain: Boolean(raw.dateUncertain),
     time: String(raw.time ?? ""),
+    end_time: String(raw.end_time ?? "").trim(),
     location: String(raw.location ?? ""),
     deadline: String(raw.deadline ?? ""),
     amount: String(raw.amount ?? ""),
@@ -141,6 +176,14 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
       ? raw.reminder_people.map(String).filter(Boolean)
       : [],
     link_to: Number.isInteger(raw.link_to) ? Number(raw.link_to) : -1,
+    recurrence: {
+      ...normalizeRecurrence(
+        (raw as { recurrence?: unknown }).recurrence,
+        raw.type === "task" ? "task" : "event",
+      ),
+      note: String(raw.exception_note ?? "").trim(),
+    },
+    exception_note: String(raw.exception_note ?? "").trim(),
   };
 }
 
