@@ -102,7 +102,6 @@ describe("moved and skipped occurrences", () => {
     const occurrences = [{ effective_date: "2026-09-07", start_time: "17:00" }];
     const times = occurrences.flatMap((o) => occurrenceReminderTimes(templates, o));
     expect(times).toHaveLength(1);
-    expect(occurrenceReminderTimes(templates, undefined as never)).toBeDefined;
   });
 
   it("ignores one-off reminders of the same event", () => {

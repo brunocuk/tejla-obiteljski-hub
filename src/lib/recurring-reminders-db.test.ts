@@ -17,7 +17,7 @@ const REL = "'44444444-4444-4444-4444-444444444444'";
 const CAL = "'55555555-5555-5555-5555-555555555555'";
 
 /** Fixture: one weekly series with a relative and a calendar reminder rule. */
-const SETUP = `
+const setup = (timeSql = "'17:00'", offset = 120) => `
 BEGIN;
 CREATE TEMP TABLE ctx AS
   SELECT fu.family_id, fu.user_id FROM public.family_users fu WHERE fu.role='owner' LIMIT 1;
@@ -25,21 +25,21 @@ SELECT set_config('request.jwt.claims', json_build_object('sub', user_id)::text,
 INSERT INTO public.family_events (id, family_id, title, date, time, type, created_by,
                                   recurrence_freq, recurrence_interval)
 SELECT ${EVENT}, family_id, 'TEST SERIES', (now() AT TIME ZONE 'Europe/Zagreb')::date,
-       '17:00', 'event', user_id, 'weekly', 1 FROM ctx;
+       ${timeSql}, 'event', user_id, 'weekly', 1 FROM ctx;
 INSERT INTO public.event_reminders (id, event_id, remind_at, recipient_mode, created_by,
                                     is_recurring, offset_kind, offset_minutes)
 SELECT ${REL}, ${EVENT}, now() + interval '1 hour', 'creator_only', user_id,
-       true, 'relative', 120 FROM ctx;
+       true, 'relative', ${offset} FROM ctx;
 INSERT INTO public.event_reminders (id, event_id, remind_at, recipient_mode, created_by,
                                     is_recurring, offset_kind, days_before, at_time)
 SELECT ${CAL}, ${EVENT}, now() + interval '2 hour', 'creator_only', user_id,
        true, 'calendar', 1, '19:00' FROM ctx;
 `;
 
-function run(body: string): Record<string, string> {
+function run(body: string, fixture = setup()): Record<string, string> {
   const out = execFileSync("psql", ["-At", "-v", "ON_ERROR_STOP=1"], {
     encoding: "utf8",
-    input: `${SETUP}\n${body}\nROLLBACK;\n`,
+    input: `${fixture}\n${body}\nROLLBACK;\n`,
   });
   const map: Record<string, string> = {};
   for (const line of out.split("\n")) {
@@ -92,7 +92,7 @@ d("occurrence overrides", () => {
       SELECT 'ignore='||public.materialize_reminder_occurrences(21);
       INSERT INTO public.event_occurrence_overrides
         (event_id, original_occurrence_date, status, effective_date, start_time, created_by)
-      SELECT ${EVENT}, (now() AT TIME ZONE 'Europe/Zagreb')::date + 7, 'moved',
+      SELECT ${EVENT}, (now() AT TIME ZONE 'Europe/Zagreb')::date + 7, 'modified',
              (now() AT TIME ZONE 'Europe/Zagreb')::date + 8, '09:00', user_id FROM ctx;
       SELECT 'again='||public.materialize_reminder_occurrences(21);
       SELECT 'moved='||to_char(remind_at AT TIME ZONE 'Europe/Zagreb','YYYY-MM-DD HH24:MI')
@@ -131,18 +131,17 @@ d("occurrence overrides", () => {
 
 d("claim_due_reminder_occurrences", () => {
   it("hands a due occurrence to exactly one cron run", () => {
-    const r = run(`
-      UPDATE public.family_events
-        SET time = ((now() AT TIME ZONE 'Europe/Zagreb') - interval '10 minutes')::time
-        WHERE id = ${EVENT};
-      UPDATE public.event_reminders SET offset_minutes = 0 WHERE id = ${REL};
-      DELETE FROM public.event_reminders WHERE id = ${CAL};
+    const r = run(
+      `
       SELECT 'ignore='||public.materialize_reminder_occurrences(21);
       SELECT 'firstrun='||count(*) FROM public.claim_due_reminder_occurrences(100);
       SELECT 'secondrun='||count(*) FROM public.claim_due_reminder_occurrences(100);
       SELECT 'sent='||count(*) FROM public.reminder_occurrences
         WHERE reminder_id=${REL} AND sent_at IS NOT NULL;
-    `);
+    `,
+      // Series whose today occurrence started 10 minutes ago, reminded at start.
+      setup("((now() AT TIME ZONE 'Europe/Zagreb') - interval '10 minutes')::time", 0),
+    );
     expect(r["firstrun"]).toBe("1");
     // A parallel run finds nothing left to claim: no duplicate push.
     expect(r["secondrun"]).toBe("0");
