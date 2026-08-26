@@ -93,7 +93,7 @@ export function KalendarPage() {
     bounds.to,
     schoolSeries.length > 0,
   );
-  const showCoverageBanner = needsSchoolCalendarWarning(schoolSeries, coverage);
+  const showCoverageBanner = needsSchoolCalendarWarning(schoolSeries, coverage, bounds);
   const [filter, setFilter] = useState("Svi");
   const [showPast, setShowPast] = useState(false);
   const now = useMemo(() => new Date(), []);
