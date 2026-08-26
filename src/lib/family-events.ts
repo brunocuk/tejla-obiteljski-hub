@@ -241,17 +241,20 @@ export async function saveManualEvent(
     title: string;
     date: string;
     time: string;
+    end_time?: string;
     location: string;
     notes: string;
     category?: string;
     type?: "event" | "task";
     linked_event_id?: string | null;
+    recurrence?: EventRecurrence;
   },
   memberIds: string[],
 ) {
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
   if (!uid) throw new Error("Nisi prijavljen.");
+  const type = input.type ?? "event";
 
   const { data: inserted, error } = await supabase
     .from("family_events")
@@ -261,16 +264,19 @@ export async function saveManualEvent(
       category: emptyToNull(input.category ?? ""),
       date: toDbDate(input.date),
       time: input.time.trim() ? toDbTime(input.time) : null,
+      end_time: input.end_time?.trim() ? toDbTime(input.end_time) : null,
       location: emptyToNull(input.location),
       notes: emptyToNull(input.notes),
       things_to_bring: [],
-      type: input.type ?? "event",
+      type,
       linked_event_id: input.linked_event_id ?? null,
       created_by: uid,
+      ...recurrenceColumns(input.recurrence, type),
     })
     .select("id")
     .single();
   if (error) throw error;
+
 
   if (memberIds.length > 0) {
     const { error: linkError } = await supabase
