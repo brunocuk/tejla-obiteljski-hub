@@ -169,16 +169,11 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
       : rawRecurrence,
     raw.type === "task" ? "task" : "event",
   );
-  // The exception text may map onto deterministic HR calendar rules; whatever
-  // stays unmapped remains the visible fallback note.
-  const mappedException = mapExceptionText(exceptionText);
-  const recurrenceWithException: EventRecurrence = {
-    ...baseRecurrence,
-    note: baseRecurrence.freq ? baseRecurrence.note : mappedException.note,
-    exclude: baseRecurrence.freq
-      ? baseRecurrence.exclude
-      : sanitizeExcludeCodes(mappedException.exclude),
-  };
+  // Exceptions only make sense for a repeat rule; a one-off item keeps the
+  // exception text as a plain note and never gets calendar exclusions.
+  const recurrenceWithException: EventRecurrence = baseRecurrence.freq
+    ? baseRecurrence
+    : { ...baseRecurrence, note: exceptionText, exclude: [] };
   return {
     person: String(raw.person ?? ""),
     assignee: raw.assignee ? String(raw.assignee) : resolveAssignee(String(raw.person ?? "")),
