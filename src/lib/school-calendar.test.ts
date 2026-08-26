@@ -107,12 +107,12 @@ describe("school calendar coverage banner", () => {
 
   it("ignores a gap that does not overlap any occurrence", () => {
     const b = monthBounds("2027-09");
+    // Tuesdays in rujan 2027. are 7., 14., 21. and 28. — none inside 1.–5. 9.
     expect(
       needsSchoolCalendarWarning([malacGenijalac], gapYear("2027/2028", "2027-09-01", "2027-09-05"), b),
-    ).toBe(true);
-    const lateStart = { ...malacGenijalac, date: "2027-09-20" };
-    expect(
-      needsSchoolCalendarWarning([lateStart], gapYear("2027/2028", "2027-09-01", "2027-09-05"), b),
     ).toBe(false);
+    expect(
+      needsSchoolCalendarWarning([malacGenijalac], gapYear("2027/2028", "2027-09-06", "2027-09-30"), b),
+    ).toBe(true);
   });
 });
