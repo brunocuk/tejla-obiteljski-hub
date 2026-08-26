@@ -307,6 +307,7 @@ export async function saveFamilyEvents(
   ];
 
   for (const { it: item, i: itemIndex } of order) {
+    const type = item.type === "task" ? "task" : "event";
     const { data: inserted, error } = await supabase
       .from("family_events")
       .insert({
@@ -315,16 +316,19 @@ export async function saveFamilyEvents(
         category: emptyToNull(item.category),
         date: toDbDate(item.date),
         time: item.time.trim() ? toDbTime(item.time) : null,
+        end_time: item.end_time?.trim() ? toDbTime(item.end_time) : null,
         location: emptyToNull(item.location),
         notes: emptyToNull(item.notes),
         deadline: toDbDate(item.deadline),
         amount: emptyToNull(item.amount),
         things_to_bring: item.things_to_bring,
-        type: item.type === "task" ? "task" : "event",
+        type,
         linked_event_id:
           item.type === "task" && item.link_to >= 0 ? (createdIds[item.link_to] || null) : null,
         created_by: uid,
+        ...recurrenceColumns(item.recurrence, type),
       })
+
       .select("id")
       .single();
     if (error) throw error;
