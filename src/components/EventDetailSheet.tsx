@@ -549,10 +549,11 @@ export function EventDetailSheet({
               <div className="flex gap-3 py-2">
                 <span className="w-28 shrink-0 text-sm text-muted-foreground">Podsjetnici</span>
                 <ul className="min-w-0 flex-1 space-y-1">
-                  {pending.map((r) => (
+                  {pendingDisplay.map(({ row: r, at }) => (
                     <li key={r.id} className="flex items-center gap-2 text-[15px] font-medium">
                       <Bell className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={2} />
-                      <span className="min-w-0 flex-1">{formatReminder(r.remind_at)}</span>
+                      <span className="min-w-0 flex-1">{formatReminder(at)}</span>
+
                       <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">
                         {RECIPIENT_LABELS[r.recipient_mode]}
                       </span>
