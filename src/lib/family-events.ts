@@ -76,6 +76,33 @@ function toDbTime(raw: string): string | null {
 
 const toDbDate = (raw: string) => (/^\d{4}-\d{2}-\d{2}$/.test(raw.trim()) ? raw.trim() : null);
 
+const FREQS: RecurrenceFreq[] = ["daily", "weekly", "monthly"];
+
+type RecurrenceRow = {
+  recurrence_freq?: string | null;
+  recurrence_interval?: number | null;
+  recurrence_byday?: string[] | null;
+  recurrence_until?: string | null;
+  recurrence_note?: string | null;
+};
+
+/** Database columns -> the single recurrence shape the app (and Flutter) uses. */
+function rowRecurrence(row: RecurrenceRow): EventRecurrence {
+  const freq = FREQS.find((f) => f === row.recurrence_freq) ?? null;
+  if (!freq) return NO_RECURRENCE;
+  return {
+    freq,
+    interval: row.recurrence_interval ?? 1,
+    byday: (row.recurrence_byday ?? []).filter((d): d is WeekdayCode =>
+      (WEEKDAY_CODES as readonly string[]).includes(d),
+    ),
+    until: asText(row.recurrence_until),
+    note: asText(row.recurrence_note),
+  };
+}
+
+
+
 export function useFamilyEvents(familyId: string | null | undefined) {
   const queryClient = useQueryClient();
 
