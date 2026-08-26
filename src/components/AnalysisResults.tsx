@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check } from "lucide-react";
 import { WHOLE_FAMILY, resolveAssignee } from "@/lib/family";
@@ -90,7 +90,7 @@ export function AnalysisResults({
   const [saving, setSaving] = useState(false);
   const { data: familyId } = useMyFamilyId();
   const { data: allMembers } = useFamilyMembers(familyId);
-  const members = assignableMembers(allMembers ?? []);
+  const members = useMemo(() => assignableMembers(allMembers ?? []), [allMembers]);
   const { data: userId } = useMyUserId();
   const memberRows = members.map((m) => ({ id: m.id, name: m.name }));
   const assigneeOptions = [...memberRows.map((m) => m.name), WHOLE_FAMILY];
