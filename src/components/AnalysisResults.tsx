@@ -23,7 +23,8 @@ import {
   type ReminderDraft,
 } from "@/lib/reminders";
 import { draftsFromPattern, type ReminderPattern } from "@/lib/reminder-engine";
-import { describeRecurrence, isRecurring } from "@/lib/recurrence";
+import { isRecurring } from "@/lib/recurrence";
+import { RecurrenceSummary } from "@/components/RecurrenceSummary";
 
 const RECURRENCE_MAP: Record<string, ReminderPattern> = {
   hourly: "hourly",
