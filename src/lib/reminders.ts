@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { formatInstantLong, formatInstantShort } from "./date-hr";
 import { supabase } from "@/integrations/supabase/client";
 import { draftsFromPattern, type ReminderPattern } from "@/lib/reminder-engine";
+import { recurringReminderColumns, ruleFromTemplate } from "@/lib/recurring-reminders";
 
 export const EVENT_CATEGORIES = [
   "Škola",
@@ -321,7 +322,7 @@ export function useFamilyReminders(familyId: string | null | undefined) {
       const { data, error } = await supabase
         .from("event_reminders")
         .select(
-          "id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at, family_events!inner(family_id)",
+          "id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at, is_recurring, offset_kind, offset_minutes, days_before, at_time, family_events!inner(family_id)",
         )
         .eq("family_events.family_id", familyId!)
         .is("sent_at", null)
@@ -344,7 +345,9 @@ export function useEventReminders(eventId: string | null | undefined) {
     queryFn: async (): Promise<ReminderRow[]> => {
       const { data, error } = await supabase
         .from("event_reminders")
-        .select("id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at")
+        .select(
+          "id, event_id, remind_at, recipient_mode, recipient_user_ids, sent_at, is_recurring, offset_kind, offset_minutes, days_before, at_time",
+        )
         .eq("event_id", eventId!)
         .is("cancelled_at", null)
         .order("remind_at", { ascending: true });
