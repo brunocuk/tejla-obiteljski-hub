@@ -117,6 +117,24 @@ export function EventDetailSheet({
     : [];
 
   const pending = savedReminders.filter((r) => !r.sent_at);
+  /**
+   * On one occurrence of a series a reminder row is a TEMPLATE: show the time
+   * computed for THIS occurrence, exactly like the calendar badge does.
+   */
+  const pendingDisplay = pending.map((r) => {
+    if (!isOccurrence || !r.is_recurring) return { row: r, at: r.remind_at };
+    const rule = ruleFromRow(r);
+    if (!rule) return { row: r, at: r.remind_at };
+    return {
+      row: r,
+      at: occurrenceRemindAt(
+        rule,
+        { effective_date: occurrenceDate!, start_time: event.time },
+        event.time || "09:00",
+      ),
+    };
+  });
+
 
   // Load existing reminders into the editor when entering edit mode.
   useEffect(() => {
