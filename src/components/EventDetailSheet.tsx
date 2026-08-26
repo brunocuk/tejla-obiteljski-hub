@@ -41,6 +41,8 @@ import {
   type ReminderDraft,
   withRecipient,
 } from "@/lib/reminders";
+import { occurrenceRemindAt, ruleFromRow } from "@/lib/recurring-reminders";
+
 
 const fieldClass =
   "mt-1 w-full rounded-2xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary";
@@ -117,6 +119,24 @@ export function EventDetailSheet({
     : [];
 
   const pending = savedReminders.filter((r) => !r.sent_at);
+  /**
+   * On one occurrence of a series a reminder row is a TEMPLATE: show the time
+   * computed for THIS occurrence, exactly like the calendar badge does.
+   */
+  const pendingDisplay = pending.map((r) => {
+    if (!isOccurrence || !r.is_recurring) return { row: r, at: r.remind_at };
+    const rule = ruleFromRow(r);
+    if (!rule) return { row: r, at: r.remind_at };
+    return {
+      row: r,
+      at: occurrenceRemindAt(
+        rule,
+        { effective_date: occurrenceDate!, start_time: event.time },
+        event.time || "09:00",
+      ),
+    };
+  });
+
 
   // Load existing reminders into the editor when entering edit mode.
   useEffect(() => {
@@ -531,10 +551,11 @@ export function EventDetailSheet({
               <div className="flex gap-3 py-2">
                 <span className="w-28 shrink-0 text-sm text-muted-foreground">Podsjetnici</span>
                 <ul className="min-w-0 flex-1 space-y-1">
-                  {pending.map((r) => (
+                  {pendingDisplay.map(({ row: r, at }) => (
                     <li key={r.id} className="flex items-center gap-2 text-[15px] font-medium">
                       <Bell className="size-3.5 shrink-0 text-muted-foreground" strokeWidth={2} />
-                      <span className="min-w-0 flex-1">{formatReminder(r.remind_at)}</span>
+                      <span className="min-w-0 flex-1">{formatReminder(at)}</span>
+
                       <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">
                         {RECIPIENT_LABELS[r.recipient_mode]}
                       </span>
