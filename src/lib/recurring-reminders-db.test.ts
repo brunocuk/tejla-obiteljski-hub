@@ -136,8 +136,10 @@ d("claim_due_reminder_occurrences", () => {
       SELECT 'ignore='||public.materialize_reminder_occurrences(21);
       SELECT 'firstrun='||count(*) FROM public.claim_due_reminder_occurrences(100);
       SELECT 'secondrun='||count(*) FROM public.claim_due_reminder_occurrences(100);
-      SELECT 'sent='||count(*) FROM public.reminder_occurrences
-        WHERE reminder_id=${REL} AND sent_at IS NOT NULL;
+      SELECT 'sent='||count(*) FROM public.reminder_occurrences ro
+        JOIN public.event_reminders rem ON rem.id = ro.reminder_id
+        WHERE rem.event_id = ${EVENT} AND ro.sent_at IS NOT NULL;
+
     `,
       // Series whose today occurrence started 10 minutes ago, reminded at start.
       setup("((now() AT TIME ZONE 'Europe/Zagreb') - interval '10 minutes')::time", 0),
