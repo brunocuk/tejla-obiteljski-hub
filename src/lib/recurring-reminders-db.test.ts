@@ -134,11 +134,15 @@ d("claim_due_reminder_occurrences", () => {
     const r = run(
       `
       SELECT 'ignore='||public.materialize_reminder_occurrences(21);
-      SELECT 'firstrun='||count(*) FROM public.claim_due_reminder_occurrences(100);
-      SELECT 'secondrun='||count(*) FROM public.claim_due_reminder_occurrences(100);
+      -- Scoped to the relative rule: around midnight the calendar rule of the
+      -- next day is legitimately due too, which is not what this test is about.
+      SELECT 'firstrun='||count(*) FROM public.claim_due_reminder_occurrences(100)
+        WHERE reminder_id = ${REL};
+      SELECT 'secondrun='||count(*) FROM public.claim_due_reminder_occurrences(100)
+        WHERE reminder_id = ${REL};
       SELECT 'sent='||count(*) FROM public.reminder_occurrences ro
-        JOIN public.event_reminders rem ON rem.id = ro.reminder_id
-        WHERE rem.event_id = ${EVENT} AND ro.sent_at IS NOT NULL;
+        WHERE ro.reminder_id = ${REL} AND ro.sent_at IS NOT NULL;
+
 
     `,
       // Series whose today occurrence started 10 minutes ago, reminded at start.
