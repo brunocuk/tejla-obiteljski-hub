@@ -844,6 +844,20 @@ export type Database = {
           title: string
         }[]
       }
+      expand_event_occurrences_all: {
+        Args: { _event_id: string; _from: string; _to: string }
+        Returns: {
+          effective_date: string
+          end_time: string
+          event_id: string
+          location: string
+          notes: string
+          original_occurrence_date: string
+          start_time: string
+          status: string
+          title: string
+        }[]
+      }
       expand_family_occurrences: {
         Args: { _family_id: string; _from: string; _to: string }
         Returns: {
