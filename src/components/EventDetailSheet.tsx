@@ -21,6 +21,14 @@ import {
   useMyUserId,
 } from "@/lib/family-workspace";
 import { ReminderEditor } from "@/components/ReminderEditor";
+import { RecurrencePicker } from "@/components/RecurrencePicker";
+import {
+  describeRecurrence,
+  endSeriesBefore,
+  modifyOccurrence,
+  skipOccurrence,
+  type EventRecurrence,
+} from "@/lib/recurrence";
 import {
   EVENT_CATEGORIES,
   RECIPIENT_LABELS,
@@ -47,7 +55,16 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClose: () => void }) {
+export function EventDetailSheet({
+  event,
+  occurrenceDate = null,
+  onClose,
+}: {
+  event: FamilyEvent;
+  /** Identity date of the opened occurrence, for a repeating series. */
+  occurrenceDate?: string | null;
+  onClose: () => void;
+}) {
   const queryClient = useQueryClient();
   const { data: familyId } = useMyFamilyId();
   const { data: allMembers = [] } = useFamilyMembers(familyId);
@@ -75,10 +92,16 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const repeats = event.recurrence.freq !== null;
+  const isOccurrence = repeats && Boolean(occurrenceDate);
+  /** "single" edits just this occurrence; "series" edits the whole rule. */
+  const [scope, setScope] = useState<"single" | "series">(isOccurrence ? "single" : "series");
+  const [recurrence, setRecurrence] = useState<EventRecurrence>(event.recurrence);
   const [form, setForm] = useState({
     title: event.title,
-    date: event.date,
+    date: occurrenceDate ?? event.date,
     time: event.time,
+    end_time: event.end_time,
     location: event.location,
     notes: event.notes,
     category: event.category,
@@ -151,13 +174,31 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
       queryClient.invalidateQueries({ queryKey: ["family-events", familyId] }),
       queryClient.invalidateQueries({ queryKey: ["event-reminders", event.id] }),
       queryClient.invalidateQueries({ queryKey: ["family-reminders", familyId] }),
+      queryClient.invalidateQueries({ queryKey: ["family-occurrences", familyId] }),
     ]);
 
   const save = async () => {
     setError(null);
     setBusy(true);
     try {
-      await updateFamilyEvent(event.id, form, selected);
+      if (isOccurrence && scope === "single") {
+        await modifyOccurrence(event.id, occurrenceDate!, {
+          effective_date: form.date || null,
+          start_time: form.time || null,
+          end_time: form.end_time || null,
+          title: form.title.trim() || null,
+          location: form.location || null,
+          notes: form.notes || null,
+        });
+        await refresh();
+        setEditing(false);
+        return;
+      }
+      await updateFamilyEvent(
+        event.id,
+        { ...form, recurrence, type: event.type },
+        selected,
+      );
       if (!userId) {
         await refresh();
         setError(
@@ -204,11 +245,17 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
     }
   };
 
-  const remove = async () => {
+  const remove = async (mode: "all" | "single" | "future" = "all") => {
     setError(null);
     setBusy(true);
     try {
-      await deleteFamilyEvent(event.id);
+      if (mode === "single" && occurrenceDate) {
+        await skipOccurrence(event.id, occurrenceDate);
+      } else if (mode === "future" && occurrenceDate) {
+        await endSeriesBefore(event.id, occurrenceDate);
+      } else {
+        await deleteFamilyEvent(event.id);
+      }
       await refresh();
       onClose();
     } catch {
