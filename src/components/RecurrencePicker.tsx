@@ -8,6 +8,11 @@ import {
   type RecurrenceFreq,
   type WeekdayCode,
 } from "@/lib/recurrence";
+import {
+  EXCLUDE_TOGGLE_LABELS,
+  sanitizeExcludeCodes,
+  type RecurrenceExcludeCode,
+} from "@/lib/recurrence-exclude";
 
 const fieldClass =
   "mt-1 w-full rounded-2xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary";
@@ -49,6 +54,14 @@ export function RecurrencePicker({
       freq,
       byday: freq === "weekly" ? days : [],
     });
+  };
+
+  const exclude = sanitizeExcludeCodes(value.exclude);
+  const toggleExclude = (code: RecurrenceExcludeCode) => {
+    const next = exclude.includes(code)
+      ? exclude.filter((c) => c !== code)
+      : [...exclude, code];
+    onChange({ ...value, exclude: sanitizeExcludeCodes(next) });
   };
 
   const toggleDay = (code: WeekdayCode) => {
@@ -126,8 +139,31 @@ export function RecurrencePicker({
             </label>
           </div>
 
+          <div>
+            <p className="text-sm font-semibold">Hrvatski kalendar</p>
+            <div className="mt-2 space-y-2">
+              {(["school_breaks_hr", "public_holidays_hr"] as RecurrenceExcludeCode[]).map((code) => (
+                <label
+                  key={code}
+                  className="flex items-center gap-3 rounded-2xl bg-background px-4 py-3 text-sm font-semibold"
+                >
+                  <input
+                    type="checkbox"
+                    checked={exclude.includes(code)}
+                    onChange={() => toggleExclude(code)}
+                    className="size-4 accent-[hsl(var(--primary))]"
+                  />
+                  {EXCLUDE_TOGGLE_LABELS[code]}
+                </label>
+              ))}
+            </div>
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Termini na te dane automatski se preskaču.
+            </p>
+          </div>
+
           <label className="block text-sm font-semibold">
-            Iznimke <span className="font-normal text-muted-foreground">(neobavezno)</span>
+            Ostale iznimke <span className="font-normal text-muted-foreground">(neobavezno)</span>
             <input
               value={value.note}
               onChange={(e) => onChange({ ...value, note: e.target.value })}
