@@ -16,7 +16,7 @@ describe("RecurrenceSummary", () => {
     render(
       <RecurrenceSummary
         {...base}
-        recurrence={{ freq: "weekly", interval: 1, byday: ["TU"], until: "", note: "" }}
+        recurrence={{ freq: "weekly", interval: 1, byday: ["TU"], until: "", note: "", exclude: [] }}
       />,
     );
     expect(screen.getByTestId("recurrence-summary").textContent).toContain(
@@ -28,7 +28,7 @@ describe("RecurrenceSummary", () => {
     render(
       <RecurrenceSummary
         {...base}
-        recurrence={{ freq: "weekly", interval: 1, byday: ["TU"], until: "", note: "" }}
+        recurrence={{ freq: "weekly", interval: 1, byday: ["TU"], until: "", note: "", exclude: [] }}
       />,
     );
     expect(screen.getByTestId("recurrence-summary").textContent).toContain(
@@ -60,7 +60,7 @@ describe("RecurrenceSummary", () => {
       <RecurrenceSummary
         {...base}
         exception_note="osim za vrijeme školskih praznika"
-        recurrence={{ freq: "weekly", interval: 1, byday: ["TU"], until: "", note: "" }}
+        recurrence={{ freq: "weekly", interval: 1, byday: ["TU"], until: "", note: "", exclude: [] }}
       />,
     );
     expect(screen.getByTestId("recurrence-summary").textContent).toContain(
@@ -72,7 +72,7 @@ describe("RecurrenceSummary", () => {
     render(
       <RecurrenceSummary
         {...base}
-        recurrence={{ freq: "weekly", interval: 1, byday: ["TU"], until: "", note: "" }}
+        recurrence={{ freq: "weekly", interval: 1, byday: ["TU"], until: "", note: "", exclude: [] }}
       />,
     );
     expect(

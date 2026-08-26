@@ -81,7 +81,7 @@ describe("AnalysisResults recurring event preview", () => {
     renderResults([
       baseItem({
         end_time: "20:15",
-        recurrence: { freq: "weekly", interval: 1, byday: ["TU"], until: "", note: "" },
+        recurrence: { freq: "weekly", interval: 1, byday: ["TU"], until: "", note: "", exclude: [] },
         exception_note: "osim za vrijeme školskih praznika",
       }),
     ]);
