@@ -54,6 +54,12 @@ vi.mock("@/lib/reminders", async () => ({
   useFamilyReminders: () => ({ data: mocks.reminders }),
 }));
 
+vi.mock("@/lib/recurrence", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/recurrence")>("@/lib/recurrence");
+  return { ...actual, useFamilyOccurrences: () => ({ data: [] }) };
+});
+
+import { NO_RECURRENCE } from "@/lib/recurrence";
 import { KalendarPage, calendarEventVisible } from "./kalendar";
 
 function makeEvent(
@@ -65,6 +71,7 @@ function makeEvent(
     category: "",
     date,
     time: "",
+    end_time: "",
     location: "",
     notes: "",
     deadline: "",
@@ -73,6 +80,7 @@ function makeEvent(
     members: ["Mama"],
     member_ids: ["m-mama"],
     type: "event",
+    recurrence: NO_RECURRENCE,
     completed: false,
     completed_at: null,
     linked_event_id: null,
