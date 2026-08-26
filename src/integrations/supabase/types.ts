@@ -799,6 +799,20 @@ export type Database = {
         Args: { _event_id: string; _family_id: string }
         Returns: boolean
       }
+      claim_due_reminder_occurrences: {
+        Args: { _limit?: number }
+        Returns: {
+          created_by: string
+          effective_date: string
+          event_id: string
+          family_id: string
+          occurrence_id: string
+          recipient_mode: string
+          recipient_user_ids: string[]
+          remind_at: string
+          reminder_id: string
+        }[]
+      }
       create_family: {
         Args: { _family_name: string; _my_name: string }
         Returns: string
@@ -807,10 +821,42 @@ export type Database = {
         Args: { _new_owner_user_id?: string }
         Returns: Json
       }
+      expand_event_occurrences: {
+        Args: { _event_id: string; _from: string; _to: string }
+        Returns: {
+          effective_date: string
+          end_time: string
+          event_id: string
+          location: string
+          notes: string
+          original_occurrence_date: string
+          start_time: string
+          status: string
+          title: string
+        }[]
+      }
+      expand_family_occurrences: {
+        Args: { _family_id: string; _from: string; _to: string }
+        Returns: {
+          effective_date: string
+          end_time: string
+          event_id: string
+          location: string
+          notes: string
+          original_occurrence_date: string
+          start_time: string
+          status: string
+          title: string
+        }[]
+      }
       is_app_admin: { Args: never; Returns: boolean }
       is_family_adult: { Args: { _family_id: string }; Returns: boolean }
       is_family_member: { Args: { _family_id: string }; Returns: boolean }
       is_family_owner: { Args: { _family_id: string }; Returns: boolean }
+      materialize_reminder_occurrences: {
+        Args: { _horizon_days?: number }
+        Returns: number
+      }
       member_data_counts: { Args: { _member_id: string }; Returns: Json }
       pending_family_invitation: { Args: never; Returns: Json }
       purge_member_data: {
