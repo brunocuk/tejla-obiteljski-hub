@@ -372,28 +372,13 @@ export function AnalysisResults({
                     />
                   </div>
                   {it.type === "event" && isRecurring(it.recurrence) ? (
-                    <div
-                      data-testid="recurrence-summary"
-                      className="space-y-1 rounded-xl bg-primary-soft px-3 py-2.5"
-                    >
-                      <p className="text-xs font-semibold text-accent-foreground">
-                        {describeRecurrence(
-                          isIsoDate(it.recurrence.until)
-                            ? { ...it.recurrence, until: formatCroatianDate(it.recurrence.until) }
-                            : it.recurrence,
-                          it.date,
-                        )}
-                      </p>
-                      <p className="text-xs text-accent-foreground/80">
-                        {it.time || "—"}
-                        {it.end_time ? ` – ${it.end_time}` : ""}
-                      </p>
-                      {it.exception_note ? (
-                        <p className="text-xs text-accent-foreground/80">
-                          Iznimka: {it.exception_note}
-                        </p>
-                      ) : null}
-                    </div>
+                    <RecurrenceSummary
+                      recurrence={it.recurrence}
+                      date={it.date}
+                      time={it.time}
+                      end_time={it.end_time}
+                      exception_note={it.exception_note}
+                    />
                   ) : null}
                   {it.dateUncertain ? (
                     <p className="rounded-xl bg-warm px-3 py-2.5 text-[11px] font-semibold text-warm-foreground">
