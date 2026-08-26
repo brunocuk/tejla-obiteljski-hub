@@ -5,6 +5,14 @@ import { WHOLE_FAMILY } from "@/lib/family";
 import type { ExtractedItem } from "@/lib/hub-store";
 import { cancelPendingReminders, restorePausedReminders } from "@/lib/reminders";
 import { notifyAssignment } from "@/lib/notifications.functions";
+import {
+  NO_RECURRENCE,
+  WEEKDAY_CODES,
+  type EventRecurrence,
+  type RecurrenceFreq,
+  type WeekdayCode,
+} from "@/lib/recurrence";
+
 
 /**
  * Instant assignment push. Fire-and-forget: a push problem must never break
