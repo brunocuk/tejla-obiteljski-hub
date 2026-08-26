@@ -283,6 +283,30 @@ export function EventDetailSheet({
 
         {editing ? (
           <div className="space-y-4">
+            {isOccurrence ? (
+              <div className="flex gap-2">
+                {(
+                  [
+                    ["single", "Samo ovaj termin"],
+                    ["series", "Cijela serija"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={scope === value}
+                    onClick={() => setScope(value)}
+                    className={`flex-1 rounded-2xl px-3 py-2.5 text-sm font-semibold ${
+                      scope === value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-primary-soft text-accent-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <label className="block text-sm font-semibold">
               Naslov
               <input value={form.title} onChange={set("title")} className={fieldClass} />
@@ -307,6 +331,17 @@ export function EventDetailSheet({
                 />
               </label>
             </div>
+            {!isTask ? (
+              <label className="block text-sm font-semibold">
+                Završetak <span className="font-normal text-muted-foreground">(neobavezno)</span>
+                <input
+                  type="time"
+                  value={form.end_time}
+                  onChange={set("end_time")}
+                  className={fieldClass}
+                />
+              </label>
+            ) : null}
             <label className="block text-sm font-semibold">
               Lokacija
               <input value={form.location} onChange={set("location")} className={fieldClass} />
@@ -332,6 +367,20 @@ export function EventDetailSheet({
               />
             </label>
 
+            {!isTask && scope === "series" ? (
+              <RecurrencePicker
+                value={recurrence}
+                startDate={form.date}
+                onChange={setRecurrence}
+              />
+            ) : null}
+
+            {scope === "single" ? (
+              <p className="rounded-2xl bg-secondary px-4 py-3 text-xs font-medium text-muted-foreground">
+                Mijenjaš samo termin {occurrenceDate}. Članovi i podsjetnici vrijede za cijelu
+                seriju i mijenjaju se pod „Cijela serija”.
+              </p>
+            ) : (
             <div>
               <p className="text-sm font-semibold">Kome pripada?</p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -352,8 +401,12 @@ export function EventDetailSheet({
               </div>
             </div>
 
+            )}
+
             {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
 
+            {scope === "series" ? (
+            <>
             <ReminderEditor
               input={{
                 category: form.category,
@@ -398,6 +451,8 @@ export function EventDetailSheet({
             >
               Predloži podsjetnike ponovno
             </button>
+            </>
+            ) : null}
 
             <button
               type="button"
