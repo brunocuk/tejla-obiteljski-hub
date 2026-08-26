@@ -148,6 +148,22 @@ export function useFamilyEvents(familyId: string | null | undefined) {
 
 type MemberRow = { id: string; name: string };
 
+/**
+ * Recurrence columns for a write. Only events may repeat in V1; a task always
+ * writes the "no recurrence" shape, which is exactly today's behaviour.
+ */
+function recurrenceColumns(recurrence: EventRecurrence | undefined, type: "event" | "task") {
+  const r = recurrence ?? NO_RECURRENCE;
+  const usable = type === "event" && r.freq !== null;
+  return {
+    recurrence_freq: usable ? r.freq : null,
+    recurrence_interval: usable ? Math.max(1, Math.min(52, r.interval || 1)) : 1,
+    recurrence_byday: usable && r.freq === "weekly" ? r.byday : [],
+    recurrence_until: usable ? toDbDate(r.until) : null,
+    recurrence_note: usable ? emptyToNull(r.note) : null,
+  };
+}
+
 /** Saves one manually entered event plus its member links. */
 export async function updateFamilyEvent(
   eventId: string,
@@ -155,9 +171,13 @@ export async function updateFamilyEvent(
     title: string;
     date: string;
     time: string;
+    end_time?: string;
     location: string;
     notes: string;
     category?: string;
+    /** Omit to leave the existing repeat rule untouched. */
+    recurrence?: EventRecurrence;
+    type?: "event" | "task";
   },
   memberIds: string[],
 ) {
@@ -168,12 +188,15 @@ export async function updateFamilyEvent(
       category: emptyToNull(input.category ?? ""),
       date: toDbDate(input.date),
       time: input.time.trim() ? toDbTime(input.time) : null,
+      end_time: input.end_time?.trim() ? toDbTime(input.end_time) : null,
       location: emptyToNull(input.location),
       notes: emptyToNull(input.notes),
       updated_at: new Date().toISOString(),
+      ...(input.recurrence ? recurrenceColumns(input.recurrence, input.type ?? "event") : {}),
     })
     .eq("id", eventId);
   if (error) throw error;
+
 
   const { error: delError } = await supabase.from("event_members").delete().eq("event_id", eventId);
   if (delError) throw delError;
