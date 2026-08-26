@@ -1,8 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { needsSchoolCalendarWarning, type CoverageRow } from "./school-calendar";
-import { NO_RECURRENCE } from "./recurrence";
+import {
+  needsSchoolCalendarWarning,
+  potentialOccurrencesInWindow,
+  type CoverageRow,
+} from "./school-calendar";
+import { monthBounds, NO_RECURRENCE } from "./recurrence";
 
-const series = (exclude: string[]) => ({
+/** "Malac genijalac": every Tuesday from 1.9.2026., skips school breaks. */
+const malacGenijalac = {
+  date: "2026-09-01",
+  recurrence: {
+    ...NO_RECURRENCE,
+    freq: "weekly" as const,
+    byday: ["TU" as const],
+    exclude: ["school_breaks_hr"] as never,
+  },
+};
+
+const plain = (exclude: string[]) => ({
+  date: "2026-09-01",
   recurrence: {
     ...NO_RECURRENCE,
     freq: "weekly" as const,
@@ -11,30 +27,92 @@ const series = (exclude: string[]) => ({
   },
 });
 
-const covered: CoverageRow[] = [
-  { school_year: "2026/2027", covered: true, gap_from: null, gap_to: null },
+const coveredYear = (year: string, from: string, to: string): CoverageRow[] => [
+  { school_year: year, covered: true, gap_from: null, gap_to: null },
 ];
-const gap: CoverageRow[] = [
-  { school_year: "2027/2028", covered: false, gap_from: "2027-09-01", gap_to: "2027-09-30" },
+const gapYear = (year: string, from: string, to: string): CoverageRow[] => [
+  { school_year: year, covered: false, gap_from: from, gap_to: to },
 ];
 
-describe("school calendar coverage banner", () => {
-  it("stays hidden when no visible series uses school breaks", () => {
-    expect(needsSchoolCalendarWarning([series([]), series(["weekends"])], gap)).toBe(false);
+describe("potentialOccurrencesInWindow", () => {
+  it("has no occurrence before the series starts", () => {
+    const b = monthBounds("2026-08");
+    expect(potentialOccurrencesInWindow(malacGenijalac, b.from, b.to)).toEqual([]);
   });
 
-  it("stays hidden when the window is covered", () => {
-    expect(needsSchoolCalendarWarning([series(["school_breaks_hr"])], covered)).toBe(false);
+  it("lists every Tuesday of the starting month", () => {
+    const b = monthBounds("2026-09");
+    expect(potentialOccurrencesInWindow(malacGenijalac, b.from, b.to)).toEqual([
+      "2026-09-01",
+      "2026-09-08",
+      "2026-09-15",
+      "2026-09-22",
+      "2026-09-29",
+    ]);
+  });
+
+  it("ignores school-break filtering (returns dates inside holidays too)", () => {
+    const b = monthBounds("2026-12");
+    expect(potentialOccurrencesInWindow(malacGenijalac, b.from, b.to)).toContain("2026-12-29");
+  });
+
+  it("stops at the series end date", () => {
+    const b = monthBounds("2026-10");
+    const ended = { ...malacGenijalac, recurrence: { ...malacGenijalac.recurrence, until: "2026-10-10" } };
+    expect(potentialOccurrencesInWindow(ended, b.from, b.to)).toEqual(["2026-10-06"]);
+  });
+});
+
+describe("school calendar coverage banner", () => {
+  it("stays hidden in kolovoz 2026. — the series has no occurrence yet", () => {
+    const b = monthBounds("2026-08");
+    expect(
+      needsSchoolCalendarWarning([malacGenijalac], gapYear("2025/2026", b.from, b.to), b),
+    ).toBe(false);
+  });
+
+  it("stays hidden in rujan 2026. — the 2026/2027 calendar exists", () => {
+    const b = monthBounds("2026-09");
+    expect(
+      needsSchoolCalendarWarning([malacGenijalac], coveredYear("2026/2027", b.from, b.to), b),
+    ).toBe(false);
+  });
+
+  it("stays hidden in siječanj 2027. — still inside the known calendar", () => {
+    const b = monthBounds("2027-01");
+    expect(
+      needsSchoolCalendarWarning([malacGenijalac], coveredYear("2026/2027", b.from, b.to), b),
+    ).toBe(false);
+  });
+
+  it("shows in rujan 2027. when 2027/2028 is missing and occurrences exist", () => {
+    const b = monthBounds("2027-09");
+    expect(
+      needsSchoolCalendarWarning([malacGenijalac], gapYear("2027/2028", b.from, b.to), b),
+    ).toBe(true);
+  });
+
+  it("never shows without a relevant series", () => {
+    const b = monthBounds("2027-09");
+    expect(needsSchoolCalendarWarning([], gapYear("2027/2028", b.from, b.to), b)).toBe(false);
+    expect(
+      needsSchoolCalendarWarning([plain([]), plain(["weekends"])], gapYear("2027/2028", b.from, b.to), b),
+    ).toBe(false);
   });
 
   it("stays hidden while coverage is still unknown", () => {
-    expect(needsSchoolCalendarWarning([series(["school_breaks_hr"])], undefined)).toBe(false);
+    const b = monthBounds("2027-09");
+    expect(needsSchoolCalendarWarning([malacGenijalac], undefined, b)).toBe(false);
   });
 
-  it("shows only when a school-break series meets an uncovered window", () => {
-    expect(needsSchoolCalendarWarning([series(["school_breaks_hr"])], gap)).toBe(true);
+  it("ignores a gap that does not overlap any occurrence", () => {
+    const b = monthBounds("2027-09");
     expect(
-      needsSchoolCalendarWarning([series([]), series(["school_breaks_hr"])], [...covered, ...gap]),
+      needsSchoolCalendarWarning([malacGenijalac], gapYear("2027/2028", "2027-09-01", "2027-09-05"), b),
     ).toBe(true);
+    const lateStart = { ...malacGenijalac, date: "2027-09-20" };
+    expect(
+      needsSchoolCalendarWarning([lateStart], gapYear("2027/2028", "2027-09-01", "2027-09-05"), b),
+    ).toBe(false);
   });
 });
