@@ -329,6 +329,7 @@ export type Database = {
           location: string | null
           notes: string | null
           recurrence_byday: string[]
+          recurrence_exclude: string[]
           recurrence_freq: string | null
           recurrence_interval: number
           recurrence_note: string | null
@@ -355,6 +356,7 @@ export type Database = {
           location?: string | null
           notes?: string | null
           recurrence_byday?: string[]
+          recurrence_exclude?: string[]
           recurrence_freq?: string | null
           recurrence_interval?: number
           recurrence_note?: string | null
@@ -381,6 +383,7 @@ export type Database = {
           location?: string | null
           notes?: string | null
           recurrence_byday?: string[]
+          recurrence_exclude?: string[]
           recurrence_freq?: string | null
           recurrence_interval?: number
           recurrence_note?: string | null
@@ -763,6 +766,80 @@ export type Database = {
           },
         ]
       }
+      school_breaks: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          ends_on: string
+          id: string
+          label: string
+          starts_on: string
+          updated_at: string
+        }
+        Insert: {
+          calendar_id: string
+          created_at?: string
+          ends_on: string
+          id?: string
+          label: string
+          starts_on: string
+          updated_at?: string
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          ends_on?: string
+          id?: string
+          label?: string
+          starts_on?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_breaks_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "school_calendars"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_calendars: {
+        Row: {
+          created_at: string
+          id: string
+          published_at: string | null
+          school_year: string
+          scope: string
+          source_url: string | null
+          updated_at: string
+          valid_from: string
+          valid_to: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          published_at?: string | null
+          school_year: string
+          scope?: string
+          source_url?: string | null
+          updated_at?: string
+          valid_from: string
+          valid_to: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          published_at?: string | null
+          school_year?: string
+          scope?: string
+          source_url?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string
+        }
+        Relationships: []
+      }
       user_notification_prefs: {
         Row: {
           created_at: string
@@ -872,7 +949,19 @@ export type Database = {
           title: string
         }[]
       }
+      hr_easter_sunday: { Args: { _year: number }; Returns: string }
+      hr_public_holiday: {
+        Args: { _year: number }
+        Returns: {
+          day: string
+          name: string
+        }[]
+      }
       is_app_admin: { Args: never; Returns: boolean }
+      is_excluded_hr: {
+        Args: { _day: string; _kinds: string[] }
+        Returns: boolean
+      }
       is_family_adult: { Args: { _family_id: string }; Returns: boolean }
       is_family_member: { Args: { _family_id: string }; Returns: boolean }
       is_family_owner: { Args: { _family_id: string }; Returns: boolean }
@@ -889,6 +978,15 @@ export type Database = {
       remove_family_member: {
         Args: { _member_id: string; _purge?: boolean }
         Returns: Json
+      }
+      school_calendar_coverage: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          covered: boolean
+          gap_from: string
+          gap_to: string
+          school_year: string
+        }[]
       }
     }
     Enums: {
