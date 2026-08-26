@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check } from "lucide-react";
 import { WHOLE_FAMILY, resolveAssignee } from "@/lib/family";
@@ -23,7 +23,8 @@ import {
   type ReminderDraft,
 } from "@/lib/reminders";
 import { draftsFromPattern, type ReminderPattern } from "@/lib/reminder-engine";
-import { describeRecurrence, isRecurring } from "@/lib/recurrence";
+import { isRecurring } from "@/lib/recurrence";
+import { RecurrenceSummary } from "@/components/RecurrenceSummary";
 
 const RECURRENCE_MAP: Record<string, ReminderPattern> = {
   hourly: "hourly",
@@ -89,7 +90,7 @@ export function AnalysisResults({
   const [saving, setSaving] = useState(false);
   const { data: familyId } = useMyFamilyId();
   const { data: allMembers } = useFamilyMembers(familyId);
-  const members = assignableMembers(allMembers ?? []);
+  const members = useMemo(() => assignableMembers(allMembers ?? []), [allMembers]);
   const { data: userId } = useMyUserId();
   const memberRows = members.map((m) => ({ id: m.id, name: m.name }));
   const assigneeOptions = [...memberRows.map((m) => m.name), WHOLE_FAMILY];
@@ -372,28 +373,13 @@ export function AnalysisResults({
                     />
                   </div>
                   {it.type === "event" && isRecurring(it.recurrence) ? (
-                    <div
-                      data-testid="recurrence-summary"
-                      className="space-y-1 rounded-xl bg-primary-soft px-3 py-2.5"
-                    >
-                      <p className="text-xs font-semibold text-accent-foreground">
-                        {describeRecurrence(
-                          isIsoDate(it.recurrence.until)
-                            ? { ...it.recurrence, until: formatCroatianDate(it.recurrence.until) }
-                            : it.recurrence,
-                          it.date,
-                        )}
-                      </p>
-                      <p className="text-xs text-accent-foreground/80">
-                        {it.time || "—"}
-                        {it.end_time ? ` – ${it.end_time}` : ""}
-                      </p>
-                      {it.exception_note ? (
-                        <p className="text-xs text-accent-foreground/80">
-                          Iznimka: {it.exception_note}
-                        </p>
-                      ) : null}
-                    </div>
+                    <RecurrenceSummary
+                      recurrence={it.recurrence}
+                      date={it.date}
+                      time={it.time}
+                      end_time={it.end_time}
+                      exception_note={it.exception_note}
+                    />
                   ) : null}
                   {it.dateUncertain ? (
                     <p className="rounded-xl bg-warm px-3 py-2.5 text-[11px] font-semibold text-warm-foreground">
