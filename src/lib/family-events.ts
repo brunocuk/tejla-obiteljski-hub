@@ -23,6 +23,8 @@ export type FamilyEvent = {
   category: string;
   date: string;
   time: string;
+  /** Optional end time of an event ("18:15 – 20:15"); "" when unknown. */
+  end_time: string;
   location: string;
   notes: string;
   deadline: string;
@@ -40,7 +42,10 @@ export type FamilyEvent = {
   linked_event_id: string | null;
   /** Who entered it; decides what a child member may change. */
   created_by: string | null;
+  /** Repeat rule of the series; null means a plain one-off obligation. */
+  recurrence: EventRecurrence;
 };
+
 
 const asText = (v: string | null | undefined) => (v ?? "").trim();
 const emptyToNull = (v: string) => (v.trim() === "" ? null : v.trim());
