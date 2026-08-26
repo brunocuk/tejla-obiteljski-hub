@@ -46,6 +46,7 @@ describe("RecurrenceSummary", () => {
           byday: ["TU"],
           until: "2026-12-22",
           note: "",
+        exclude: [],
         }}
       />,
     );

@@ -104,6 +104,7 @@ describe("AnalysisResults recurring event preview", () => {
           byday: ["TU"],
           until: "2026-12-22",
           note: "",
+        exclude: [],
         },
       }),
     ]);
