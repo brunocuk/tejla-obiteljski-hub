@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { sanitizeExcludeCodes } from "@/lib/recurrence-exclude";
 
 const SYSTEM_PROMPT = `You extract scheduling and task information from an image, a PDF page or pasted text (screenshot, photo of a notice, email, message).
 Return STRICT JSON only, matching exactly:
-{"items":[{"type":"event","person":"","title":"","category":"","date":"","time":"","end_time":"","location":"","deadline":"","amount":"","things_to_bring":[],"action_required":"","subject":"","notes":"","confidence":0,"reminder_intent":false,"reminder_time":"","reminder_recurrence":"","reminder_scope":"","reminder_people":[],"link_to":-1,"recurrence":{"freq":"","interval":1,"byday":[],"until":""},"exception_note":""}]}
+{"items":[{"type":"event","person":"","title":"","category":"","date":"","time":"","end_time":"","location":"","deadline":"","amount":"","things_to_bring":[],"action_required":"","subject":"","notes":"","confidence":0,"reminder_intent":false,"reminder_time":"","reminder_recurrence":"","reminder_scope":"","reminder_people":[],"link_to":-1,"recurrence":{"freq":"","interval":1,"byday":[],"until":"","exclude":[]},"exception_note":""}]}
 Rules:
 - "type" is "event" when something happens at a moment in time (appointment, birthday, trip, exam, deadline). "type" is "task" when the user must DO something ("kupiti poklon", "izvaditi krv", "platiti ratu").
 - One sentence can produce BOTH an event and a task. Then return two items: the event first (type "event"), the task second (type "task") with "link_to" set to the index of that event in the items array (0-based). Never return the same thing twice as two events.
@@ -32,7 +33,12 @@ Rules:
   * "until" is YYYY-MM-DD when an end is stated ("do kraja lipnja", "do 30.6."), otherwise "".
   * "date" stays the FIRST occurrence of the series ("Od 1.9. svaki utorak" => date is 2025-09-01 style first date, resolved with the provided current date).
   * Tasks never repeat: only items with type "event" may have a recurrence.
-- An EXCEPTION to a repeat that cannot be turned into concrete dates ("osim kada su skolski praznici", "osim praznikom", "osim kad smo na putu") goes into "exception_note" as written. NEVER guess which dates are school holidays and never drop the exception silently.
+  * "exclude" lists deterministic Croatian calendar exceptions, ONLY from this closed list: "school_breaks_hr", "public_holidays_hr", "weekends". Never invent another code and NEVER output concrete exception dates.
+    - "osim skolskih praznika" / "osim skolskih odmora" / "kad nema skole" / "kad nema nastave" => ["school_breaks_hr"]
+    - "osim blagdana" / "praznikom ne radi" / "osim drzavnih praznika" => ["public_holidays_hr"]
+    - "osim neradnih dana" => ["public_holidays_hr","weekends"]
+    - "svaki radni dan" / "radnim danima" => freq "weekly" with byday ["MO","TU","WE","TH","FR"], exclude stays [].
+- An EXCEPTION to a repeat that cannot be turned into concrete dates ("osim kada su skolski praznici", "osim praznikom", "osim kad smo na putu") goes into "exception_note" as written (use it only when nothing in "exclude" matches). NEVER guess which dates are school holidays and never drop the exception silently.
 - Relative reminder expressions ("za 5 minuta", "za pola sata", "za sat vremena", "za 2 sata", "za 3 dana") are counted from the provided current local time, NEVER from the moment of writing. Resolve them into reminder_time (HH:MM) and, when they cross midnight, into the task "date".
 - "podsjeti me X prije" refers to the EVENT time minus X; keep the event time in "time" and never copy the event time into reminder_time.
 - Only fill a field when it was actually stated. Never invent a person, location, time or date.
@@ -61,6 +67,19 @@ type Body = {
 /** Max decoded PDF size we accept (bytes). Base64 is ~1.37x larger. */
 const MAX_PDF_BYTES = 15 * 1024 * 1024;
 
+
+/**
+ * Server-side whitelist: only the three known calendar rules may leave this
+ * endpoint, and the model can never smuggle in concrete exception dates.
+ */
+function sanitizeItemExclusions(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object") return raw;
+  const item = raw as Record<string, unknown>;
+  const rec = item["recurrence"];
+  if (!rec || typeof rec !== "object") return item;
+  const r = rec as Record<string, unknown>;
+  return { ...item, recurrence: { ...r, exclude: sanitizeExcludeCodes(r["exclude"]) } };
+}
 
 export const Route = createFileRoute("/api/analyze-image")({
   server: {
@@ -228,7 +247,8 @@ export const Route = createFileRoute("/api/analyze-image")({
         const match = content.match(/\{[\s\S]*\}/);
         try {
           const parsed = JSON.parse(match ? match[0] : content) as { items?: unknown };
-          return Response.json({ items: Array.isArray(parsed.items) ? parsed.items : [] });
+          const items = Array.isArray(parsed.items) ? parsed.items.map(sanitizeItemExclusions) : [];
+          return Response.json({ items });
         } catch {
           console.error("AI_OUTPUT_PARSE_FAILED");
           return Response.json({ error: "Tejla nije uspjela pročitati rezultat obrade." }, { status: 502 });

@@ -18,6 +18,10 @@ import { ReminderBadge } from "@/components/ReminderBadge";
 import { useFamilyReminders } from "@/lib/reminders";
 import { monthBounds, useFamilyOccurrences } from "@/lib/recurrence";
 import { occurrenceReminderTimes } from "@/lib/recurring-reminders";
+import {
+  needsSchoolCalendarWarning,
+  useSchoolCalendarCoverage,
+} from "@/lib/school-calendar";
 
 export const Route = createFileRoute("/_authenticated/kalendar")({
   head: () => ({
@@ -81,6 +85,15 @@ export function KalendarPage() {
   const bounds = monthBounds(cursor);
   // Repeating series are expanded by the backend, so every client agrees.
   const { data: occurrences = [] } = useFamilyOccurrences(familyId, bounds.from, bounds.to);
+  const schoolSeries = (events ?? []).filter(
+    (e) => e.recurrence.freq !== null && e.recurrence.exclude.includes("school_breaks_hr"),
+  );
+  const { data: coverage } = useSchoolCalendarCoverage(
+    bounds.from,
+    bounds.to,
+    schoolSeries.length > 0,
+  );
+  const showCoverageBanner = needsSchoolCalendarWarning(schoolSeries, coverage);
   const [filter, setFilter] = useState("Svi");
   const [showPast, setShowPast] = useState(false);
   const now = useMemo(() => new Date(), []);
@@ -192,6 +205,19 @@ export function KalendarPage() {
           <Plus className="size-5" strokeWidth={2.4} />
         </button>
       </div>
+
+      {showCoverageBanner ? (
+        <div
+          data-testid="school-calendar-banner"
+          className="mb-4 rounded-2xl bg-secondary px-4 py-3 text-sm text-muted-foreground"
+        >
+          <p className="font-semibold text-foreground">Školski kalendar nije poznat</p>
+          <p className="mt-0.5">
+            Za ovaj mjesec Tejla još nema školski kalendar, pa termine za vrijeme školskih
+            odmora ne može preskočiti automatski.
+          </p>
+        </div>
+      ) : null}
 
       <div className="mb-5 flex items-center justify-between rounded-2xl bg-secondary px-2 py-2">
         <button

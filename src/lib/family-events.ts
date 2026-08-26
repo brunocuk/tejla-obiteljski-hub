@@ -12,6 +12,7 @@ import {
   type RecurrenceFreq,
   type WeekdayCode,
 } from "@/lib/recurrence";
+import { sanitizeExcludeCodes } from "@/lib/recurrence-exclude";
 
 
 /**
@@ -84,6 +85,7 @@ type RecurrenceRow = {
   recurrence_byday?: string[] | null;
   recurrence_until?: string | null;
   recurrence_note?: string | null;
+  recurrence_exclude?: string[] | null;
 };
 
 /** Database columns -> the single recurrence shape the app (and Flutter) uses. */
@@ -98,6 +100,7 @@ function rowRecurrence(row: RecurrenceRow): EventRecurrence {
     ),
     until: asText(row.recurrence_until),
     note: asText(row.recurrence_note),
+    exclude: sanitizeExcludeCodes(row.recurrence_exclude),
   };
 }
 
@@ -113,7 +116,7 @@ export function useFamilyEvents(familyId: string | null | undefined) {
       const { data, error } = await supabase
         .from("family_events")
         .select(
-          "id, title, category, date, time, end_time, location, notes, deadline, amount, things_to_bring, type, completed, completed_at, linked_event_id, created_by, recurrence_freq, recurrence_interval, recurrence_byday, recurrence_until, recurrence_note, event_members(family_member_id, family_members(name))",
+          "id, title, category, date, time, end_time, location, notes, deadline, amount, things_to_bring, type, completed, completed_at, linked_event_id, created_by, recurrence_freq, recurrence_interval, recurrence_byday, recurrence_until, recurrence_note, recurrence_exclude, event_members(family_member_id, family_members(name))",
         )
         .eq("family_id", familyId!)
         .order("date", { ascending: true });
@@ -196,6 +199,7 @@ function recurrenceColumns(recurrence: EventRecurrence | undefined, type: "event
     recurrence_byday: usable && r.freq === "weekly" ? r.byday : [],
     recurrence_until: usable ? toDbDate(r.until) : null,
     recurrence_note: usable ? emptyToNull(r.note) : null,
+    recurrence_exclude: usable ? sanitizeExcludeCodes(r.exclude) : [],
   };
 }
 
