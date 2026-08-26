@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const SYSTEM_PROMPT = `You extract scheduling and task information from an image, a PDF page or pasted text (screenshot, photo of a notice, email, message).
 Return STRICT JSON only, matching exactly:
-{"items":[{"type":"event","person":"","title":"","category":"","date":"","time":"","location":"","deadline":"","amount":"","things_to_bring":[],"action_required":"","subject":"","notes":"","confidence":0,"reminder_intent":false,"reminder_time":"","reminder_recurrence":"","reminder_scope":"","reminder_people":[],"link_to":-1}]}
+{"items":[{"type":"event","person":"","title":"","category":"","date":"","time":"","end_time":"","location":"","deadline":"","amount":"","things_to_bring":[],"action_required":"","subject":"","notes":"","confidence":0,"reminder_intent":false,"reminder_time":"","reminder_recurrence":"","reminder_scope":"","reminder_people":[],"link_to":-1,"recurrence":{"freq":"","interval":1,"byday":[],"until":""},"exception_note":""}]}
 Rules:
 - "type" is "event" when something happens at a moment in time (appointment, birthday, trip, exam, deadline). "type" is "task" when the user must DO something ("kupiti poklon", "izvaditi krv", "platiti ratu").
 - One sentence can produce BOTH an event and a task. Then return two items: the event first (type "event"), the task second (type "task") with "link_to" set to the index of that event in the items array (0-based). Never return the same thing twice as two events.
