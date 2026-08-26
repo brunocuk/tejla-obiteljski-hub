@@ -1,0 +1,146 @@
+import {
+  NO_RECURRENCE,
+  WEEKDAY_CODES,
+  WEEKDAY_SHORT,
+  describeRecurrence,
+  weekdayCodeOf,
+  type EventRecurrence,
+  type RecurrenceFreq,
+  type WeekdayCode,
+} from "@/lib/recurrence";
+
+const fieldClass =
+  "mt-1 w-full rounded-2xl border border-border bg-background px-4 py-3 text-[15px] outline-none focus:border-primary";
+
+const FREQ_LABELS: { value: RecurrenceFreq | "none"; label: string }[] = [
+  { value: "none", label: "Ne ponavlja se" },
+  { value: "weekly", label: "Tjedno" },
+  { value: "daily", label: "Dnevno" },
+  { value: "monthly", label: "Mjesečno" },
+];
+
+/**
+ * Repeat rule editor. V1 is built around weekly repeats ("svaki utorak"), but
+ * the shape is already the daily/monthly one so nothing has to change later.
+ */
+export function RecurrencePicker({
+  value,
+  startDate,
+  onChange,
+  disabled = false,
+}: {
+  value: EventRecurrence;
+  startDate: string;
+  onChange: (next: EventRecurrence) => void;
+  disabled?: boolean;
+}) {
+  const startCode = weekdayCodeOf(startDate);
+  const days: WeekdayCode[] =
+    value.byday.length > 0 ? value.byday : startCode ? [startCode] : [];
+
+  const setFreq = (raw: string) => {
+    if (raw === "none") {
+      onChange(NO_RECURRENCE);
+      return;
+    }
+    const freq = raw as RecurrenceFreq;
+    onChange({
+      ...value,
+      freq,
+      byday: freq === "weekly" ? days : [],
+    });
+  };
+
+  const toggleDay = (code: WeekdayCode) => {
+    const next = days.includes(code) ? days.filter((d) => d !== code) : [...days, code];
+    onChange({ ...value, byday: next });
+  };
+
+  if (disabled) return null;
+
+  return (
+    <div className="rounded-2xl bg-secondary p-4">
+      <label className="block text-sm font-semibold">
+        Ponavljanje
+        <select
+          value={value.freq ?? "none"}
+          onChange={(e) => setFreq(e.target.value)}
+          className={fieldClass}
+        >
+          {FREQ_LABELS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {value.freq ? (
+        <div className="mt-3 space-y-3">
+          {value.freq === "weekly" ? (
+            <div>
+              <p className="text-sm font-semibold">Kojim danima?</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {WEEKDAY_CODES.map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    aria-pressed={days.includes(code)}
+                    onClick={() => toggleDay(code)}
+                    className={`rounded-full px-3.5 py-2 text-sm font-semibold ${
+                      days.includes(code)
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background text-foreground"
+                    }`}
+                  >
+                    {WEEKDAY_SHORT[code]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-sm font-semibold">
+              Svaki
+              <select
+                value={String(value.interval)}
+                onChange={(e) => onChange({ ...value, interval: Number(e.target.value) })}
+                className={fieldClass}
+              >
+                {[1, 2, 3, 4].map((n) => (
+                  <option key={n} value={n}>
+                    {n === 1 ? "1." : `${n}.`}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm font-semibold">
+              Do datuma
+              <input
+                type="date"
+                value={value.until}
+                onChange={(e) => onChange({ ...value, until: e.target.value })}
+                className={fieldClass}
+              />
+            </label>
+          </div>
+
+          <label className="block text-sm font-semibold">
+            Iznimke <span className="font-normal text-muted-foreground">(neobavezno)</span>
+            <input
+              value={value.note}
+              onChange={(e) => onChange({ ...value, note: e.target.value })}
+              placeholder="npr. osim školskih praznika"
+              className={fieldClass}
+            />
+          </label>
+          <p className="text-xs font-medium text-muted-foreground">
+            {describeRecurrence(value, startDate)}
+            {value.note ? " · iznimke ne uklanjamo automatski, termin preskoči ručno." : ""}
+          </p>
+        </div>
+      ) : null}
+    </div>
+  );
+}

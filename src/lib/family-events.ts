@@ -5,6 +5,14 @@ import { WHOLE_FAMILY } from "@/lib/family";
 import type { ExtractedItem } from "@/lib/hub-store";
 import { cancelPendingReminders, restorePausedReminders } from "@/lib/reminders";
 import { notifyAssignment } from "@/lib/notifications.functions";
+import {
+  NO_RECURRENCE,
+  WEEKDAY_CODES,
+  type EventRecurrence,
+  type RecurrenceFreq,
+  type WeekdayCode,
+} from "@/lib/recurrence";
+
 
 /**
  * Instant assignment push. Fire-and-forget: a push problem must never break
@@ -23,6 +31,8 @@ export type FamilyEvent = {
   category: string;
   date: string;
   time: string;
+  /** Optional end time of an event ("18:15 – 20:15"); "" when unknown. */
+  end_time: string;
   location: string;
   notes: string;
   deadline: string;
@@ -40,7 +50,10 @@ export type FamilyEvent = {
   linked_event_id: string | null;
   /** Who entered it; decides what a child member may change. */
   created_by: string | null;
+  /** Repeat rule of the series; null means a plain one-off obligation. */
+  recurrence: EventRecurrence;
 };
+
 
 const asText = (v: string | null | undefined) => (v ?? "").trim();
 const emptyToNull = (v: string) => (v.trim() === "" ? null : v.trim());
@@ -63,6 +76,33 @@ function toDbTime(raw: string): string | null {
 
 const toDbDate = (raw: string) => (/^\d{4}-\d{2}-\d{2}$/.test(raw.trim()) ? raw.trim() : null);
 
+const FREQS: RecurrenceFreq[] = ["daily", "weekly", "monthly"];
+
+type RecurrenceRow = {
+  recurrence_freq?: string | null;
+  recurrence_interval?: number | null;
+  recurrence_byday?: string[] | null;
+  recurrence_until?: string | null;
+  recurrence_note?: string | null;
+};
+
+/** Database columns -> the single recurrence shape the app (and Flutter) uses. */
+function rowRecurrence(row: RecurrenceRow): EventRecurrence {
+  const freq = FREQS.find((f) => f === row.recurrence_freq) ?? null;
+  if (!freq) return NO_RECURRENCE;
+  return {
+    freq,
+    interval: row.recurrence_interval ?? 1,
+    byday: (row.recurrence_byday ?? []).filter((d): d is WeekdayCode =>
+      (WEEKDAY_CODES as readonly string[]).includes(d),
+    ),
+    until: asText(row.recurrence_until),
+    note: asText(row.recurrence_note),
+  };
+}
+
+
+
 export function useFamilyEvents(familyId: string | null | undefined) {
   const queryClient = useQueryClient();
 
@@ -73,7 +113,7 @@ export function useFamilyEvents(familyId: string | null | undefined) {
       const { data, error } = await supabase
         .from("family_events")
         .select(
-          "id, title, category, date, time, location, notes, deadline, amount, things_to_bring, type, completed, completed_at, linked_event_id, created_by, event_members(family_member_id, family_members(name))",
+          "id, title, category, date, time, end_time, location, notes, deadline, amount, things_to_bring, type, completed, completed_at, linked_event_id, created_by, recurrence_freq, recurrence_interval, recurrence_byday, recurrence_until, recurrence_note, event_members(family_member_id, family_members(name))",
         )
         .eq("family_id", familyId!)
         .order("date", { ascending: true });
@@ -85,6 +125,7 @@ export function useFamilyEvents(familyId: string | null | undefined) {
         category: asText(row.category),
         date: asText(row.date),
         time: normalizeTime(row.time),
+        end_time: normalizeTime(row.end_time),
         location: asText(row.location),
         notes: asText(row.notes),
         deadline: asText(row.deadline),
@@ -101,7 +142,9 @@ export function useFamilyEvents(familyId: string | null | undefined) {
         completed_at: row.completed_at,
         linked_event_id: row.linked_event_id,
         created_by: row.created_by ?? null,
+        recurrence: rowRecurrence(row),
       }));
+
     },
   });
 
@@ -140,6 +183,22 @@ export function useFamilyEvents(familyId: string | null | undefined) {
 
 type MemberRow = { id: string; name: string };
 
+/**
+ * Recurrence columns for a write. Only events may repeat in V1; a task always
+ * writes the "no recurrence" shape, which is exactly today's behaviour.
+ */
+function recurrenceColumns(recurrence: EventRecurrence | undefined, type: "event" | "task") {
+  const r = recurrence ?? NO_RECURRENCE;
+  const usable = type === "event" && r.freq !== null;
+  return {
+    recurrence_freq: usable ? r.freq : null,
+    recurrence_interval: usable ? Math.max(1, Math.min(52, r.interval || 1)) : 1,
+    recurrence_byday: usable && r.freq === "weekly" ? r.byday : [],
+    recurrence_until: usable ? toDbDate(r.until) : null,
+    recurrence_note: usable ? emptyToNull(r.note) : null,
+  };
+}
+
 /** Saves one manually entered event plus its member links. */
 export async function updateFamilyEvent(
   eventId: string,
@@ -147,9 +206,13 @@ export async function updateFamilyEvent(
     title: string;
     date: string;
     time: string;
+    end_time?: string;
     location: string;
     notes: string;
     category?: string;
+    /** Omit to leave the existing repeat rule untouched. */
+    recurrence?: EventRecurrence;
+    type?: "event" | "task";
   },
   memberIds: string[],
 ) {
@@ -160,12 +223,15 @@ export async function updateFamilyEvent(
       category: emptyToNull(input.category ?? ""),
       date: toDbDate(input.date),
       time: input.time.trim() ? toDbTime(input.time) : null,
+      end_time: input.end_time?.trim() ? toDbTime(input.end_time) : null,
       location: emptyToNull(input.location),
       notes: emptyToNull(input.notes),
       updated_at: new Date().toISOString(),
+      ...(input.recurrence ? recurrenceColumns(input.recurrence, input.type ?? "event") : {}),
     })
     .eq("id", eventId);
   if (error) throw error;
+
 
   const { error: delError } = await supabase.from("event_members").delete().eq("event_id", eventId);
   if (delError) throw delError;
@@ -210,17 +276,20 @@ export async function saveManualEvent(
     title: string;
     date: string;
     time: string;
+    end_time?: string;
     location: string;
     notes: string;
     category?: string;
     type?: "event" | "task";
     linked_event_id?: string | null;
+    recurrence?: EventRecurrence;
   },
   memberIds: string[],
 ) {
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
   if (!uid) throw new Error("Nisi prijavljen.");
+  const type = input.type ?? "event";
 
   const { data: inserted, error } = await supabase
     .from("family_events")
@@ -230,16 +299,19 @@ export async function saveManualEvent(
       category: emptyToNull(input.category ?? ""),
       date: toDbDate(input.date),
       time: input.time.trim() ? toDbTime(input.time) : null,
+      end_time: input.end_time?.trim() ? toDbTime(input.end_time) : null,
       location: emptyToNull(input.location),
       notes: emptyToNull(input.notes),
       things_to_bring: [],
-      type: input.type ?? "event",
+      type,
       linked_event_id: input.linked_event_id ?? null,
       created_by: uid,
+      ...recurrenceColumns(input.recurrence, type),
     })
     .select("id")
     .single();
   if (error) throw error;
+
 
   if (memberIds.length > 0) {
     const { error: linkError } = await supabase
@@ -270,6 +342,7 @@ export async function saveFamilyEvents(
   ];
 
   for (const { it: item, i: itemIndex } of order) {
+    const type = item.type === "task" ? "task" : "event";
     const { data: inserted, error } = await supabase
       .from("family_events")
       .insert({
@@ -278,16 +351,19 @@ export async function saveFamilyEvents(
         category: emptyToNull(item.category),
         date: toDbDate(item.date),
         time: item.time.trim() ? toDbTime(item.time) : null,
+        end_time: item.end_time?.trim() ? toDbTime(item.end_time) : null,
         location: emptyToNull(item.location),
         notes: emptyToNull(item.notes),
         deadline: toDbDate(item.deadline),
         amount: emptyToNull(item.amount),
         things_to_bring: item.things_to_bring,
-        type: item.type === "task" ? "task" : "event",
+        type,
         linked_event_id:
           item.type === "task" && item.link_to >= 0 ? (createdIds[item.link_to] || null) : null,
         created_by: uid,
+        ...recurrenceColumns(item.recurrence, type),
       })
+
       .select("id")
       .single();
     if (error) throw error;

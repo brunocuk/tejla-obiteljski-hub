@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 const SYSTEM_PROMPT = `You extract scheduling and task information from an image, a PDF page or pasted text (screenshot, photo of a notice, email, message).
 Return STRICT JSON only, matching exactly:
-{"items":[{"type":"event","person":"","title":"","category":"","date":"","time":"","location":"","deadline":"","amount":"","things_to_bring":[],"action_required":"","subject":"","notes":"","confidence":0,"reminder_intent":false,"reminder_time":"","reminder_recurrence":"","reminder_scope":"","reminder_people":[],"link_to":-1}]}
+{"items":[{"type":"event","person":"","title":"","category":"","date":"","time":"","end_time":"","location":"","deadline":"","amount":"","things_to_bring":[],"action_required":"","subject":"","notes":"","confidence":0,"reminder_intent":false,"reminder_time":"","reminder_recurrence":"","reminder_scope":"","reminder_people":[],"link_to":-1,"recurrence":{"freq":"","interval":1,"byday":[],"until":""},"exception_note":""}]}
 Rules:
 - "type" is "event" when something happens at a moment in time (appointment, birthday, trip, exam, deadline). "type" is "task" when the user must DO something ("kupiti poklon", "izvaditi krv", "platiti ratu").
 - One sentence can produce BOTH an event and a task. Then return two items: the event first (type "event"), the task second (type "task") with "link_to" set to the index of that event in the items array (0-based). Never return the same thing twice as two events.
@@ -24,6 +24,15 @@ Rules:
 - Relative Croatian expressions ("danas", "sutra", "prekosutra", "u petak", "sljedeci utorak", "za tjedan dana") must be resolved to a concrete YYYY-MM-DD using the provided current date. A weekday without "sljedeci" means the next upcoming occurrence.
 - Spoken Croatian ordinal dates ("dvadesetog osmog", "dvadeset i prvog osmog") are resolved deterministically by the app. Never "correct" or reinterpret such a spoken date; copy exactly what was said. If the spoken date is ambiguous, leave "date" empty instead of guessing.
 - Spoken times ("u 8 navecer", "pola 9 ujutro", "u podne") must be converted to 24h HH:MM.
+- A stated time RANGE ("od 18:15 do 20:15", "od 18 do 20 sati", "18:15-20:15") fills "time" with the start and "end_time" with the end. Never put a time range into notes.
+- REPEATING events ("svaki utorak", "svaki dan", "svaki drugi tjedan", "svakog 5. u mjesecu", "svaki tjedan do kraja lipnja") fill the "recurrence" object and are returned as ONE item, never as many copies:
+  * "freq" is "daily", "weekly" or "monthly"; leave it "" when the thing happens only once.
+  * "interval" is 1 unless the text says "svaki drugi" (2), "svaki treci" (3) ...
+  * "byday" lists weekday codes for weekly repeats: MO, TU, WE, TH, FR, SA, SU ("svaki utorak" => ["TU"], "utorkom i cetvrtkom" => ["TU","TH"]).
+  * "until" is YYYY-MM-DD when an end is stated ("do kraja lipnja", "do 30.6."), otherwise "".
+  * "date" stays the FIRST occurrence of the series ("Od 1.9. svaki utorak" => date is 2025-09-01 style first date, resolved with the provided current date).
+  * Tasks never repeat: only items with type "event" may have a recurrence.
+- An EXCEPTION to a repeat that cannot be turned into concrete dates ("osim kada su skolski praznici", "osim praznikom", "osim kad smo na putu") goes into "exception_note" as written. NEVER guess which dates are school holidays and never drop the exception silently.
 - Relative reminder expressions ("za 5 minuta", "za pola sata", "za sat vremena", "za 2 sata", "za 3 dana") are counted from the provided current local time, NEVER from the moment of writing. Resolve them into reminder_time (HH:MM) and, when they cross midnight, into the task "date".
 - "podsjeti me X prije" refers to the EVENT time minus X; keep the event time in "time" and never copy the event time into reminder_time.
 - Only fill a field when it was actually stated. Never invent a person, location, time or date.

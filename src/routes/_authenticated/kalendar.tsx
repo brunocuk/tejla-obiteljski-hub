@@ -16,6 +16,7 @@ import { ManualEventForm } from "@/components/ManualEventForm";
 import { useFamilyMembers, useMyFamilyId } from "@/lib/family-workspace";
 import { ReminderBadge } from "@/components/ReminderBadge";
 import { useFamilyReminders } from "@/lib/reminders";
+import { monthBounds, useFamilyOccurrences } from "@/lib/recurrence";
 
 export const Route = createFileRoute("/_authenticated/kalendar")({
   head: () => ({
@@ -42,6 +43,8 @@ type CalEvent = {
   title: string;
   members: string[];
   meta?: string;
+  /** Set for one occurrence of a repeating series (its permanent identity). */
+  occurrenceDate?: string;
 };
 
 
@@ -72,39 +75,78 @@ export function KalendarPage() {
   const { data: events, isPending } = useFamilyEvents(familyId);
   const { data: reminderMap = {} } = useFamilyReminders(familyId);
   const [cursor, setCursor] = useState(currentMonth);
+  const bounds = monthBounds(cursor);
+  // Repeating series are expanded by the backend, so every client agrees.
+  const { data: occurrences = [] } = useFamilyOccurrences(familyId, bounds.from, bounds.to);
   const [filter, setFilter] = useState("Svi");
   const [showPast, setShowPast] = useState(false);
   const now = useMemo(() => new Date(), []);
   const [openId, setOpenId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [openOccurrence, setOpenOccurrence] = useState<string | null>(null);
   const openEvent: FamilyEvent | null = (events ?? []).find((e) => e.id === openId) ?? null;
+
+  const open = (item: CalEvent) => {
+    setOpenId(item.id);
+    setOpenOccurrence(item.occurrenceDate ?? null);
+  };
+  const closeDetail = () => {
+    setOpenId(null);
+    setOpenOccurrence(null);
+  };
 
   const filters = ["Svi", ...(members ?? []).map((m) => m.name)];
 
-  const allEvents: CalEvent[] = useMemo(
-    () =>
-      // Tasks are not calendar entries; they live in the task list on "Danas".
-      (events ?? [])
-        .filter((e) => e.type !== "task")
-        .map((e) => ({
-          id: e.id,
-          date: e.date,
-          time: e.time,
-          title: e.title || "Bez naziva",
-          members: e.members,
-          meta: [
-            e.category,
-            e.location,
-            e.amount,
-            e.deadline ? `rok: ${e.deadline}` : "",
-            e.things_to_bring.join(", "),
-            e.notes,
-          ]
-            .filter(Boolean)
-            .join(" · "),
-        })),
-    [events],
-  );
+  const allEvents: CalEvent[] = useMemo(() => {
+    const list = events ?? [];
+    const meta = (e: FamilyEvent, extra: string[] = []) =>
+      [
+        e.category,
+        e.location,
+        e.amount,
+        e.deadline ? `rok: ${e.deadline}` : "",
+        e.things_to_bring.join(", "),
+        e.notes,
+        ...extra,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+    // Tasks are not calendar entries; they live in the task list on "Danas".
+    const plain = list
+      .filter((e) => e.type !== "task" && e.recurrence.freq === null)
+      .map((e) => ({
+        id: e.id,
+        date: e.date,
+        time: e.time,
+        title: e.title || "Bez naziva",
+        members: e.members,
+        meta: meta(e),
+      }));
+
+    // One card per occurrence of a series, all sharing the series' members.
+    const byId = new Map(list.map((e) => [e.id, e]));
+    const repeated = occurrences.flatMap((o) => {
+      const base = byId.get(o.event_id);
+      if (!base || base.type === "task") return [];
+      return [
+        {
+          id: base.id,
+          date: o.effective_date,
+          time: (o.start_time ?? base.time) || "",
+          title: o.title || base.title || "Bez naziva",
+          members: base.members,
+          meta: meta(base, [
+            o.end_time ? `do ${o.end_time}` : "",
+            o.effective_date !== o.original_occurrence_date ? "premješteno" : "",
+          ]),
+          occurrenceDate: o.original_occurrence_date,
+        },
+      ];
+    });
+
+    return [...plain, ...repeated];
+  }, [events, occurrences]);
 
   const visible = allEvents.filter((e) => calendarEventVisible(e, { filter, showPast, now }));
   const inMonth = visible
@@ -227,9 +269,9 @@ export function KalendarPage() {
               <div className="card-soft divide-y divide-border">
                 {list.map((i) => (
                   <button
-                    key={i.id}
+                    key={`${i.id}-${i.occurrenceDate ?? i.date}`}
                     type="button"
-                    onClick={() => setOpenId(i.id)}
+                    onClick={() => open(i)}
                     className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
                   >
                     <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
@@ -260,9 +302,9 @@ export function KalendarPage() {
             <div className="card-soft divide-y divide-border">
               {undated.map((i) => (
                 <button
-                  key={i.id}
+                  key={`${i.id}-${i.occurrenceDate ?? "none"}`}
                   type="button"
-                  onClick={() => setOpenId(i.id)}
+                  onClick={() => open(i)}
                   className="flex w-full items-center gap-4 px-5 py-4 text-left active:opacity-70"
                 >
                   <span className="w-12 shrink-0 text-sm font-semibold tabular-nums text-muted-foreground">
@@ -285,7 +327,13 @@ export function KalendarPage() {
         ) : null}
       </div>
 
-      {openEvent ? <EventDetailSheet event={openEvent} onClose={() => setOpenId(null)} /> : null}
+      {openEvent ? (
+        <EventDetailSheet
+          event={openEvent}
+          occurrenceDate={openOccurrence}
+          onClose={closeDetail}
+        />
+      ) : null}
 
       {addOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30">

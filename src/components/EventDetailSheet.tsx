@@ -21,6 +21,14 @@ import {
   useMyUserId,
 } from "@/lib/family-workspace";
 import { ReminderEditor } from "@/components/ReminderEditor";
+import { RecurrencePicker } from "@/components/RecurrencePicker";
+import {
+  describeRecurrence,
+  endSeriesBefore,
+  modifyOccurrence,
+  skipOccurrence,
+  type EventRecurrence,
+} from "@/lib/recurrence";
 import {
   EVENT_CATEGORIES,
   RECIPIENT_LABELS,
@@ -47,7 +55,16 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClose: () => void }) {
+export function EventDetailSheet({
+  event,
+  occurrenceDate = null,
+  onClose,
+}: {
+  event: FamilyEvent;
+  /** Identity date of the opened occurrence, for a repeating series. */
+  occurrenceDate?: string | null;
+  onClose: () => void;
+}) {
   const queryClient = useQueryClient();
   const { data: familyId } = useMyFamilyId();
   const { data: allMembers = [] } = useFamilyMembers(familyId);
@@ -75,10 +92,16 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const repeats = event.recurrence.freq !== null;
+  const isOccurrence = repeats && Boolean(occurrenceDate);
+  /** "single" edits just this occurrence; "series" edits the whole rule. */
+  const [scope, setScope] = useState<"single" | "series">(isOccurrence ? "single" : "series");
+  const [recurrence, setRecurrence] = useState<EventRecurrence>(event.recurrence);
   const [form, setForm] = useState({
     title: event.title,
-    date: event.date,
+    date: occurrenceDate ?? event.date,
     time: event.time,
+    end_time: event.end_time,
     location: event.location,
     notes: event.notes,
     category: event.category,
@@ -151,13 +174,31 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
       queryClient.invalidateQueries({ queryKey: ["family-events", familyId] }),
       queryClient.invalidateQueries({ queryKey: ["event-reminders", event.id] }),
       queryClient.invalidateQueries({ queryKey: ["family-reminders", familyId] }),
+      queryClient.invalidateQueries({ queryKey: ["family-occurrences", familyId] }),
     ]);
 
   const save = async () => {
     setError(null);
     setBusy(true);
     try {
-      await updateFamilyEvent(event.id, form, selected);
+      if (isOccurrence && scope === "single") {
+        await modifyOccurrence(event.id, occurrenceDate!, {
+          effective_date: form.date || null,
+          start_time: form.time || null,
+          end_time: form.end_time || null,
+          title: form.title.trim() || null,
+          location: form.location || null,
+          notes: form.notes || null,
+        });
+        await refresh();
+        setEditing(false);
+        return;
+      }
+      await updateFamilyEvent(
+        event.id,
+        { ...form, recurrence, type: event.type },
+        selected,
+      );
       if (!userId) {
         await refresh();
         setError(
@@ -204,11 +245,17 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
     }
   };
 
-  const remove = async () => {
+  const remove = async (mode: "all" | "single" | "future" = "all") => {
     setError(null);
     setBusy(true);
     try {
-      await deleteFamilyEvent(event.id);
+      if (mode === "single" && occurrenceDate) {
+        await skipOccurrence(event.id, occurrenceDate);
+      } else if (mode === "future" && occurrenceDate) {
+        await endSeriesBefore(event.id, occurrenceDate);
+      } else {
+        await deleteFamilyEvent(event.id);
+      }
       await refresh();
       onClose();
     } catch {
@@ -236,6 +283,30 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
 
         {editing ? (
           <div className="space-y-4">
+            {isOccurrence ? (
+              <div className="flex gap-2">
+                {(
+                  [
+                    ["single", "Samo ovaj termin"],
+                    ["series", "Cijela serija"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={scope === value}
+                    onClick={() => setScope(value)}
+                    className={`flex-1 rounded-2xl px-3 py-2.5 text-sm font-semibold ${
+                      scope === value
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-primary-soft text-accent-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <label className="block text-sm font-semibold">
               Naslov
               <input value={form.title} onChange={set("title")} className={fieldClass} />
@@ -260,6 +331,17 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
                 />
               </label>
             </div>
+            {!isTask ? (
+              <label className="block text-sm font-semibold">
+                Završetak <span className="font-normal text-muted-foreground">(neobavezno)</span>
+                <input
+                  type="time"
+                  value={form.end_time}
+                  onChange={set("end_time")}
+                  className={fieldClass}
+                />
+              </label>
+            ) : null}
             <label className="block text-sm font-semibold">
               Lokacija
               <input value={form.location} onChange={set("location")} className={fieldClass} />
@@ -285,6 +367,20 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
               />
             </label>
 
+            {!isTask && scope === "series" ? (
+              <RecurrencePicker
+                value={recurrence}
+                startDate={form.date}
+                onChange={setRecurrence}
+              />
+            ) : null}
+
+            {scope === "single" ? (
+              <p className="rounded-2xl bg-secondary px-4 py-3 text-xs font-medium text-muted-foreground">
+                Mijenjaš samo termin {occurrenceDate}. Članovi i podsjetnici vrijede za cijelu
+                seriju i mijenjaju se pod „Cijela serija”.
+              </p>
+            ) : (
             <div>
               <p className="text-sm font-semibold">Kome pripada?</p>
               <div className="mt-2 flex flex-wrap gap-2">
@@ -305,8 +401,12 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
               </div>
             </div>
 
+            )}
+
             {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
 
+            {scope === "series" ? (
+            <>
             <ReminderEditor
               input={{
                 category: form.category,
@@ -351,6 +451,8 @@ export function EventDetailSheet({ event, onClose }: { event: FamilyEvent; onClo
             >
               Predloži podsjetnike ponovno
             </button>
+            </>
+            ) : null}
 
             <button
               type="button"
