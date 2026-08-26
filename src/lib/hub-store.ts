@@ -40,7 +40,6 @@ export type ExtractedItem = {
   /** Names spoken when reminder_scope is "named". */
   reminder_people: string[];
   /** Index of the event in the same analysis this task belongs to (-1 = none). */
-  /** Index of the event in the same analysis this task belongs to (-1 = none). */
   link_to: number;
   /** Repeat rule Tejla recognized ("svaki utorak"); events only. */
   recurrence: EventRecurrence;
