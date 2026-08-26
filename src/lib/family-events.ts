@@ -78,7 +78,7 @@ export function useFamilyEvents(familyId: string | null | undefined) {
       const { data, error } = await supabase
         .from("family_events")
         .select(
-          "id, title, category, date, time, location, notes, deadline, amount, things_to_bring, type, completed, completed_at, linked_event_id, created_by, event_members(family_member_id, family_members(name))",
+          "id, title, category, date, time, end_time, location, notes, deadline, amount, things_to_bring, type, completed, completed_at, linked_event_id, created_by, recurrence_freq, recurrence_interval, recurrence_byday, recurrence_until, recurrence_note, event_members(family_member_id, family_members(name))",
         )
         .eq("family_id", familyId!)
         .order("date", { ascending: true });
@@ -90,6 +90,7 @@ export function useFamilyEvents(familyId: string | null | undefined) {
         category: asText(row.category),
         date: asText(row.date),
         time: normalizeTime(row.time),
+        end_time: normalizeTime(row.end_time),
         location: asText(row.location),
         notes: asText(row.notes),
         deadline: asText(row.deadline),
@@ -106,7 +107,9 @@ export function useFamilyEvents(familyId: string | null | undefined) {
         completed_at: row.completed_at,
         linked_event_id: row.linked_event_id,
         created_by: row.created_by ?? null,
+        recurrence: rowRecurrence(row),
       }));
+
     },
   });
 
