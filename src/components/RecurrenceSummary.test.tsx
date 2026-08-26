@@ -80,3 +80,54 @@ describe("RecurrenceSummary", () => {
     ).not.toContain("Iznimka");
   });
 });
+
+describe("RecurrenceSummary calendar exception chips", () => {
+  it("shows a 'Bez školskih praznika' chip for school_breaks_hr", () => {
+    render(
+      <RecurrenceSummary
+        {...base}
+        recurrence={{
+          freq: "weekly",
+          interval: 1,
+          byday: ["TU"],
+          until: "",
+          note: "",
+          exclude: ["school_breaks_hr"],
+        }}
+      />,
+    );
+    expect(screen.getByTestId("exclude-chip-school_breaks_hr").textContent).toBe(
+      "Bez školskih praznika",
+    );
+  });
+
+  it("shows both chips for 'osim neradnih dana'", () => {
+    render(
+      <RecurrenceSummary
+        {...base}
+        recurrence={{
+          freq: "weekly",
+          interval: 1,
+          byday: ["TU"],
+          until: "",
+          note: "",
+          exclude: ["public_holidays_hr", "weekends"],
+        }}
+      />,
+    );
+    expect(screen.getByTestId("exclude-chip-public_holidays_hr").textContent).toBe("Bez blagdana");
+    expect(screen.getByTestId("exclude-chip-weekends").textContent).toBe("Bez vikenda");
+    expect(screen.queryByTestId("exclude-chip-school_breaks_hr")).toBeNull();
+  });
+
+  it("shows no chip when the series has no calendar exception", () => {
+    render(
+      <RecurrenceSummary
+        {...base}
+        recurrence={{ freq: "weekly", interval: 1, byday: ["TU"], until: "", note: "", exclude: [] }}
+      />,
+    );
+    expect(screen.queryByTestId("exclude-chip-school_breaks_hr")).toBeNull();
+    expect(screen.queryByTestId("exclude-chip-public_holidays_hr")).toBeNull();
+  });
+});
