@@ -11,6 +11,8 @@ export type ExtractedItem = {
   category: string;
   date: string;
   time: string;
+  /** End of a stated time range ("od 18:15 do 20:15"); "" when not stated. */
+  end_time: string;
   location: string;
   deadline: string;
   amount: string;
