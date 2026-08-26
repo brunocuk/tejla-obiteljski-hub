@@ -50,6 +50,8 @@ export type EventRecurrence = {
   until: string;
   /** Free text the user/Tejla could not turn into a rule ("osim praznika"). */
   note: string;
+  /** Deterministic Croatian calendar exceptions resolved by the database. */
+  exclude: RecurrenceExcludeCode[];
 };
 
 export const NO_RECURRENCE: EventRecurrence = {
@@ -58,6 +60,7 @@ export const NO_RECURRENCE: EventRecurrence = {
   byday: [],
   until: "",
   note: "",
+  exclude: [],
 };
 
 export const isRecurring = (r: Pick<EventRecurrence, "freq">) => r.freq !== null;
