@@ -1,0 +1,1 @@
+GRANT UPDATE ON public.event_reminders TO sandbox_exec;

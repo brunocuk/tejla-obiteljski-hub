@@ -899,6 +899,10 @@ export type Database = {
           reminder_id: string
         }[]
       }
+      cleanup_reminder_occurrences: {
+        Args: { _horizon_days?: number }
+        Returns: number
+      }
       create_family: {
         Args: { _family_name: string; _my_name: string }
         Returns: string
