@@ -495,8 +495,31 @@ export function EventDetailSheet({
                 </span>
               ) : null}
             </div>
-            <Row label="Datum" value={event.date ? formatCroatianDate(event.date) : ""} />
-            <Row label="Vrijeme" value={event.time ? formatTime(event.time) : ""} />
+            <Row
+              label="Datum"
+              value={
+                occurrenceDate
+                  ? formatCroatianDate(occurrenceDate)
+                  : event.date
+                    ? formatCroatianDate(event.date)
+                    : ""
+              }
+            />
+            <Row
+              label="Vrijeme"
+              value={[
+                event.time ? formatTime(event.time) : "",
+                event.end_time ? formatTime(event.end_time) : "",
+              ]
+                .filter(Boolean)
+                .join(" – ")}
+            />
+            {repeats ? (
+              <Row label="Ponavljanje" value={describeRecurrence(event.recurrence, event.date)} />
+            ) : null}
+            {repeats && event.recurrence.note ? (
+              <Row label="Iznimke" value={event.recurrence.note} />
+            ) : null}
             <Row label="Lokacija" value={event.location} />
             <Row label="Napomena" value={event.notes} />
             <Row label="Kome pripada" value={event.members.join(", ")} />
@@ -542,22 +565,46 @@ export function EventDetailSheet({
             {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
             {confirmDelete ? (
               <div className="rounded-2xl bg-secondary p-4">
-                <p className="text-sm font-semibold">Želiš li sigurno obrisati ovu obavezu?</p>
-                <div className="mt-3 flex gap-3">
+                <p className="text-sm font-semibold">
+                  {isOccurrence
+                    ? "Što želiš obrisati?"
+                    : "Želiš li sigurno obrisati ovu obavezu?"}
+                </p>
+                <div className="mt-3 space-y-2">
+                  {isOccurrence ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => remove("single")}
+                        disabled={busy}
+                        className="w-full rounded-2xl bg-background px-4 py-3 text-sm font-semibold disabled:opacity-60"
+                      >
+                        Obriši samo ovaj termin
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => remove("future")}
+                        disabled={busy}
+                        className="w-full rounded-2xl bg-background px-4 py-3 text-sm font-semibold disabled:opacity-60"
+                      >
+                        Obriši ovaj i buduće
+                      </button>
+                    </>
+                  ) : null}
                   <button
                     type="button"
-                    onClick={() => setConfirmDelete(false)}
-                    className="flex-1 rounded-2xl bg-background px-4 py-3 text-sm font-semibold"
+                    onClick={() => remove("all")}
+                    disabled={busy}
+                    className="w-full rounded-2xl bg-destructive px-4 py-3 text-sm font-semibold text-destructive-foreground disabled:opacity-60"
                   >
-                    Odustani
+                    {isOccurrence ? "Obriši cijelu seriju" : "Obriši"}
                   </button>
                   <button
                     type="button"
-                    onClick={remove}
-                    disabled={busy}
-                    className="flex-1 rounded-2xl bg-destructive px-4 py-3 text-sm font-semibold text-destructive-foreground disabled:opacity-60"
+                    onClick={() => setConfirmDelete(false)}
+                    className="w-full rounded-2xl px-4 py-3 text-sm font-semibold text-muted-foreground"
                   >
-                    Obriši
+                    Odustani
                   </button>
                 </div>
               </div>
