@@ -166,7 +166,6 @@ export async function skipOccurrence(eventId: string, originalDate: string) {
     { onConflict: "event_id,original_occurrence_date" },
   );
   if (error) throw error;
-  await dropReminderOccurrences(eventId, originalDate);
 }
 
 /** "Uredi samo ovaj" — override single fields, identity date never changes. */
@@ -187,8 +186,6 @@ export async function modifyOccurrence(
     { onConflict: "event_id,original_occurrence_date" },
   );
   if (error) throw error;
-  // The next cron pass re-materializes this occurrence at its new time.
-  await dropReminderOccurrences(eventId, originalDate);
 }
 
 /** Puts a single occurrence back on the series rule. */
@@ -199,7 +196,6 @@ export async function clearOccurrenceOverride(eventId: string, originalDate: str
     .eq("event_id", eventId)
     .eq("original_occurrence_date", originalDate);
   if (error) throw error;
-  await dropReminderOccurrences(eventId, originalDate);
 }
 
 /**
@@ -213,19 +209,6 @@ export async function endSeriesBefore(eventId: string, originalDate: string) {
     .update({ recurrence_until: until, updated_at: new Date().toISOString() })
     .eq("id", eventId);
   if (error) throw error;
-}
-
-/** Pending reminder slots of one occurrence; sent ones are kept as history. */
-async function dropReminderOccurrences(eventId: string, originalDate: string) {
-  const { data } = await supabase.from("event_reminders").select("id").eq("event_id", eventId);
-  const ids = (data ?? []).map((r) => r.id);
-  if (ids.length === 0) return;
-  await supabase
-    .from("reminder_occurrences")
-    .delete()
-    .in("reminder_id", ids)
-    .eq("original_occurrence_date", originalDate)
-    .is("sent_at", null);
 }
 
 export function addDays(date: string, delta: number): string {
