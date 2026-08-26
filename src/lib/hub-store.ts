@@ -8,6 +8,7 @@ import {
   type RecurrenceFreq,
   type WeekdayCode,
 } from "./recurrence";
+import { mapExceptionText, sanitizeExcludeCodes } from "./recurrence-exclude";
 
 const FREQS: RecurrenceFreq[] = ["daily", "weekly", "monthly"];
 
@@ -23,16 +24,29 @@ function normalizeRecurrence(raw: unknown, type: "event" | "task"): EventRecurre
   if (!freq) return NO_RECURRENCE;
   const interval = Number(r["interval"]);
   const until = String(r["until"] ?? "").trim();
+  let byday: WeekdayCode[] = Array.isArray(r["byday"])
+    ? (r["byday"] as unknown[])
+        .map((d) => String(d).trim().toUpperCase())
+        .filter((d): d is WeekdayCode => (WEEKDAY_CODES as readonly string[]).includes(d))
+    : [];
+  let usedFreq = freq;
+
+  // "svaki radni dan" is a weekly Mon-Fri rule, never a daily one with a
+  // weekend exception bolted on.
+  const note = String(r["note"] ?? "").trim();
+  const mapped = mapExceptionText(note);
+  if (mapped.workdays) {
+    usedFreq = "weekly";
+    byday = ["MO", "TU", "WE", "TH", "FR"];
+  }
+
   return {
-    freq,
+    freq: usedFreq,
     interval: Number.isFinite(interval) && interval >= 1 ? Math.min(52, Math.floor(interval)) : 1,
-    byday: Array.isArray(r["byday"])
-      ? (r["byday"] as unknown[])
-          .map((d) => String(d).trim().toUpperCase())
-          .filter((d): d is WeekdayCode => (WEEKDAY_CODES as readonly string[]).includes(d))
-      : [],
+    byday,
     until: /^\d{4}-\d{2}-\d{2}$/.test(until) ? until : "",
-    note: String(r["note"] ?? "").trim(),
+    note: mapped.note,
+    exclude: sanitizeExcludeCodes([...sanitizeExcludeCodes(r["exclude"]), ...mapped.exclude]),
   };
 }
 
@@ -147,6 +161,24 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
   const rawDate = String(raw.date ?? "").trim();
   const rawNotes = String(raw.notes ?? "");
   const parsed = parseDate(rawDate, rawNotes, String(raw.title ?? ""), String(raw.deadline ?? ""));
+  const rawRecurrence = (raw as { recurrence?: unknown }).recurrence;
+  const exceptionText = String(raw.exception_note ?? "").trim();
+  const baseRecurrence = normalizeRecurrence(
+    rawRecurrence && typeof rawRecurrence === "object"
+      ? { ...(rawRecurrence as Record<string, unknown>), note: exceptionText || (rawRecurrence as Record<string, unknown>)["note"] }
+      : rawRecurrence,
+    raw.type === "task" ? "task" : "event",
+  );
+  // The exception text may map onto deterministic HR calendar rules; whatever
+  // stays unmapped remains the visible fallback note.
+  const mappedException = mapExceptionText(exceptionText);
+  const recurrenceWithException: EventRecurrence = {
+    ...baseRecurrence,
+    note: baseRecurrence.freq ? baseRecurrence.note : mappedException.note,
+    exclude: baseRecurrence.freq
+      ? baseRecurrence.exclude
+      : sanitizeExcludeCodes(mappedException.exclude),
+  };
   return {
     person: String(raw.person ?? ""),
     assignee: raw.assignee ? String(raw.assignee) : resolveAssignee(String(raw.person ?? "")),
@@ -176,14 +208,8 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
       ? raw.reminder_people.map(String).filter(Boolean)
       : [],
     link_to: Number.isInteger(raw.link_to) ? Number(raw.link_to) : -1,
-    recurrence: {
-      ...normalizeRecurrence(
-        (raw as { recurrence?: unknown }).recurrence,
-        raw.type === "task" ? "task" : "event",
-      ),
-      note: String(raw.exception_note ?? "").trim(),
-    },
-    exception_note: String(raw.exception_note ?? "").trim(),
+    recurrence: recurrenceWithException,
+    exception_note: recurrenceWithException.note,
   };
 }
 
