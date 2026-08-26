@@ -12,6 +12,8 @@ import {
   useMyUserId,
 } from "@/lib/family-workspace";
 import { ReminderEditor } from "@/components/ReminderEditor";
+import { RecurrencePicker } from "@/components/RecurrencePicker";
+import { NO_RECURRENCE, type EventRecurrence } from "@/lib/recurrence";
 import {
   EVENT_CATEGORIES,
   insertReminders,
@@ -43,11 +45,14 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
     title: "",
     date: "",
     time: "",
+    end_time: "",
     location: "",
     notes: "",
     category: "",
   });
   const [kind, setKind] = useState<"event" | "task">("event");
+  // V1: only events may repeat; switching to a task clears the rule.
+  const [recurrence, setRecurrence] = useState<EventRecurrence>(NO_RECURRENCE);
   const [selected, setSelected] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,7 +119,11 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
     }
     setSaving(true);
     try {
-      const eventId = await saveManualEvent(familyId, { ...form, type: kind }, selected);
+      const eventId = await saveManualEvent(
+        familyId,
+        { ...form, type: kind, recurrence: kind === "event" ? recurrence : NO_RECURRENCE },
+        selected,
+      );
       let skipped = 0;
       if (reminders.length > 0) {
         if (!userId) {
@@ -200,6 +209,17 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
           <input type="time" value={form.time} onChange={set("time")} className={fieldClass} />
         </label>
       </div>
+      {kind === "event" ? (
+        <label className="block text-sm font-semibold">
+          Završetak <span className="font-normal text-muted-foreground">(neobavezno)</span>
+          <input
+            type="time"
+            value={form.end_time}
+            onChange={set("end_time")}
+            className={fieldClass}
+          />
+        </label>
+      ) : null}
       <label className="block text-sm font-semibold">
         Lokacija
         <input value={form.location} onChange={set("location")} className={fieldClass} />
@@ -242,6 +262,10 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
           ) : null}
         </div>
       </div>
+
+      {kind === "event" ? (
+        <RecurrencePicker value={recurrence} startDate={form.date} onChange={setRecurrence} />
+      ) : null}
 
       {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
 
