@@ -190,6 +190,16 @@ type MemberRow = { id: string; name: string };
  * Recurrence columns for a write. Only events may repeat in V1; a task always
  * writes the "no recurrence" shape, which is exactly today's behaviour.
  */
+export function effectiveType(
+  type: "event" | "task" | undefined,
+  recurrence: EventRecurrence | undefined,
+): "event" | "task" {
+  // V1 invariant: recurrence only exists on events; a repeating draft is
+  // promoted to an event before it reaches the database constraint.
+  if (recurrence?.freq) return "event";
+  return type ?? "event";
+}
+
 function recurrenceColumns(recurrence: EventRecurrence | undefined, type: "event" | "task") {
   const r = recurrence ?? NO_RECURRENCE;
   const usable = type === "event" && r.freq !== null;
@@ -231,7 +241,12 @@ export async function updateFamilyEvent(
       location: emptyToNull(input.location),
       notes: emptyToNull(input.notes),
       updated_at: new Date().toISOString(),
-      ...(input.recurrence ? recurrenceColumns(input.recurrence, input.type ?? "event") : {}),
+      ...(input.recurrence
+        ? {
+            type: effectiveType(input.type, input.recurrence),
+            ...recurrenceColumns(input.recurrence, effectiveType(input.type, input.recurrence)),
+          }
+        : {}),
     })
     .eq("id", eventId);
   if (error) throw error;
@@ -293,7 +308,7 @@ export async function saveManualEvent(
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
   if (!uid) throw new Error("Nisi prijavljen.");
-  const type = input.type ?? "event";
+  const type = effectiveType(input.type, input.recurrence);
 
   const { data: inserted, error } = await supabase
     .from("family_events")
@@ -346,7 +361,7 @@ export async function saveFamilyEvents(
   ];
 
   for (const { it: item, i: itemIndex } of order) {
-    const type = item.type === "task" ? "task" : "event";
+    const type = effectiveType(item.type === "task" ? "task" : "event", item.recurrence);
     const { data: inserted, error } = await supabase
       .from("family_events")
       .insert({

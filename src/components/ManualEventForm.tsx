@@ -90,7 +90,7 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
             date: form.date,
             time: form.time,
             things_to_bring: [],
-            ...(kind === "event" ? { recurrence } : {}),
+            recurrence,
           },
           recipient,
         ),
@@ -127,7 +127,8 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
     try {
       const eventId = await saveManualEvent(
         familyId,
-        { ...form, type: kind, recurrence: kind === "event" ? recurrence : NO_RECURRENCE },
+        // A repeating obligation is always saved through the event recurrence path.
+        { ...form, type: recurrence.freq ? "event" : kind, recurrence },
         selected,
       );
       let skipped = 0;
@@ -269,9 +270,7 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
         </div>
       </div>
 
-      {kind === "event" ? (
-        <RecurrencePicker value={recurrence} startDate={form.date} onChange={setRecurrence} />
-      ) : null}
+      <RecurrencePicker value={recurrence} startDate={form.date} onChange={setRecurrence} />
 
       {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
 
