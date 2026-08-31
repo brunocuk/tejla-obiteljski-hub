@@ -158,9 +158,10 @@ describe("recurring import without a start date", () => {
     await userEvent.clear(bulk);
     await userEvent.type(bulk, "2026-08-31");
 
-    const starts = screen.getAllByLabelText("Početak ponavljanja") as HTMLInputElement[];
-    expect(starts.every((i) => i.value === "2026-08-31")).toBe(true);
-    // The item with an extracted date keeps it (shown as a formatted button).
-    expect(screen.getByText(/10\.\s*9\.\s*2026|10\.09\.2026/)).toBeTruthy();
+    // Both dateless items got the chosen start, so the bulk helper disappears.
+    expect(screen.queryByLabelText("Početak za sve")).toBeNull();
+    expect(screen.getAllByText(/31\.\s*0?8\.\s*2026/).length).toBe(2);
+    // The item with an extracted date keeps it.
+    expect(screen.getByText(/10\.\s*0?9\.\s*2026/)).toBeTruthy();
   });
 });
