@@ -169,7 +169,7 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
     rawRecurrence && typeof rawRecurrence === "object"
       ? { ...(rawRecurrence as Record<string, unknown>), note: exceptionText || (rawRecurrence as Record<string, unknown>)["note"] }
       : rawRecurrence,
-    raw.type === "task" ? "task" : "event",
+    "event",
   );
   // Exceptions only make sense for a repeat rule; a one-off item keeps the
   // exception text as a plain note and never gets calendar exclusions.
@@ -196,7 +196,8 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
     subject: String(raw.subject ?? ""),
     notes: parsed.notes,
     confidence: Number.isFinite(conf) ? Math.min(1, Math.max(0, conf)) : 0,
-    type: raw.type === "task" ? "task" : "event",
+    // V1 invariant: a repeating obligation is always stored as an event.
+    type: recurrenceWithException.freq ? "event" : raw.type === "task" ? "task" : "event",
     reminder_intent: Boolean(raw.reminder_intent),
     reminder_time: normalizeClockTime(raw.reminder_time),
     reminder_at: String(raw.reminder_at ?? "").trim(),

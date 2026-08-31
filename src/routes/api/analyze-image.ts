@@ -32,7 +32,7 @@ Rules:
   * "byday" lists weekday codes for weekly repeats: MO, TU, WE, TH, FR, SA, SU ("svaki utorak" => ["TU"], "utorkom i cetvrtkom" => ["TU","TH"]).
   * "until" is YYYY-MM-DD when an end is stated ("do kraja lipnja", "do 30.6."), otherwise "".
   * "date" stays the FIRST occurrence of the series ("Od 1.9. svaki utorak" => date is 2025-09-01 style first date, resolved with the provided current date).
-  * Tasks never repeat: only items with type "event" may have a recurrence.
+  * Any item that has a recurrence MUST be returned with type "event", never "task" (a repeating obligation is an event). If no repetition is explicitly written in the source, leave "freq" empty and NEVER infer one.
   * "exclude" lists deterministic Croatian calendar exceptions, ONLY from this closed list: "school_breaks_hr", "public_holidays_hr", "weekends". Never invent another code and NEVER output concrete exception dates.
     - "osim skolskih praznika" / "osim skolskih odmora" / "kad nema skole" / "kad nema nastave" => ["school_breaks_hr"]
     - "osim blagdana" / "praznikom ne radi" / "osim drzavnih praznika" => ["public_holidays_hr"]
