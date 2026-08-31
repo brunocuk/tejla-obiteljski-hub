@@ -214,6 +214,16 @@ export function AnalysisResults({
     );
   };
 
+  // One tap assigns every selected draft; a single card can still be overridden.
+  const applyBulkAssignee = (value: string) => {
+    setBulkAssignee(value);
+    if (!value) return;
+    setItems((prev) => prev.map((it, i) => (selected.includes(i) ? { ...it, assignee: value } : it)));
+    setError("");
+  };
+
+
+
 
   const handleAddAll = async () => {
     const chosen = items.filter((_, i) => selected.includes(i));
