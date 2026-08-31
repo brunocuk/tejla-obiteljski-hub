@@ -367,33 +367,46 @@ export function AnalysisResults({
                       ))}
                     </select>
                   </div>
-                  <div className="flex gap-2">
-                    {isIsoDate(it.date) && editingDate !== idx ? (
-                      <button
-                        type="button"
-                        onClick={() => setEditingDate(idx)}
-                        className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-left text-sm outline-none"
-                      >
-                        {formatCroatianDate(it.date)}
-                      </button>
-                    ) : (
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">
+                      {isRecurring(it.recurrence) ? "Početak ponavljanja" : "Datum"}
+                    </label>
+                    <div className="flex gap-2">
+                      {isIsoDate(it.date) && editingDate !== idx ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditingDate(idx)}
+                          className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-left text-sm outline-none"
+                        >
+                          {formatCroatianDate(it.date)}
+                        </button>
+                      ) : (
+                        <input
+                          type={isIsoDate(it.date) || isRecurring(it.recurrence) ? "date" : "text"}
+                          aria-label={
+                            isRecurring(it.recurrence) ? "Početak ponavljanja" : "Datum"
+                          }
+                          value={it.date}
+                          autoFocus={editingDate === idx}
+                          onBlur={() => setEditingDate(null)}
+                          onChange={(e) => update(idx, "date", e.target.value)}
+                          placeholder={isRecurring(it.recurrence) ? "Početak ponavljanja" : "Datum"}
+                          className={`w-full rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40 ${
+                            isRecurring(it.recurrence) && !isIsoDate(it.date)
+                              ? "bg-warm font-semibold text-warm-foreground"
+                              : "bg-secondary/60"
+                          }`}
+                        />
+                      )}
                       <input
-                        type={isIsoDate(it.date) ? "date" : "text"}
-                        value={it.date}
-                        autoFocus={editingDate === idx}
-                        onBlur={() => setEditingDate(null)}
-                        onChange={(e) => update(idx, "date", e.target.value)}
-                        placeholder="Datum"
+                        value={it.time}
+                        onChange={(e) => update(idx, "time", e.target.value)}
+                        placeholder="Vrijeme"
                         className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
                       />
-                    )}
-                    <input
-                      value={it.time}
-                      onChange={(e) => update(idx, "time", e.target.value)}
-                      placeholder="Vrijeme"
-                      className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
-                    />
+                    </div>
                   </div>
+
                   {(
                     <div className="space-y-2">
                       {isRecurring(it.recurrence) ? (
