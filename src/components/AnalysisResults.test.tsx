@@ -160,8 +160,8 @@ describe("recurring import without a start date", () => {
 
     // Both dateless items got the chosen start, so the bulk helper disappears.
     expect(screen.queryByLabelText("Početak za sve")).toBeNull();
-    expect(screen.getAllByText(/31\.\s*0?8\.\s*2026/).length).toBe(2);
+    expect(screen.getAllByText(/31\.\s*(kolovoza|0?8\.)\s*2026/).length).toBe(2);
     // The item with an extracted date keeps it.
-    expect(screen.getByText(/10\.\s*0?9\.\s*2026/)).toBeTruthy();
+    expect(screen.getByText(/10\.\s*(rujna|0?9\.)\s*2026/)).toBeTruthy();
   });
 });
