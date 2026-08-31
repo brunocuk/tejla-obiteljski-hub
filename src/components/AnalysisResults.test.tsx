@@ -179,8 +179,8 @@ describe("bulk assignee", () => {
     const perCard = screen.getAllByLabelText("Kome pripada?") as HTMLSelectElement[];
     expect(perCard.map((s) => s.value)).toEqual(["Korina", "Korina"]);
 
-    await userEvent.selectOptions(perCard[1]!, "Cijela obitelj");
+    await userEvent.selectOptions(perCard[1]!, "Svi");
     expect(perCard[0]!.value).toBe("Korina");
-    expect(perCard[1]!.value).toBe("Cijela obitelj");
+    expect(perCard[1]!.value).toBe("Svi");
   });
 });
