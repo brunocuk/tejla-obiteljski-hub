@@ -190,6 +190,7 @@ export function AnalysisResults({
   };
 
   const toggle = (idx: number) =>
+
     setSelected((s) => (s.includes(idx) ? s.filter((x) => x !== idx) : [...s, idx]));
 
   const handleAddAll = async () => {
