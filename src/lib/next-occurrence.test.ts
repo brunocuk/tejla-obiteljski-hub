@@ -67,8 +67,8 @@ describe("buildReminderRows for a series", () => {
     const now = new Date("2026-09-01T14:00:00Z");
     const [row] = buildReminderRows(
       "e-1",
-      // captured against today's 06:00, which already passed
-      [draft(zagrebInstant("2026-09-01", "06:00").toISOString())],
+      // suggested against the next occurrence, since today's 06:00 already passed
+      [draft(zagrebInstant("2026-09-02", "06:00").toISOString())],
       "u-1",
       "s-1",
       { date: "2026-08-01", time: "06:00", recurrence_freq: "daily" },
@@ -84,7 +84,7 @@ describe("buildReminderRows for a series", () => {
     const now = new Date("2026-09-01T14:00:00Z");
     const [row] = buildReminderRows(
       "e-1",
-      [draft(zagrebInstant("2026-09-01", "19:00").toISOString())],
+      [draft(zagrebInstant("2026-08-31", "19:00").toISOString())],
       "u-1",
       "s-1",
       { date: "2026-09-01", time: "18:15", recurrence_freq: "weekly", recurrence_byday: ["TU"] },
@@ -97,7 +97,7 @@ describe("buildReminderRows for a series", () => {
   });
 
   it("crosses the DST switch with a stable wall-clock time", () => {
-    const now = new Date("2026-10-20T12:00:00Z");
+    const now = new Date("2026-10-21T12:00:00Z");
     const [row] = buildReminderRows(
       "e-1",
       [draft(zagrebInstant("2026-10-27", "19:00").toISOString())],
