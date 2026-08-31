@@ -167,7 +167,7 @@ export function ReminderEditor({
       </p>
 
       <div className="mt-3">
-        <p className="text-xs font-semibold text-muted-foreground">Ponavljanje</p>
+        <p className="text-xs font-semibold text-muted-foreground">Ponavljanje podsjetnika</p>
         <div className="mt-2 flex flex-wrap gap-2">
           {patterns.map((p) => (
             <button

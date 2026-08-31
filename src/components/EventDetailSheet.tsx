@@ -387,12 +387,29 @@ export function EventDetailSheet({
               />
             </label>
 
-            {!isTask && scope === "series" ? (
-              <RecurrencePicker
-                value={recurrence}
-                startDate={form.date}
-                onChange={setRecurrence}
-              />
+            {/* Event recurrence — deliberately separate from reminder repetition. */}
+            {!isTask ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Ponavljanje obveze
+                </p>
+                {scope === "series" ? (
+                  <RecurrencePicker
+                    value={recurrence}
+                    startDate={form.date}
+                    onChange={setRecurrence}
+                  />
+                ) : (
+                  <div className="rounded-2xl bg-secondary px-4 py-3">
+                    <p className="text-sm font-semibold">
+                      {describeRecurrence(event.recurrence, event.date)}
+                    </p>
+                    <p className="mt-1 text-xs font-medium text-muted-foreground">
+                      Ponavljanje se mijenja pod „Cijela serija”.
+                    </p>
+                  </div>
+                )}
+              </div>
             ) : null}
 
             {scope === "single" ? (
