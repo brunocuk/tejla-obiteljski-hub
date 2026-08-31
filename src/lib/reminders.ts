@@ -2,7 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { formatInstantLong, formatInstantShort } from "./date-hr";
 import { supabase } from "@/integrations/supabase/client";
 import { draftsFromPattern, type ReminderPattern } from "@/lib/reminder-engine";
-import { recurringReminderColumns, ruleFromTemplate } from "@/lib/recurring-reminders";
+import {
+  occurrenceRemindAt,
+  recurringReminderColumns,
+  ruleFromTemplate,
+} from "@/lib/recurring-reminders";
+import { nextOccurrenceDate } from "@/lib/occurrences";
+import { NO_RECURRENCE, type EventRecurrence, type RecurrenceFreq, type WeekdayCode } from "@/lib/recurrence";
 
 export const EVENT_CATEGORIES = [
   "Škola",
@@ -194,12 +200,33 @@ export type ReminderInput = {
   time: string;
   deadline?: string;
   things_to_bring?: string[];
+  /** Repeat rule of the event, when it is a series. */
+  recurrence?: EventRecurrence;
 };
+
+/**
+ * Date a reminder must be computed from.
+ *
+ * A one-off event always uses its own date. A series uses the next occurrence
+ * that is still ahead, so "svaki dan u 06:00" can be given a reminder at 14:00:
+ * today's slot is simply skipped and tomorrow's is used. The series end date is
+ * respected; when nothing is left, the original date is returned and the usual
+ * past-time handling applies.
+ */
+export function reminderBaseDate(input: ReminderInput, now: Date = new Date()): string {
+  if (!input.recurrence?.freq) return input.date;
+  return (
+    nextOccurrenceDate(
+      { date: input.date, time: input.time, recurrence: input.recurrence },
+      now,
+    ) ?? input.date
+  );
+}
 
 /** Suggested reminder times for an event, following the default rules per category. */
 export function suggestReminders(input: ReminderInput, recipient: RecipientMode): ReminderDraft[] {
   const category = normalizeCategory(input.category);
-  const eventAt = localDate(input.date, input.time);
+  const eventAt = localDate(reminderBaseDate(input), input.time);
   const deadlineAt = input.deadline ? localDate(input.deadline, "09:00") : null;
   const hasTime = Boolean(input.time.trim());
   const times: Date[] = [];
@@ -266,7 +293,7 @@ export function draftFromOffset(
   recipient: RecipientMode,
 ): ReminderDraft | null {
   const base =
-    localDate(input.date, input.time) ??
+    localDate(reminderBaseDate(input), input.time) ??
     (input.deadline ? localDate(input.deadline, "09:00") : null);
   if (!base) return null;
   return {
@@ -364,14 +391,36 @@ export type ReminderEventContext = {
   date: string | null;
   time: string | null;
   recurrence_freq: string | null;
+  recurrence_interval?: number | null;
+  recurrence_byday?: string[] | null;
+  recurrence_until?: string | null;
 } | null;
+
+const FREQS: RecurrenceFreq[] = ["daily", "weekly", "monthly"];
+
+/** Database columns -> the recurrence shape the occurrence math expects. */
+function contextRecurrence(event: ReminderEventContext): EventRecurrence {
+  const freq = FREQS.find((f) => f === event?.recurrence_freq) ?? null;
+  if (!freq) return NO_RECURRENCE;
+  return {
+    ...NO_RECURRENCE,
+    freq,
+    interval: event?.recurrence_interval ?? 1,
+    byday: (event?.recurrence_byday ?? []).filter((d): d is WeekdayCode =>
+      ["MO", "TU", "WE", "TH", "FR", "SA", "SU"].includes(d),
+    ),
+    until: event?.recurrence_until ?? "",
+  };
+}
 
 /**
  * Rows to insert for an event's reminders.
  *
  * A one-off event produces exactly the same row shape as before. Only when the
  * event is a series does each reminder additionally carry its rule, so the
- * database can compute a send time for every occurrence.
+ * database can compute a send time for every occurrence. The stored
+ * `remind_at` of a series is anchored on the next occurrence that is still
+ * ahead, so a rule stays usable even when today's occurrence already passed.
  */
 export function buildReminderRows(
   eventId: string,
@@ -379,8 +428,16 @@ export function buildReminderRows(
   userId: string,
   seriesId: string | null,
   event: ReminderEventContext,
+  now: Date = new Date(),
 ) {
   const recurring = Boolean(event?.recurrence_freq && event?.date);
+  const time = (event?.time ?? "").slice(0, 5);
+  const baseDate = recurring
+    ? (nextOccurrenceDate(
+        { date: event!.date!, time, recurrence: contextRecurrence(event) },
+        now,
+      ) ?? event!.date!)
+    : (event?.date ?? "");
   return drafts.map((d) => {
     const base = {
       event_id: eventId,
@@ -392,8 +449,12 @@ export function buildReminderRows(
       series_id: seriesId,
     };
     if (!recurring) return base;
-    const rule = ruleFromTemplate(d.remind_at, event!.date!, (event!.time ?? "").slice(0, 5));
-    return { ...base, ...recurringReminderColumns(rule) };
+    const rule = ruleFromTemplate(d.remind_at, baseDate, time);
+    return {
+      ...base,
+      remind_at: occurrenceRemindAt(rule, { effective_date: baseDate, start_time: time }),
+      ...recurringReminderColumns(rule),
+    };
   });
 }
 
@@ -405,20 +466,29 @@ export async function insertReminders(
 ): Promise<InsertResult> {
   if (!userId) throw new Error("Korisnik nije prijavljen");
   const now = Date.now();
-  const future = drafts.filter((d) => new Date(d.remind_at).getTime() > now);
-  const skippedTimes = drafts
-    .filter((d) => new Date(d.remind_at).getTime() <= now)
-    .map((d) => formatReminder(d.remind_at));
-  const skipped = skippedTimes.length;
   const seriesId =
     typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : null;
   const { data: eventRow } = await supabase
     .from("family_events")
-    .select("date, time, recurrence_freq")
+    .select(
+      "date, time, recurrence_freq, recurrence_interval, recurrence_byday, recurrence_until",
+    )
     .eq("id", eventId)
     .maybeSingle();
-  const rows = buildReminderRows(eventId, future, userId, seriesId, eventRow ?? null);
+  const event = (eventRow ?? null) as ReminderEventContext;
+  // A reminder on a series is a RULE, not a timestamp: it must not be dropped
+  // just because the first/current occurrence already passed.
+  const recurring = Boolean(event?.recurrence_freq && event?.date);
+  const future = recurring ? drafts : drafts.filter((d) => new Date(d.remind_at).getTime() > now);
+  const skippedTimes = recurring
+    ? []
+    : drafts
+        .filter((d) => new Date(d.remind_at).getTime() <= now)
+        .map((d) => formatReminder(d.remind_at));
+  const skipped = skippedTimes.length;
+  const rows = buildReminderRows(eventId, future, userId, seriesId, event);
   if (rows.length === 0) return { inserted: 0, skipped, skippedTimes };
+
   const { data, error } = await supabase.from("event_reminders").insert(rows).select("id");
   if (error) {
     console.error("[reminders] insert failed", error.message);
