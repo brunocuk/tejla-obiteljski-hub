@@ -100,7 +100,7 @@ describe("buildReminderRows for a series", () => {
     const now = new Date("2026-10-21T12:00:00Z");
     const [row] = buildReminderRows(
       "e-1",
-      [draft(zagrebInstant("2026-10-27", "19:00").toISOString())],
+      [draft(zagrebInstant("2026-10-26", "19:00").toISOString())],
       "u-1",
       "s-1",
       // Tuesdays: next one after the 2026-10-25 DST end is 2026-10-27
