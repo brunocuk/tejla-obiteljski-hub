@@ -108,6 +108,8 @@ export function AnalysisResults({
   const [years, setYears] = useState<Record<number, string>>({});
   const [editingDate, setEditingDate] = useState<number | null>(null);
   const [bulkStart, setBulkStart] = useState("");
+  const [bulkAssignee, setBulkAssignee] = useState("");
+  const [openDetails, setOpenDetails] = useState<number | null>(null);
 
   const currentYear = String(new Date().getFullYear());
 
