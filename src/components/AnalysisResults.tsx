@@ -223,6 +223,11 @@ export function AnalysisResults({
       setError("Potvrdi godinu za odabrane obveze.");
       return;
     }
+    if (chosen.some((c) => isRecurring(c.recurrence) && !isIsoDate(c.date))) {
+      setError("Odaberi početak ponavljanja za obveze koje se ponavljaju.");
+      return;
+    }
+
     if (!familyId) {
       setError("Obavezu nije bilo moguće spremiti. Pokušaj ponovno.");
       return;
