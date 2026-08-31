@@ -4,6 +4,7 @@ import {
   OFFSET_OPTIONS,
   customDraft,
   draftFromOffset,
+  hasReminderBase,
   isPast,
   reminderLabel,
   RECIPIENT_LABELS,
