@@ -107,6 +107,8 @@ export function AnalysisResults({
   const [touched, setTouched] = useState<number[]>([]);
   const [years, setYears] = useState<Record<number, string>>({});
   const [editingDate, setEditingDate] = useState<number | null>(null);
+  const [bulkStart, setBulkStart] = useState("");
+
   const currentYear = String(new Date().getFullYear());
 
   useEffect(() => {
@@ -192,6 +194,25 @@ export function AnalysisResults({
   const toggle = (idx: number) =>
     setSelected((s) => (s.includes(idx) ? s.filter((x) => x !== idx) : [...s, idx]));
 
+  // Convenience for a schedule screenshot with many repeating items: fill the
+  // missing start date at once, never touching a date read from the source.
+  const missingStartCount = items.filter(
+    (it, i) => selected.includes(i) && isRecurring(it.recurrence) && !isIsoDate(it.date),
+  ).length;
+
+  const applyBulkStart = (value: string) => {
+    setBulkStart(value);
+    if (!isIsoDate(value)) return;
+    setItems((prev) =>
+      prev.map((it, i) =>
+        selected.includes(i) && isRecurring(it.recurrence) && !isIsoDate(it.date)
+          ? { ...it, date: value, needsYear: false }
+          : it,
+      ),
+    );
+  };
+
+
   const handleAddAll = async () => {
     const chosen = items.filter((_, i) => selected.includes(i));
     if (chosen.some((c) => !c.assignee)) {
@@ -202,6 +223,11 @@ export function AnalysisResults({
       setError("Potvrdi godinu za odabrane obveze.");
       return;
     }
+    if (chosen.some((c) => isRecurring(c.recurrence) && !isIsoDate(c.date))) {
+      setError("Odaberi početak ponavljanja za obveze koje se ponavljaju.");
+      return;
+    }
+
     if (!familyId) {
       setError("Obavezu nije bilo moguće spremiti. Pokušaj ponovno.");
       return;
@@ -288,6 +314,27 @@ export function AnalysisResults({
         </button>
       </div>
 
+      {missingStartCount >= 2 ? (
+        <div className="mb-4 space-y-1 rounded-2xl bg-warm px-4 py-3">
+          <label className="block text-xs font-semibold text-warm-foreground">
+            Početak za sve ({missingStartCount} obveza bez datuma)
+          </label>
+          <input
+            type="date"
+            aria-label="Početak za sve"
+            value={bulkStart}
+            onChange={(e) => applyBulkStart(e.target.value)}
+            className="w-full rounded-xl bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+          />
+          <p className="text-[11px] font-medium text-warm-foreground">
+            Postavlja početak samo za odabrane obveze bez datuma. Datum prepoznat sa slike ostaje
+            nepromijenjen.
+          </p>
+        </div>
+      ) : null}
+
+
+
       <ul className="space-y-3 pb-4">
         {items.map((it, idx) => {
           const checked = selected.includes(idx);
@@ -367,33 +414,46 @@ export function AnalysisResults({
                       ))}
                     </select>
                   </div>
-                  <div className="flex gap-2">
-                    {isIsoDate(it.date) && editingDate !== idx ? (
-                      <button
-                        type="button"
-                        onClick={() => setEditingDate(idx)}
-                        className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-left text-sm outline-none"
-                      >
-                        {formatCroatianDate(it.date)}
-                      </button>
-                    ) : (
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-muted-foreground">
+                      {isRecurring(it.recurrence) ? "Početak ponavljanja" : "Datum"}
+                    </label>
+                    <div className="flex gap-2">
+                      {isIsoDate(it.date) && editingDate !== idx ? (
+                        <button
+                          type="button"
+                          onClick={() => setEditingDate(idx)}
+                          className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-left text-sm outline-none"
+                        >
+                          {formatCroatianDate(it.date)}
+                        </button>
+                      ) : (
+                        <input
+                          type={isIsoDate(it.date) || isRecurring(it.recurrence) ? "date" : "text"}
+                          aria-label={
+                            isRecurring(it.recurrence) ? "Početak ponavljanja" : "Datum"
+                          }
+                          value={it.date}
+                          autoFocus={editingDate === idx}
+                          onBlur={() => setEditingDate(null)}
+                          onChange={(e) => update(idx, "date", e.target.value)}
+                          placeholder={isRecurring(it.recurrence) ? "Početak ponavljanja" : "Datum"}
+                          className={`w-full rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40 ${
+                            isRecurring(it.recurrence) && !isIsoDate(it.date)
+                              ? "bg-warm font-semibold text-warm-foreground"
+                              : "bg-secondary/60"
+                          }`}
+                        />
+                      )}
                       <input
-                        type={isIsoDate(it.date) ? "date" : "text"}
-                        value={it.date}
-                        autoFocus={editingDate === idx}
-                        onBlur={() => setEditingDate(null)}
-                        onChange={(e) => update(idx, "date", e.target.value)}
-                        placeholder="Datum"
+                        value={it.time}
+                        onChange={(e) => update(idx, "time", e.target.value)}
+                        placeholder="Vrijeme"
                         className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
                       />
-                    )}
-                    <input
-                      value={it.time}
-                      onChange={(e) => update(idx, "time", e.target.value)}
-                      placeholder="Vrijeme"
-                      className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
-                    />
+                    </div>
                   </div>
+
                   {(
                     <div className="space-y-2">
                       {isRecurring(it.recurrence) ? (

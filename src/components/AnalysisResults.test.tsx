@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ExtractedItem } from "@/lib/hub-store";
-import { NO_RECURRENCE } from "@/lib/recurrence";
+import { NO_RECURRENCE, type EventRecurrence } from "@/lib/recurrence";
 
 /** AI review card must surface the full recurring event before saving. */
 
@@ -119,5 +119,49 @@ describe("AnalysisResults recurring event preview", () => {
     expect(screen.queryByTestId("recurrence-summary")).toBeNull();
     // One-off card still shows its title and date.
     expect(screen.getByDisplayValue("Malac genijalac")).toBeTruthy();
+  });
+});
+
+describe("recurring import without a start date", () => {
+  it("labels the date field 'Početak ponavljanja' and blocks reminders until it is set", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    renderResults([
+      baseItem({
+        title: "Cordipin 10 mg",
+        category: "Osobno",
+        date: "",
+        time: "06:00",
+        recurrence: { freq: "daily", interval: 1, byday: [], until: "", note: "", exclude: [] },
+      }),
+    ]);
+
+    expect(screen.getByLabelText("Početak ponavljanja")).toBeTruthy();
+
+    await userEvent.click(screen.getByText(/Podsjetnici \(/));
+    expect(
+      screen.getByText("Odaberi početak ponavljanja kako bi uključila podsjetnik."),
+    ).toBeTruthy();
+    const preset = screen.getByRole("button", { name: "U vrijeme događaja" }) as HTMLButtonElement;
+    expect(preset.disabled).toBe(true);
+  });
+
+  it("bulk 'Početak za sve' only fills items without a source date", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    const daily: EventRecurrence = { freq: "daily", interval: 1, byday: [], until: "", note: "", exclude: [] };
+    renderResults([
+      baseItem({ title: "Cordipin", date: "", time: "06:00", recurrence: { ...daily } }),
+      baseItem({ title: "Andol", date: "", time: "08:00", recurrence: { ...daily } }),
+      baseItem({ title: "Vitamin D", date: "2026-09-10", time: "09:00", recurrence: { ...daily } }),
+    ]);
+
+    const bulk = screen.getByLabelText("Početak za sve");
+    await userEvent.clear(bulk);
+    await userEvent.type(bulk, "2026-08-31");
+
+    // Both dateless items got the chosen start, so the bulk helper disappears.
+    expect(screen.queryByLabelText("Početak za sve")).toBeNull();
+    expect(screen.getAllByText(/31\.\s*(kolovoza|0?8\.)\s*2026/).length).toBe(2);
+    // The item with an extracted date keeps it.
+    expect(screen.getByText(/10\.\s*(rujna|0?9\.)\s*2026/)).toBeTruthy();
   });
 });

@@ -4,6 +4,7 @@ import {
   OFFSET_OPTIONS,
   customDraft,
   draftFromOffset,
+  hasReminderBase,
   isPast,
   reminderLabel,
   RECIPIENT_LABELS,
@@ -159,12 +160,24 @@ export function ReminderEditor({
 
   const patterns = isTask ? TASK_PATTERNS : EVENT_PATTERNS;
   const summary = scheduleSummary(reminders.map((r) => r.remind_at));
+  // Without a usable anchor (e.g. recurring import with no start date) presets
+  // cannot produce a time — say so instead of ignoring the tap.
+  const baseReady = hasReminderBase(input);
+  const missingHint = input.recurrence?.freq
+    ? "Odaberi početak ponavljanja kako bi uključila podsjetnik."
+    : "Odaberi datum obveze kako bi uključila podsjetnik.";
 
   return (
     <div className="rounded-2xl bg-secondary/50 p-4">
       <p className="flex items-center gap-2 text-sm font-semibold">
         <Bell className="size-4" strokeWidth={1.9} /> Podsjetnici
       </p>
+
+      {!baseReady ? (
+        <p className="mt-2 rounded-xl bg-warm px-3 py-2 text-xs font-semibold text-warm-foreground">
+          {missingHint}
+        </p>
+      ) : null}
 
       <div className="mt-3">
         <p className="text-xs font-semibold text-muted-foreground">Ponavljanje podsjetnika</p>
@@ -203,8 +216,9 @@ export function ReminderEditor({
               key={o.label}
               type="button"
               aria-pressed={active}
+              disabled={!baseReady}
               onClick={() => togglePreset(o.minutes)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold disabled:opacity-40 ${
                 active
                   ? "bg-primary text-primary-foreground"
                   : "bg-primary-soft text-accent-foreground"
@@ -225,6 +239,7 @@ export function ReminderEditor({
           Prilagođeno
         </span>
       </div>
+
 
       <input
         type="datetime-local"

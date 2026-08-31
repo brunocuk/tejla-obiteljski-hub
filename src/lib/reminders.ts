@@ -287,6 +287,21 @@ export function defaultRecipient(_category?: string, _onlyMe?: boolean): Recipie
   return "creator_only";
 }
 
+/**
+ * True when a reminder can actually be computed for this input.
+ *
+ * An imported recurring obligation ("svaki dan u 06:00") without a start date
+ * has nothing to anchor on; the UI must ask for "Početak ponavljanja" instead
+ * of silently ignoring a preset tap.
+ */
+export function hasReminderBase(input: ReminderInput): boolean {
+  return (
+    (localDate(reminderBaseDate(input), input.time) ??
+      (input.deadline ? localDate(input.deadline, "09:00") : null)) !== null
+  );
+}
+
+
 export function draftFromOffset(
   input: ReminderInput,
   minutes: number,
