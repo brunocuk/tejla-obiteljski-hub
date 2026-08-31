@@ -190,8 +190,26 @@ export function AnalysisResults({
   };
 
   const toggle = (idx: number) =>
-
     setSelected((s) => (s.includes(idx) ? s.filter((x) => x !== idx) : [...s, idx]));
+
+  // Convenience for a schedule screenshot with many repeating items: fill the
+  // missing start date at once, never touching a date read from the source.
+  const missingStartCount = items.filter(
+    (it, i) => selected.includes(i) && isRecurring(it.recurrence) && !isIsoDate(it.date),
+  ).length;
+
+  const applyBulkStart = (value: string) => {
+    setBulkStart(value);
+    if (!isIsoDate(value)) return;
+    setItems((prev) =>
+      prev.map((it, i) =>
+        selected.includes(i) && isRecurring(it.recurrence) && !isIsoDate(it.date)
+          ? { ...it, date: value, needsYear: false }
+          : it,
+      ),
+    );
+  };
+
 
   const handleAddAll = async () => {
     const chosen = items.filter((_, i) => selected.includes(i));
