@@ -432,6 +432,7 @@ export function AnalysisResults({
                       Kome pripada?
                     </label>
                     <select
+                      aria-label="Kome pripada?"
                       value={it.assignee}
                       onChange={(e) => {
                         update(idx, "assignee", e.target.value);
