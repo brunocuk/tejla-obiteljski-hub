@@ -107,6 +107,8 @@ export function AnalysisResults({
   const [touched, setTouched] = useState<number[]>([]);
   const [years, setYears] = useState<Record<number, string>>({});
   const [editingDate, setEditingDate] = useState<number | null>(null);
+  const [bulkStart, setBulkStart] = useState("");
+
   const currentYear = String(new Date().getFullYear());
 
   useEffect(() => {
