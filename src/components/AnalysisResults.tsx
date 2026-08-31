@@ -550,26 +550,38 @@ export function AnalysisResults({
                       </div>
                     </div>
                   ) : null}
-                  <textarea
-                    value={it.notes}
-                    onChange={(e) => update(idx, "notes", e.target.value)}
-                    placeholder="Napomena"
-                    rows={2}
-                    className="w-full resize-none rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setOpenDetails(openDetails === idx ? null : idx)}
+                    className="text-xs font-semibold text-accent-foreground"
+                  >
+                    Detalji {openDetails === idx ? "▴" : "▾"}
+                  </button>
+                  {openDetails === idx ? (
+                    <>
+                      <textarea
+                        value={it.notes}
+                        onChange={(e) => update(idx, "notes", e.target.value)}
+                        placeholder="Napomena"
+                        rows={2}
+                        className="w-full resize-none rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+                      />
 
-                  {it.location || it.amount || it.things_to_bring.length > 0 || it.deadline ? (
-                    <p className="text-xs text-muted-foreground">
-                      {[
-                        it.location,
-                        it.amount,
-                        it.deadline ? `rok: ${it.deadline}` : "",
-                        it.things_to_bring.join(", "),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
+                      {it.location || it.amount || it.things_to_bring.length > 0 || it.deadline ? (
+                        <p className="text-xs text-muted-foreground">
+                          {[
+                            it.location,
+                            it.amount,
+                            it.deadline ? `rok: ${it.deadline}` : "",
+                            it.things_to_bring.join(", "),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      ) : null}
+                    </>
                   ) : null}
+
 
                   <button
                     type="button"
