@@ -47,6 +47,8 @@ Rules:
 - category must be exactly one of: Škola, Ispit, Pregled, Zubar, Frizer, Kozmetičar, Trening, Izlet, Putovanje, Rođendan, Uplata, Rok, Servis, Osobno, Obitelj, Ostalo. Pick the closest match; use "Ostalo" when unclear.
 - confidence is a number between 0 and 1.
 - Never make medical or legal interpretations; only extract scheduling and task information.
+- HEALTH SAFETY: for medication or any health-related content, extract ONLY what is explicitly written in the source. Never infer or complete dosage, frequency, duration, timing, medication instructions, treatment recommendations or any medical advice. If something is not explicitly stated, leave that field empty so the user can review or enter it.
+- Times must be valid 24h clock values. Never output "24:00": midnight is "00:00" and the date must NOT be shifted for it.
 - Text values must be in Croatian, as written in the input.
 - All user-facing output text must be Croatian in Latin script. Never output Cyrillic.
 - If nothing relevant is found, return {"items":[]}.`;

@@ -9,6 +9,8 @@ import {
   type WeekdayCode,
 } from "./recurrence";
 import { mapExceptionText, sanitizeExcludeCodes } from "./recurrence-exclude";
+import { normalizeClockTime } from "./time-normalize";
+
 
 const FREQS: RecurrenceFreq[] = ["daily", "weekly", "monthly"];
 
@@ -183,8 +185,9 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
     dayMonth: parsed.dayMonth,
     needsYear: parsed.needsYear,
     dateUncertain: Boolean(raw.dateUncertain),
-    time: String(raw.time ?? ""),
-    end_time: String(raw.end_time ?? "").trim(),
+    time: normalizeClockTime(raw.time),
+    end_time: normalizeClockTime(raw.end_time),
+
     location: String(raw.location ?? ""),
     deadline: String(raw.deadline ?? ""),
     amount: String(raw.amount ?? ""),
@@ -195,7 +198,7 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
     confidence: Number.isFinite(conf) ? Math.min(1, Math.max(0, conf)) : 0,
     type: raw.type === "task" ? "task" : "event",
     reminder_intent: Boolean(raw.reminder_intent),
-    reminder_time: String(raw.reminder_time ?? "").trim(),
+    reminder_time: normalizeClockTime(raw.reminder_time),
     reminder_at: String(raw.reminder_at ?? "").trim(),
     reminder_recurrence: String(raw.reminder_recurrence ?? "").trim(),
     reminder_scope: String(raw.reminder_scope ?? "").trim(),

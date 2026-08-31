@@ -42,3 +42,45 @@ describe("RecurrencePicker calendar exceptions", () => {
     expect(screen.queryByLabelText("Preskoči školske odmore")).toBeNull();
   });
 });
+
+describe("RecurrencePicker daily repeats and end conditions", () => {
+  it("offers the Croatian frequency labels including a true daily repeat", () => {
+    render(<RecurrencePicker value={NO_RECURRENCE} startDate="2026-09-01" onChange={vi.fn()} />);
+    for (const label of ["Ne ponavlja se", "Svaki dan", "Tjedno", "Mjesečno"]) {
+      expect(screen.getByRole("option", { name: label })).toBeTruthy();
+    }
+  });
+
+  it("switches to a daily rule without weekday chips", async () => {
+    const onChange = vi.fn();
+    render(<RecurrencePicker value={NO_RECURRENCE} startDate="2026-09-01" onChange={onChange} />);
+    await userEvent.selectOptions(screen.getByRole("combobox", { name: /Ponavljanje/ }), "daily");
+    expect(onChange.mock.calls[0]?.[0]).toMatchObject({ freq: "daily", byday: [] });
+  });
+
+  it("shows the Croatian weekday chips and blocks auto-translation", () => {
+    render(<RecurrencePicker value={weekly} startDate="2026-09-01" onChange={vi.fn()} />);
+    for (const day of ["pon", "uto", "sri", "čet", "pet", "sub", "ned"]) {
+      const chip = screen.getByRole("button", { name: day });
+      expect(chip.getAttribute("translate")).toBe("no");
+    }
+  });
+
+  it("supports 'Bez završetka' and 'Na datum'", async () => {
+    const onChange = vi.fn();
+    render(<RecurrencePicker value={weekly} startDate="2026-09-01" onChange={onChange} />);
+    const end = screen.getByLabelText("Završetak ponavljanja");
+    await userEvent.selectOptions(end, "on_date");
+    expect(onChange.mock.calls[0]?.[0].until).toBe("2026-09-01");
+
+    onChange.mockClear();
+    render(
+      <RecurrencePicker
+        value={{ ...weekly, until: "2026-12-31" }}
+        startDate="2026-09-01"
+        onChange={onChange}
+      />,
+    );
+    expect(screen.getAllByLabelText("Datum završetka")[0]).toBeTruthy();
+  });
+});

@@ -85,14 +85,20 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
     setReminders(
       withRecipient(
         suggestReminders(
-          { category: form.category, date: form.date, time: form.time, things_to_bring: [] },
+          {
+            category: form.category,
+            date: form.date,
+            time: form.time,
+            things_to_bring: [],
+            ...(kind === "event" ? { recurrence } : {}),
+          },
           recipient,
         ),
         recipient,
         recipientUserIds,
       ),
     );
-  }, [form.category, form.date, form.time, touched, kind, recipient, recipientUserIds]);
+  }, [form.category, form.date, form.time, touched, kind, recurrence, recipient, recipientUserIds]);
 
   const set =
     (key: keyof typeof form) =>

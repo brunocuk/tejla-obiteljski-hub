@@ -23,8 +23,9 @@ import {
   type ReminderDraft,
 } from "@/lib/reminders";
 import { draftsFromPattern, type ReminderPattern } from "@/lib/reminder-engine";
-import { isRecurring } from "@/lib/recurrence";
+import { isRecurring, type EventRecurrence } from "@/lib/recurrence";
 import { RecurrenceSummary } from "@/components/RecurrenceSummary";
+import { RecurrencePicker } from "@/components/RecurrencePicker";
 
 const RECURRENCE_MAP: Record<string, ReminderPattern> = {
   hourly: "hourly",
@@ -61,14 +62,15 @@ function defaultDrafts(
   }
   return stamp(
     suggestReminders(
-    {
-      category: it.category,
-      date: it.date,
-      time: it.time,
-      deadline: it.deadline,
-      things_to_bring: it.things_to_bring,
-    },
-    mode,
+      {
+        category: it.category,
+        date: it.date,
+        time: it.time,
+        deadline: it.deadline,
+        things_to_bring: it.things_to_bring,
+        recurrence: it.recurrence,
+      },
+      mode,
     ),
   );
 }
@@ -101,6 +103,7 @@ export function AnalysisResults({
   const [recipients, setRecipients] = useState<Record<number, RecipientMode>>({});
   const [recipientIds, setRecipientIds] = useState<Record<number, string[]>>({});
   const [openReminders, setOpenReminders] = useState<number | null>(null);
+  const [openRecurrence, setOpenRecurrence] = useState<number | null>(null);
   const [touched, setTouched] = useState<number[]>([]);
   const [years, setYears] = useState<Record<number, string>>({});
   const [editingDate, setEditingDate] = useState<number | null>(null);
@@ -160,6 +163,13 @@ export function AnalysisResults({
   const update = (idx: number, field: keyof ExtractedItem, value: string) =>
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, [field]: value } : it)));
 
+  const setRecurrence = (idx: number, next: EventRecurrence) =>
+    setItems((prev) =>
+      prev.map((it, i) =>
+        i === idx ? { ...it, recurrence: next, exception_note: next.note } : it,
+      ),
+    );
+
   const confirmYear = (idx: number) => {
     const year = (years[idx] ?? currentYear).trim();
     if (!/^\d{4}$/.test(year)) return;
@@ -190,14 +200,18 @@ export function AnalysisResults({
     }
     // Reminders are absolute timestamps resolved at capture time. At save time
     // we only compare them with the real current clock (millisecond precision) —
-    // never re-evaluate the original relative phrase.
-    const chosenIdxAll = items.map((_, i) => i).filter((i) => selected.includes(i));
+    // never re-evaluate the original relative phrase. Reminders of a repeating
+    // event are rules, so they are never "expired".
+    const chosenIdxAll = items
+      .map((_, i) => i)
+      .filter((i) => selected.includes(i) && !isRecurring(items[i]!.recurrence));
     const nowMs = Date.now();
     const expired = chosenIdxAll
       .flatMap((i) => reminders[i] ?? [])
       .filter((d) => new Date(d.remind_at).getTime() <= nowMs);
     if (expired.length > 0 && expired.length === chosenIdxAll.flatMap((i) => reminders[i] ?? []).length) {
       setError("Vrijeme podsjetnika je u međuvremenu prošlo. Odaberi novo vrijeme.");
+
       return;
     }
     setError("");
@@ -372,14 +386,34 @@ export function AnalysisResults({
                       className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
                     />
                   </div>
-                  {it.type === "event" && isRecurring(it.recurrence) ? (
-                    <RecurrenceSummary
-                      recurrence={it.recurrence}
-                      date={it.date}
-                      time={it.time}
-                      end_time={it.end_time}
-                      exception_note={it.exception_note}
-                    />
+                  {it.type === "event" ? (
+                    <div className="space-y-2">
+                      {isRecurring(it.recurrence) ? (
+                        <RecurrenceSummary
+                          recurrence={it.recurrence}
+                          date={it.date}
+                          time={it.time}
+                          end_time={it.end_time}
+                          exception_note={it.exception_note}
+                        />
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenRecurrence(openRecurrence === idx ? null : idx)
+                        }
+                        className="text-xs font-semibold text-accent-foreground"
+                      >
+                        Ponavljanje {openRecurrence === idx ? "▴" : "▾"}
+                      </button>
+                      {openRecurrence === idx ? (
+                        <RecurrencePicker
+                          value={it.recurrence}
+                          startDate={it.date}
+                          onChange={(next) => setRecurrence(idx, next)}
+                        />
+                      ) : null}
+                    </div>
                   ) : null}
                   {it.dateUncertain ? (
                     <p className="rounded-xl bg-warm px-3 py-2.5 text-[11px] font-semibold text-warm-foreground">
@@ -448,6 +482,7 @@ export function AnalysisResults({
                         time: it.time,
                         deadline: it.deadline,
                         things_to_bring: it.things_to_bring,
+                        recurrence: it.recurrence,
                       }}
                       reminders={reminders[idx] ?? []}
                       onChange={(next) => {

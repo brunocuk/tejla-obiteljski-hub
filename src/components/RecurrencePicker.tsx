@@ -19,10 +19,11 @@ const fieldClass =
 
 const FREQ_LABELS: { value: RecurrenceFreq | "none"; label: string }[] = [
   { value: "none", label: "Ne ponavlja se" },
+  { value: "daily", label: "Svaki dan" },
   { value: "weekly", label: "Tjedno" },
-  { value: "daily", label: "Dnevno" },
   { value: "monthly", label: "Mjesečno" },
 ];
+
 
 /**
  * Repeat rule editor. V1 is built around weekly repeats ("svaki utorak"), but
@@ -93,14 +94,17 @@ export function RecurrencePicker({
           {value.freq === "weekly" ? (
             <div>
               <p className="text-sm font-semibold">Kojim danima?</p>
-              <div className="mt-2 flex flex-wrap gap-2">
+              {/* translate="no": browser auto-translation turns "uto"/"sri"/"pet" into
+                  unrelated words ("auto", "gospodin", "ljubimac"). */}
+              <div className="mt-2 flex flex-wrap gap-2" translate="no" lang="hr">
                 {WEEKDAY_CODES.map((code) => (
                   <button
                     key={code}
                     type="button"
+                    translate="no"
                     aria-pressed={days.includes(code)}
                     onClick={() => toggleDay(code)}
-                    className={`rounded-full px-3.5 py-2 text-sm font-semibold ${
+                    className={`notranslate rounded-full px-3.5 py-2 text-sm font-semibold ${
                       days.includes(code)
                         ? "bg-primary text-primary-foreground"
                         : "bg-background text-foreground"
@@ -129,15 +133,39 @@ export function RecurrencePicker({
               </select>
             </label>
             <label className="block text-sm font-semibold">
-              Do datuma
+              Završetak
+              <select
+                aria-label="Završetak ponavljanja"
+                value={value.until ? "on_date" : "never"}
+                onChange={(e) =>
+                  onChange({
+                    ...value,
+                    until: e.target.value === "never"
+                      ? ""
+                      : value.until || startDate || new Date().toISOString().slice(0, 10),
+                  })
+                }
+                className={fieldClass}
+              >
+                <option value="never">Bez završetka</option>
+                <option value="on_date">Na datum</option>
+              </select>
+            </label>
+          </div>
+
+          {value.until ? (
+            <label className="block text-sm font-semibold">
+              Ponavljaj do (uključivo)
               <input
                 type="date"
+                aria-label="Datum završetka"
                 value={value.until}
                 onChange={(e) => onChange({ ...value, until: e.target.value })}
                 className={fieldClass}
               />
             </label>
-          </div>
+          ) : null}
+
 
           <div>
             <p className="text-sm font-semibold">Hrvatski kalendar</p>
