@@ -57,7 +57,7 @@ describe("nextOccurrenceDate", () => {
 
 const draft = (remind_at: string): ReminderDraft => ({
   remind_at,
-  recipient_mode: "all",
+  recipient_mode: "all_parents",
   recipient_user_ids: [],
   pattern: "once",
 });
