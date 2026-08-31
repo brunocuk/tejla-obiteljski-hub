@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { draftFromOffset, hasReminderBase, reminderBaseDate } from "@/lib/reminders";
-import type { EventRecurrence } from "@/lib/recurrence";
+import { NO_RECURRENCE, type EventRecurrence } from "@/lib/recurrence";
 
 const DAILY: EventRecurrence = {
   freq: "daily",
@@ -51,7 +51,7 @@ describe("recurring obligation without a start date", () => {
       category: "Škola",
       date: "2026-09-01",
       time: "18:15",
-      recurrence: undefined,
+      recurrence: NO_RECURRENCE,
     };
     expect(reminderBaseDate(oneOff)).toBe("2026-09-01");
     expect(hasReminderBase(oneOff)).toBe(true);

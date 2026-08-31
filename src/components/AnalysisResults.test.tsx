@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { ExtractedItem } from "@/lib/hub-store";
-import { NO_RECURRENCE } from "@/lib/recurrence";
+import { NO_RECURRENCE, type EventRecurrence } from "@/lib/recurrence";
 
 /** AI review card must surface the full recurring event before saving. */
 
@@ -147,7 +147,7 @@ describe("recurring import without a start date", () => {
 
   it("bulk 'Početak za sve' only fills items without a source date", async () => {
     const { default: userEvent } = await import("@testing-library/user-event");
-    const daily = { freq: "daily", interval: 1, byday: [], until: "", note: "", exclude: [] } as const;
+    const daily: EventRecurrence = { freq: "daily", interval: 1, byday: [], until: "", note: "", exclude: [] };
     renderResults([
       baseItem({ title: "Cordipin", date: "", time: "06:00", recurrence: { ...daily } }),
       baseItem({ title: "Andol", date: "", time: "08:00", recurrence: { ...daily } }),
