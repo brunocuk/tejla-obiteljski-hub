@@ -165,3 +165,22 @@ describe("recurring import without a start date", () => {
     expect(screen.getByText(/10\.\s*(rujna|0?9\.)\s*2026/)).toBeTruthy();
   });
 });
+
+describe("bulk assignee", () => {
+  it("assigns every selected item and keeps individual overrides", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    renderResults([
+      baseItem({ title: "A", person: "", assignee: "" }),
+      baseItem({ title: "B", person: "", assignee: "" }),
+    ]);
+
+    const bulk = screen.getByLabelText("Sve obveze pripadaju") as HTMLSelectElement;
+    await userEvent.selectOptions(bulk, "Korina");
+    const perCard = screen.getAllByLabelText("Kome pripada?") as HTMLSelectElement[];
+    expect(perCard.map((s) => s.value)).toEqual(["Korina", "Korina"]);
+
+    await userEvent.selectOptions(perCard[1]!, "Svi");
+    expect(perCard[0]!.value).toBe("Korina");
+    expect(perCard[1]!.value).toBe("Svi");
+  });
+});

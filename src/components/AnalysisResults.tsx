@@ -108,6 +108,8 @@ export function AnalysisResults({
   const [years, setYears] = useState<Record<number, string>>({});
   const [editingDate, setEditingDate] = useState<number | null>(null);
   const [bulkStart, setBulkStart] = useState("");
+  const [bulkAssignee, setBulkAssignee] = useState("");
+  const [openDetails, setOpenDetails] = useState<number | null>(null);
 
   const currentYear = String(new Date().getFullYear());
 
@@ -212,6 +214,16 @@ export function AnalysisResults({
     );
   };
 
+  // One tap assigns every selected draft; a single card can still be overridden.
+  const applyBulkAssignee = (value: string) => {
+    setBulkAssignee(value);
+    if (!value) return;
+    setItems((prev) => prev.map((it, i) => (selected.includes(i) ? { ...it, assignee: value } : it)));
+    setError("");
+  };
+
+
+
 
   const handleAddAll = async () => {
     const chosen = items.filter((_, i) => selected.includes(i));
@@ -314,7 +326,31 @@ export function AnalysisResults({
         </button>
       </div>
 
-      {missingStartCount >= 2 ? (
+      {items.length >= 2 ? (
+        <div className="mb-4 space-y-1 rounded-2xl bg-secondary/50 px-4 py-3">
+          <label className="block text-xs font-semibold text-muted-foreground">
+            Sve obveze pripadaju
+          </label>
+          <select
+            aria-label="Sve obveze pripadaju"
+            value={bulkAssignee}
+            onChange={(e) => applyBulkAssignee(e.target.value)}
+            className="w-full appearance-none rounded-xl bg-background px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+          >
+            <option value="">Odaberi člana</option>
+            {assigneeOptions.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] font-medium text-muted-foreground">
+            Postavlja člana za sve odabrane obveze. Pojedinačno možeš promijeniti na kartici.
+          </p>
+        </div>
+      ) : null}
+
+      {missingStartCount >= 1 ? (
         <div className="mb-4 space-y-1 rounded-2xl bg-warm px-4 py-3">
           <label className="block text-xs font-semibold text-warm-foreground">
             Početak za sve ({missingStartCount} obveza bez datuma)
@@ -332,6 +368,7 @@ export function AnalysisResults({
           </p>
         </div>
       ) : null}
+
 
 
 
@@ -395,6 +432,7 @@ export function AnalysisResults({
                       Kome pripada?
                     </label>
                     <select
+                      aria-label="Kome pripada?"
                       value={it.assignee}
                       onChange={(e) => {
                         update(idx, "assignee", e.target.value);
@@ -513,26 +551,38 @@ export function AnalysisResults({
                       </div>
                     </div>
                   ) : null}
-                  <textarea
-                    value={it.notes}
-                    onChange={(e) => update(idx, "notes", e.target.value)}
-                    placeholder="Napomena"
-                    rows={2}
-                    className="w-full resize-none rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setOpenDetails(openDetails === idx ? null : idx)}
+                    className="text-xs font-semibold text-accent-foreground"
+                  >
+                    Detalji {openDetails === idx ? "▴" : "▾"}
+                  </button>
+                  {openDetails === idx ? (
+                    <>
+                      <textarea
+                        value={it.notes}
+                        onChange={(e) => update(idx, "notes", e.target.value)}
+                        placeholder="Napomena"
+                        rows={2}
+                        className="w-full resize-none rounded-xl bg-secondary/60 px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+                      />
 
-                  {it.location || it.amount || it.things_to_bring.length > 0 || it.deadline ? (
-                    <p className="text-xs text-muted-foreground">
-                      {[
-                        it.location,
-                        it.amount,
-                        it.deadline ? `rok: ${it.deadline}` : "",
-                        it.things_to_bring.join(", "),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
+                      {it.location || it.amount || it.things_to_bring.length > 0 || it.deadline ? (
+                        <p className="text-xs text-muted-foreground">
+                          {[
+                            it.location,
+                            it.amount,
+                            it.deadline ? `rok: ${it.deadline}` : "",
+                            it.things_to_bring.join(", "),
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                      ) : null}
+                    </>
                   ) : null}
+
 
                   <button
                     type="button"
