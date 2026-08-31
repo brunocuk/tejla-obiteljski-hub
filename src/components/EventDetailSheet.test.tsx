@@ -66,7 +66,7 @@ const dailyEvent = {
   linked_event_id: null,
   created_by: "u-me",
   member_ids: ["m-1"],
-  member_names: ["Mama"],
+  members: ["Mama"],
   recurrence: {
     freq: "daily" as const,
     interval: 1,
