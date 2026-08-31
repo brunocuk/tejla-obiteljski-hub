@@ -288,6 +288,27 @@ export function AnalysisResults({
         </button>
       </div>
 
+      {missingStartCount >= 2 ? (
+        <div className="mb-4 space-y-1 rounded-2xl bg-warm px-4 py-3">
+          <label className="block text-xs font-semibold text-warm-foreground">
+            Početak za sve ({missingStartCount} obveza bez datuma)
+          </label>
+          <input
+            type="date"
+            aria-label="Početak za sve"
+            value={bulkStart}
+            onChange={(e) => applyBulkStart(e.target.value)}
+            className="w-full rounded-xl bg-background px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary/40"
+          />
+          <p className="text-[11px] font-medium text-warm-foreground">
+            Postavlja početak samo za odabrane obveze bez datuma. Datum prepoznat sa slike ostaje
+            nepromijenjen.
+          </p>
+        </div>
+      ) : null}
+
+
+
       <ul className="space-y-3 pb-4">
         {items.map((it, idx) => {
           const checked = selected.includes(idx);
