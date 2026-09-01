@@ -145,12 +145,12 @@ describe("recurring event templates", () => {
     const rows = buildReminderRows(
       "e2",
       [
-        draft(zagrebInstant("2026-08-31", "15:00").toISOString()),
-        draft(zagrebInstant("2026-08-30", "19:00").toISOString()),
+        draft(zagrebInstant("2099-08-31", "15:00").toISOString()),
+        draft(zagrebInstant("2099-08-30", "19:00").toISOString()),
       ],
       "u1",
       "s2",
-      { date: "2026-08-31", time: "17:00:00", recurrence_freq: "weekly" },
+      { date: "2099-08-31", time: "17:00:00", recurrence_freq: "weekly" },
     );
     expect(rows[0]).toMatchObject({ is_recurring: true, offset_kind: "relative", offset_minutes: 120 });
     expect(rows[1]).toMatchObject({

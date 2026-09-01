@@ -1,20 +1,22 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { render, screen, within } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExtractedItem } from "@/lib/hub-store";
 import { NO_RECURRENCE, type EventRecurrence } from "@/lib/recurrence";
 
 /** AI review card must surface the full recurring event before saving. */
 
 const mocks = vi.hoisted(() => ({
+  role: "owner" as string,
+  userId: "u-me" as string,
   members: [
-  {
-    id: "m-1",
-    family_id: "f-1",
-    name: "Korina",
-    member_type: "child",
-    linked_user_id: null,
-    created_at: "2026-01-01T00:00:00Z",
+    {
+      id: "m-1",
+      family_id: "f-1",
+      name: "Korina",
+      member_type: "child",
+      linked_user_id: null,
+      created_at: "2026-01-01T00:00:00Z",
       archived_at: null,
     },
   ],
@@ -27,7 +29,8 @@ vi.mock("@/lib/family-workspace", async () => {
   return {
     ...actual,
     useMyFamilyId: () => ({ data: "f-1" }),
-    useMyUserId: () => ({ data: "u-me" }),
+    useMyUserId: () => ({ data: mocks.userId }),
+    useMyFamilyRole: () => ({ data: mocks.role }),
     useFamilyMembers: () => ({ data: mocks.members }),
   };
 });
@@ -35,9 +38,10 @@ vi.mock("@/lib/family-workspace", async () => {
 import { AnalysisResults } from "./AnalysisResults";
 
 function baseItem(overrides: Partial<ExtractedItem>): ExtractedItem {
-  return {
+  const item: ExtractedItem = {
     person: "Korina",
     assignee: "Korina",
+    assignee_ids: [],
     title: "Malac genijalac",
     category: "Škola",
     date: "2026-09-01",
@@ -64,7 +68,8 @@ function baseItem(overrides: Partial<ExtractedItem>): ExtractedItem {
     recurrence: NO_RECURRENCE,
     exception_note: "",
     ...overrides,
-  };
+  } as ExtractedItem;
+  return item;
 }
 
 function renderResults(analysis: ExtractedItem[]) {
@@ -166,21 +171,106 @@ describe("recurring import without a start date", () => {
   });
 });
 
-describe("bulk assignee", () => {
-  it("assigns every selected item and keeps individual overrides", async () => {
+describe("multi-member assignment", () => {
+  const family = [
+    { id: "m-lucija", family_id: "f-1", name: "Lucija", member_type: "child", linked_user_id: null, created_at: "2026-01-01T00:00:00Z", archived_at: null },
+    { id: "m-lara", family_id: "f-1", name: "Lara", member_type: "child", linked_user_id: null, created_at: "2026-01-01T00:00:00Z", archived_at: null },
+    { id: "m-korina", family_id: "f-1", name: "Korina", member_type: "child", linked_user_id: null, created_at: "2026-01-01T00:00:00Z", archived_at: null },
+    { id: "m-mateja", family_id: "f-1", name: "Mateja", member_type: "parent", linked_user_id: "u-me", created_at: "2026-01-01T00:00:00Z", archived_at: null },
+  ];
+
+  const pressed = (name: string) => {
+    const card = screen.getAllByRole("group", { name: "Kome pripada?" }).at(-1)!;
+    return within(card).getByRole("button", { name }).getAttribute("aria-pressed") === "true";
+  };
+
+  beforeEach(() => {
+    mocks.members = family as typeof mocks.members;
+    mocks.role = "owner";
+    mocks.userId = "u-me";
+  });
+
+  afterEach(() => {
+    mocks.members = family as typeof mocks.members;
+    mocks.role = "owner";
+    mocks.userId = "u-me";
+  });
+
+  it("keeps a legacy single-name draft assigned to that one member", () => {
+    renderResults([baseItem({ assignee: "Lucija" })]);
+    expect(pressed("Lucija")).toBe(true);
+    expect(pressed("Lara")).toBe(false);
+  });
+
+  it("assigns Lucija + Lara to one draft without touching anyone else", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    renderResults([baseItem({ title: "Mentalna aritmetika", person: "", assignee: "" })]);
+
+    await userEvent.click(screen.getByRole("button", { name: "Lucija" }));
+    await userEvent.click(screen.getByRole("button", { name: "Lara" }));
+
+    expect(pressed("Lucija")).toBe(true);
+    expect(pressed("Lara")).toBe(true);
+    expect(pressed("Korina")).toBe(false);
+    expect(pressed("Mateja")).toBe(false);
+    expect(pressed("Svi")).toBe(false);
+  });
+
+  it("'Svi' selects everyone, and deselecting one leaves an explicit subset", async () => {
+    const { default: userEvent } = await import("@testing-library/user-event");
+    renderResults([baseItem({ person: "", assignee: "" })]);
+
+    await userEvent.click(screen.getByRole("button", { name: "Svi" }));
+    expect(family.every((m) => pressed(m.name))).toBe(true);
+
+    await userEvent.click(screen.getByRole("button", { name: "Korina" }));
+    expect(pressed("Korina")).toBe(false);
+    expect(pressed("Svi")).toBe(false);
+    expect(pressed("Lucija")).toBe(true);
+  });
+
+  it("a legacy 'Svi' draft shows every member selected", () => {
+    renderResults([baseItem({ assignee: "Svi" })]);
+    expect(pressed("Svi")).toBe(true);
+    expect(family.every((m) => pressed(m.name))).toBe(true);
+  });
+
+  it("bulk Lucija + Lara applies to every draft, and one card can still be overridden", async () => {
     const { default: userEvent } = await import("@testing-library/user-event");
     renderResults([
       baseItem({ title: "A", person: "", assignee: "" }),
       baseItem({ title: "B", person: "", assignee: "" }),
     ]);
 
-    const bulk = screen.getByLabelText("Sve obveze pripadaju") as HTMLSelectElement;
-    await userEvent.selectOptions(bulk, "Korina");
-    const perCard = screen.getAllByLabelText("Kome pripada?") as HTMLSelectElement[];
-    expect(perCard.map((s) => s.value)).toEqual(["Korina", "Korina"]);
+    const bulk = screen.getByRole("group", { name: "Sve obveze pripadaju" });
+    await userEvent.click(within(bulk).getByRole("button", { name: "Lucija" }));
+    await userEvent.click(within(bulk).getByRole("button", { name: "Lara" }));
 
-    await userEvent.selectOptions(perCard[1]!, "Svi");
-    expect(perCard[0]!.value).toBe("Korina");
-    expect(perCard[1]!.value).toBe("Svi");
+    const cards = screen.getAllByRole("group", { name: "Kome pripada?" });
+    for (const card of cards) {
+      expect(within(card).getByRole("button", { name: "Lucija" }).getAttribute("aria-pressed")).toBe("true");
+      expect(within(card).getByRole("button", { name: "Lara" }).getAttribute("aria-pressed")).toBe("true");
+    }
+
+    // Individual override on the second card only.
+    await userEvent.click(within(cards[1]!).getByRole("button", { name: "Lara" }));
+    expect(within(cards[0]!).getByRole("button", { name: "Lara" }).getAttribute("aria-pressed")).toBe("true");
+    expect(within(cards[1]!).getByRole("button", { name: "Lara" }).getAttribute("aria-pressed")).toBe("false");
+    expect(within(cards[1]!).getByRole("button", { name: "Lucija" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("a child actor is only offered themselves", () => {
+    mocks.role = "child";
+    mocks.userId = "u-lara";
+    mocks.members = family.map((m) =>
+      m.id === "m-lara" ? { ...m, linked_user_id: "u-lara" } : m,
+    ) as typeof mocks.members;
+
+    renderResults([baseItem({ person: "", assignee: "" })]);
+
+    expect(screen.getByRole("button", { name: "Lara" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Lucija" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Mateja" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Svi" })).toBeNull();
   });
 });

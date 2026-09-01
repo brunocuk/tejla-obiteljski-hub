@@ -36,6 +36,36 @@ export function assigneeStyle(a: string): { dot: string; chip: string } {
   return { dot: s.dot, chip: s.chip };
 }
 
+/**
+ * Single source of truth for "who does this imported draft belong to".
+ *
+ * Explicit member ids win. Older drafts (and current AI output) only carry the
+ * legacy single `assignee` string, so those still resolve through the name /
+ * WHOLE_FAMILY fallback. Result is always a subset of the allowed member rows.
+ */
+export function resolveMemberIds(
+  item: { assignee_ids?: string[] | undefined; assignee?: string | undefined },
+  members: { id: string; name: string }[],
+): string[] {
+  const allowed = new Set(members.map((m) => m.id));
+  const explicit = (item.assignee_ids ?? []).filter((id) => allowed.has(id));
+  if (explicit.length > 0) return members.filter((m) => explicit.includes(m.id)).map((m) => m.id);
+  const legacy = (item.assignee ?? "").trim();
+  if (!legacy) return [];
+  if (legacy === WHOLE_FAMILY) return members.map((m) => m.id);
+  return members
+    .filter((m) => m.name.trim().toLowerCase() === legacy.toLowerCase())
+    .map((m) => m.id);
+}
+
+/** Legacy label kept in sync with an explicit id selection (display + dedupe only). */
+export function labelForMemberIds(ids: string[], members: { id: string; name: string }[]): string {
+  if (ids.length === 0) return "";
+  if (members.length > 0 && ids.length === members.length) return WHOLE_FAMILY;
+  const names = members.filter((m) => ids.includes(m.id)).map((m) => m.name);
+  return names.join(", ");
+}
+
 /** Maps a free-text person string from AI output to one of the known member names. */
 export function resolveAssignee(raw: string, names: string[] = []): string {
   const v = raw.trim().toLowerCase();
