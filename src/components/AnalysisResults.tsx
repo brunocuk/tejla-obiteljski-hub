@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check } from "lucide-react";
-import { WHOLE_FAMILY, resolveAssignee } from "@/lib/family";
+import { WHOLE_FAMILY, labelForMemberIds, resolveAssignee, resolveMemberIds } from "@/lib/family";
 import type { ExtractedItem } from "@/lib/hub-store";
 import {
   assignableMembers,
+  assigneeChoicesForActor,
+  isAdultRole,
   useFamilyMembers,
   useMyFamilyId,
+  useMyFamilyRole,
   useMyUserId,
 } from "@/lib/family-workspace";
 import { formatCroatianDate, isIsoDate } from "@/lib/date-hr";
@@ -92,10 +95,17 @@ export function AnalysisResults({
   const [saving, setSaving] = useState(false);
   const { data: familyId } = useMyFamilyId();
   const { data: allMembers } = useFamilyMembers(familyId);
-  const members = useMemo(() => assignableMembers(allMembers ?? []), [allMembers]);
   const { data: userId } = useMyUserId();
-  const memberRows = members.map((m) => ({ id: m.id, name: m.name }));
-  const assigneeOptions = [...memberRows.map((m) => m.name), WHOLE_FAMILY];
+  const { data: myRole } = useMyFamilyRole();
+  const isAdult = isAdultRole(myRole);
+  // A child may only assign obligations to themselves — same rule the DB guard
+  // enforces, so the UI never offers a member the write would reject.
+  const members = useMemo(() => {
+    const assignable = assignableMembers(allMembers ?? []);
+    const myMemberId = assignable.find((m) => m.linked_user_id === userId)?.id ?? null;
+    return assigneeChoicesForActor(assignable, { isAdult, myUserId: userId, myMemberId });
+  }, [allMembers, isAdult, userId]);
+  const memberRows = useMemo(() => members.map((m) => ({ id: m.id, name: m.name })), [members]);
   const adults = members
     .filter((m) => m.member_type === "parent" && m.linked_user_id)
     .map((m) => ({ name: m.name, userId: m.linked_user_id as string }));
@@ -108,7 +118,7 @@ export function AnalysisResults({
   const [years, setYears] = useState<Record<number, string>>({});
   const [editingDate, setEditingDate] = useState<number | null>(null);
   const [bulkStart, setBulkStart] = useState("");
-  const [bulkAssignee, setBulkAssignee] = useState("");
+  const [bulkIds, setBulkIds] = useState<string[]>([]);
   const [openDetails, setOpenDetails] = useState<number | null>(null);
 
   const currentYear = String(new Date().getFullYear());
@@ -137,7 +147,7 @@ export function AnalysisResults({
     };
     setItems((prev) =>
       prev.map((it) =>
-        it.assignee
+        it.assignee || (it.assignee_ids ?? []).length > 0
           ? it
           : { ...it, assignee: resolveAssignee(it.person, names) || fromReminder(it) },
       ),
@@ -214,20 +224,70 @@ export function AnalysisResults({
     );
   };
 
-  // One tap assigns every selected draft; a single card can still be overridden.
-  const applyBulkAssignee = (value: string) => {
-    setBulkAssignee(value);
-    if (!value) return;
-    setItems((prev) => prev.map((it, i) => (selected.includes(i) ? { ...it, assignee: value } : it)));
+  // Who a draft currently belongs to: explicit ids, else the legacy string.
+  const idsFor = (it: ExtractedItem) => resolveMemberIds(it, memberRows);
+
+  // Writing a selection always stores explicit ids; the legacy `assignee`
+  // string is kept in sync purely for display/dedupe.
+  const withMembers = (it: ExtractedItem, ids: string[]): ExtractedItem => ({
+    ...it,
+    assignee_ids: ids,
+    assignee: labelForMemberIds(ids, memberRows),
+  });
+
+  const toggleMember = (idx: number, memberId: string) => {
+    setItems((prev) =>
+      prev.map((it, i) => {
+        if (i !== idx) return it;
+        const current = resolveMemberIds(it, memberRows);
+        const next = current.includes(memberId)
+          ? current.filter((id) => id !== memberId)
+          : [...current, memberId];
+        return withMembers(it, next);
+      }),
+    );
     setError("");
   };
 
+  // "Svi" is a shortcut for every member the actor may assign; deselecting one
+  // afterwards simply leaves an explicit subset.
+  const selectAllMembers = (idx: number) => {
+    setItems((prev) =>
+      prev.map((it, i) => {
+        if (i !== idx) return it;
+        const current = resolveMemberIds(it, memberRows);
+        const all = current.length === memberRows.length && memberRows.length > 0;
+        return withMembers(it, all ? [] : memberRows.map((m) => m.id));
+      }),
+    );
+    setError("");
+  };
 
+  // One tap assigns every selected draft; a single card can still be overridden
+  // afterwards, because each card holds its own copy of the ids.
+  const applyBulkMembers = (ids: string[]) => {
+    setBulkIds(ids);
+    setItems((prev) =>
+      prev.map((it, i) => (selected.includes(i) ? withMembers(it, [...ids]) : it)),
+    );
+    setError("");
+  };
 
+  const toggleBulkMember = (memberId: string) =>
+    applyBulkMembers(
+      bulkIds.includes(memberId) ? bulkIds.filter((id) => id !== memberId) : [...bulkIds, memberId],
+    );
+
+  const toggleBulkAll = () =>
+    applyBulkMembers(
+      bulkIds.length === memberRows.length && memberRows.length > 0
+        ? []
+        : memberRows.map((m) => m.id),
+    );
 
   const handleAddAll = async () => {
     const chosen = items.filter((_, i) => selected.includes(i));
-    if (chosen.some((c) => !c.assignee)) {
+    if (chosen.some((c) => idsFor(c).length === 0)) {
       setError("Odaberi kome pripada ova obaveza.");
       return;
     }
@@ -327,25 +387,43 @@ export function AnalysisResults({
       </div>
 
       {items.length >= 2 ? (
-        <div className="mb-4 space-y-1 rounded-2xl bg-secondary/50 px-4 py-3">
-          <label className="block text-xs font-semibold text-muted-foreground">
+        <div className="mb-4 space-y-2 rounded-2xl bg-secondary/50 px-4 py-3">
+          <p className="text-xs font-semibold text-muted-foreground" id="bulk-members-label">
             Sve obveze pripadaju
-          </label>
-          <select
-            aria-label="Sve obveze pripadaju"
-            value={bulkAssignee}
-            onChange={(e) => applyBulkAssignee(e.target.value)}
-            className="w-full appearance-none rounded-xl bg-background px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/40"
-          >
-            <option value="">Odaberi člana</option>
-            {assigneeOptions.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
+          </p>
+          <div className="flex flex-wrap gap-2" role="group" aria-labelledby="bulk-members-label">
+            {memberRows.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                aria-pressed={bulkIds.includes(m.id)}
+                onClick={() => toggleBulkMember(m.id)}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${
+                  bulkIds.includes(m.id)
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-accent-foreground"
+                }`}
+              >
+                {m.name || "Bez imena"}
+              </button>
             ))}
-          </select>
+            {memberRows.length > 1 ? (
+              <button
+                type="button"
+                aria-pressed={bulkIds.length === memberRows.length && memberRows.length > 0}
+                onClick={toggleBulkAll}
+                className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${
+                  bulkIds.length === memberRows.length && memberRows.length > 0
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-accent-foreground"
+                }`}
+              >
+                {WHOLE_FAMILY}
+              </button>
+            ) : null}
+          </div>
           <p className="text-[11px] font-medium text-muted-foreground">
-            Postavlja člana za sve odabrane obveze. Pojedinačno možeš promijeniti na kartici.
+            Postavlja članove za sve odabrane obveze. Pojedinačno možeš promijeniti na kartici.
           </p>
         </div>
       ) : null}
@@ -427,31 +505,64 @@ export function AnalysisResults({
                     placeholder="Naziv obveze"
                     className="w-full rounded-xl bg-secondary/60 px-3 py-2 text-[15px] font-semibold outline-none focus:ring-1 focus:ring-primary/40"
                   />
-                  <div className="space-y-1">
-                    <label className="block text-xs font-semibold text-muted-foreground">
-                      Kome pripada?
-                    </label>
-                    <select
-                      aria-label="Kome pripada?"
-                      value={it.assignee}
-                      onChange={(e) => {
-                        update(idx, "assignee", e.target.value);
-                        setError("");
-                      }}
-                      className={`w-full appearance-none rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/40 ${
-                        it.assignee
-                          ? "bg-secondary/60"
-                          : "bg-warm font-semibold text-warm-foreground"
-                      }`}
-                    >
-                      <option value="">Odaberi člana</option>
-                      {assigneeOptions.map((o) => (
-                        <option key={o} value={o}>
-                          {o}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {(() => {
+                    const mine = idsFor(it);
+                    const allPicked = memberRows.length > 0 && mine.length === memberRows.length;
+                    return (
+                      <div
+                        className={`space-y-1 rounded-xl px-1 py-1 ${
+                          mine.length === 0 ? "bg-warm px-3 py-2" : ""
+                        }`}
+                      >
+                        <p
+                          id={`members-label-${idx}`}
+                          className={`block text-xs font-semibold ${
+                            mine.length === 0 ? "text-warm-foreground" : "text-muted-foreground"
+                          }`}
+                        >
+                          Kome pripada?
+                        </p>
+                        <div
+                          className="flex flex-wrap gap-2"
+                          role="group"
+                          aria-labelledby={`members-label-${idx}`}
+                        >
+                          {memberRows.map((m) => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              aria-pressed={mine.includes(m.id)}
+                              onClick={() => toggleMember(idx, m.id)}
+                              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${
+                                mine.includes(m.id)
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-primary-soft text-accent-foreground"
+                              }`}
+                            >
+                              {m.name || "Bez imena"}
+                            </button>
+                          ))}
+                          {memberRows.length > 1 ? (
+                            <button
+                              type="button"
+                              aria-pressed={allPicked}
+                              onClick={() => selectAllMembers(idx)}
+                              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold ${
+                                allPicked
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-primary-soft text-accent-foreground"
+                              }`}
+                            >
+                              {WHOLE_FAMILY}
+                            </button>
+                          ) : null}
+                          {memberRows.length === 0 ? (
+                            <p className="text-xs text-muted-foreground">Još nema članova.</p>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })()}
                   <div className="space-y-1">
                     <label className="block text-xs font-semibold text-muted-foreground">
                       {isRecurring(it.recurrence) ? "Početak ponavljanja" : "Datum"}

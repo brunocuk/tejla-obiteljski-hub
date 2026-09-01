@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { WHOLE_FAMILY } from "@/lib/family";
+import { resolveMemberIds } from "@/lib/family";
 import type { ExtractedItem } from "@/lib/hub-store";
 import { cancelPendingReminders, restorePausedReminders } from "@/lib/reminders";
 import { notifyAssignment } from "@/lib/notifications.functions";
@@ -387,15 +387,14 @@ export async function saveFamilyEvents(
       .single();
     if (error) throw error;
 
-    const targets =
-      item.assignee === WHOLE_FAMILY
-        ? members
-        : members.filter((m) => m.name.trim().toLowerCase() === item.assignee.trim().toLowerCase());
+    // Explicit ids win; legacy drafts (name / "Svi") still resolve by name.
+    // One canonical event row, one event_members row per assigned member.
+    const targetIds = resolveMemberIds(item, members);
 
-    if (targets.length > 0) {
+    if (targetIds.length > 0) {
       const { error: linkError } = await supabase
         .from("event_members")
-        .insert(targets.map((m) => ({ event_id: inserted.id, family_member_id: m.id })));
+        .insert(targetIds.map((id) => ({ event_id: inserted.id, family_member_id: id })));
       if (linkError) throw linkError;
     }
     createdIds[itemIndex] = inserted.id as string;

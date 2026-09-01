@@ -56,7 +56,13 @@ const EVENTS_STORAGE_KEY = "family-hub-events";
 
 export type ExtractedItem = {
   person: string;
+  /**
+   * Legacy single-member representation: AI output, WHOLE_FAMILY ("Svi") and
+   * older persisted drafts. `assignee_ids` wins whenever it is non-empty.
+   */
   assignee: string;
+  /** Explicitly chosen family member ids; empty means "fall back to `assignee`". */
+  assignee_ids: string[];
   title: string;
   category: string;
   date: string;
@@ -179,6 +185,10 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
   return {
     person: String(raw.person ?? ""),
     assignee: raw.assignee ? String(raw.assignee) : resolveAssignee(String(raw.person ?? "")),
+    // Older drafts have no ids at all; they keep working through `assignee`.
+    assignee_ids: Array.isArray(raw.assignee_ids)
+      ? raw.assignee_ids.map(String).filter(Boolean)
+      : [],
     title: String(raw.title ?? ""),
     category: normalizeCategory(String(raw.category ?? "")) || String(raw.category ?? ""),
     date: parsed.date,
@@ -314,7 +324,11 @@ export function addConfirmed(items: ExtractedItem[]) {
       item.title.trim(),
       item.date.trim(),
       item.time.trim(),
-      item.assignee.trim(),
+      // Multi-member drafts key on sorted stable ids; legacy drafts keep the
+      // exact single-string semantics they had before.
+      (item.assignee_ids ?? []).length > 0
+        ? [...item.assignee_ids].sort().join(",")
+        : item.assignee.trim(),
       item.category.trim(),
       item.notes.trim(),
       item.deadline.trim(),
