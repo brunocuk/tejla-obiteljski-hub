@@ -160,6 +160,28 @@ function BetaInvitePage() {
 
         {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
 
+        <p className="pt-1 text-xs leading-relaxed text-muted-foreground">
+          Izradom računa prihvaćaš{" "}
+          <a
+            href="/uvjeti"
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold underline underline-offset-2"
+          >
+            Uvjete korištenja
+          </a>{" "}
+          i potvrđuješ da si pročitao/la{" "}
+          <a
+            href="/privatnost"
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold underline underline-offset-2"
+          >
+            Pravila privatnosti
+          </a>
+          .
+        </p>
+
         <button
           type="submit"
           disabled={busy}

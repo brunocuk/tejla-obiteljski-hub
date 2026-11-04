@@ -9,8 +9,9 @@ export const Route = createFileRoute("/api/transcribe")({
         const userId = await getRequestUserId(request);
         if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-        const key = process.env["LOVABLE_API_KEY"];
-        if (!key) return Response.json({ error: "Missing LOVABLE_API_KEY" }, { status: 500 });
+        const { transcriptionsTarget } = await import("@/lib/ai-provider.server");
+        const target = transcriptionsTarget();
+        if (!target) return Response.json({ error: "AI provider not configured" }, { status: 500 });
 
         const inbound = await request.formData();
         const file = inbound.get("file");
@@ -32,13 +33,13 @@ export const Route = createFileRoute("/api/transcribe")({
         const transcribe = async (prompt: string) => {
           const form = new FormData();
           form.append("file", file, file.name || "voice.webm");
-          form.append("model", "openai/gpt-4o-mini-transcribe");
+          form.append("model", target.model);
           form.append("language", "hr");
           form.append("prompt", prompt);
 
-          const res = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
+          const res = await fetch(target.url, {
             method: "POST",
-            headers: { "Lovable-API-Key": key, "X-Lovable-AIG-SDK": "fetch" },
+            headers: target.headers,
             body: form,
           });
 

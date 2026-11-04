@@ -1,6 +1,7 @@
 import { buildPushPayload } from "@block65/webcrypto-web-push";
 import type { ChannelResult, NotificationEvent } from "../types";
 import { toMessage } from "../types";
+import { isAllowedPushEndpoint } from "../push-endpoint";
 
 /**
  * Web Push delivery for the current PWA/browser client.
@@ -49,6 +50,18 @@ export const webPushChannel = {
 
       let status = "failed";
       let errorText: string | null = null;
+      if (!isAllowedPushEndpoint(sub.endpoint)) {
+        // SSRF guard (Faza 0 V2): never POST outside known push services.
+        await supabaseAdmin.from("push_subscriptions").delete().eq("id", sub.id);
+        await supabaseAdmin
+          .from("notification_deliveries")
+          .update({ status: "blocked", error: "endpoint not allowed", sent_at: new Date().toISOString() })
+          .eq("notification_event_id", event.id)
+          .eq("channel", "web_push")
+          .eq("target_ref", sub.id);
+        failed += 1;
+        continue;
+      }
       try {
         const payload = await buildPushPayload(
           {

@@ -181,6 +181,28 @@ function AuthPage() {
 
           {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
 
+          <p className="pt-1 text-xs leading-relaxed text-muted-foreground">
+            Nastavkom prihvaćaš{" "}
+            <a
+              href="/uvjeti"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold underline underline-offset-2"
+            >
+              Uvjete korištenja
+            </a>{" "}
+            i potvrđuješ da si pročitao/la{" "}
+            <a
+              href="/privatnost"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold underline underline-offset-2"
+            >
+              Pravila privatnosti
+            </a>
+            .
+          </p>
+
           <button
             type="submit"
             disabled={busy}
@@ -297,6 +319,16 @@ function AuthPage() {
           </div>
         </>
       )}
+
+      <p className="mt-8 text-center text-xs text-muted-foreground">
+        <a href="/privatnost" className="underline underline-offset-2">
+          Pravila privatnosti
+        </a>{" "}
+        ·{" "}
+        <a href="/uvjeti" className="underline underline-offset-2">
+          Uvjeti korištenja
+        </a>
+      </p>
     </div>
   );
 }

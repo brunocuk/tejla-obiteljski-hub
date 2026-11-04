@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { buildPushPayload } from "@block65/webcrypto-web-push";
 import { rejectUnauthorizedCron } from "@/lib/cron-auth";
+import { isAllowedPushEndpoint } from "@/lib/notifications/push-endpoint";
 
 
 type EventRow = {
@@ -139,6 +140,12 @@ export const Route = createFileRoute("/api/public/hooks/send-reminders")({
 
           for (const sub of subs ?? []) {
             rAttempted += 1;
+            if (!isAllowedPushEndpoint(sub.endpoint)) {
+              // SSRF guard (Faza 0 V2): never POST outside known push services.
+              await supabaseAdmin.from("push_subscriptions").delete().eq("id", sub.id);
+              console.warn(`[send-reminders] removed disallowed endpoint for sub ${sub.id}`);
+              continue;
+            }
             try {
               const payload = await buildPushPayload(
                 { data: JSON.stringify({ ...message, tag }), options: { ttl: 3600 } },

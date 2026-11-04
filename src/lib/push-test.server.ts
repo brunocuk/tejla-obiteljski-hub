@@ -1,4 +1,5 @@
 import { buildPushPayload } from "@block65/webcrypto-web-push";
+import { isAllowedPushEndpoint } from "@/lib/notifications/push-endpoint";
 
 export async function sendTestPushToUser(userId: string) {
   const vapid = {
@@ -17,6 +18,11 @@ export async function sendTestPushToUser(userId: string) {
   const list = subs ?? [];
   let sent = 0;
   for (const sub of list) {
+    if (!isAllowedPushEndpoint(sub.endpoint)) {
+      // SSRF guard (Faza 0 V2): never POST outside known push services.
+      await supabaseAdmin.from("push_subscriptions").delete().eq("id", sub.id);
+      continue;
+    }
     try {
       const payload = await buildPushPayload(
         {

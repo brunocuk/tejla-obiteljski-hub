@@ -497,6 +497,16 @@ function ClanoviPage() {
 
       <BetaAdminLink />
 
+      <p className="mt-6 text-center text-xs text-muted-foreground">
+        <a href="/privatnost" className="underline underline-offset-2">
+          Pravila privatnosti
+        </a>{" "}
+        ·{" "}
+        <a href="/uvjeti" className="underline underline-offset-2">
+          Uvjeti korištenja
+        </a>
+      </p>
+
 
       {inviteFor ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30">

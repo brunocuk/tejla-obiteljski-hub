@@ -20,13 +20,8 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  vite: {
-    resolve: {
-      alias: {
-        "entities/lib/decode.js": path.resolve(__dirname, "node_modules/entities/lib/decode.js"),
-        "entities/lib/encode.js": path.resolve(__dirname, "node_modules/entities/lib/encode.js"),
-        entities: path.resolve(__dirname, "node_modules/entities"),
-      },
-    },
-  },
+  // Napomena (3.11.2026., selidba s Lovablea): raniji alias blok za "entities"
+  // (lib/decode.js, lib/encode.js) uklonjen je jer novi entities (v5+) ima
+  // exports mapu ("entities/decode") koju je alias zaobilazio i rušio nitro
+  // build. Resolucija sada ide standardnim putem.
 });

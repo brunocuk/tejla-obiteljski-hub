@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as PrivatnostRouteImport } from './routes/privatnost'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as UvjetiRouteImport } from './routes/uvjeti'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAnalizaRouteImport } from './routes/_authenticated/analiza'
 import { Route as AuthenticatedBetaAdminRouteImport } from './routes/_authenticated/beta-admin'
@@ -19,6 +21,7 @@ import { Route as AuthenticatedInboxRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedKalendarRouteImport } from './routes/_authenticated/kalendar'
 import { Route as AuthenticatedObiteljRouteImport } from './routes/_authenticated/obitelj'
 import { Route as ApiAnalyzeImageRouteImport } from './routes/api/analyze-image'
+import { Route as ApiAuthEmailRouteImport } from './routes/api/auth-email'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as BetaInviteTokenRouteImport } from './routes/beta-invite.$token'
 import { Route as ApiPublicVapidKeyRouteImport } from './routes/api/public/vapid-key'
@@ -36,9 +39,19 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivatnostRoute = PrivatnostRouteImport.update({
+  id: '/privatnost',
+  path: '/privatnost',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UvjetiRoute = UvjetiRouteImport.update({
+  id: '/uvjeti',
+  path: '/uvjeti',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -74,6 +87,11 @@ const AuthenticatedObiteljRoute = AuthenticatedObiteljRouteImport.update({
 const ApiAnalyzeImageRoute = ApiAnalyzeImageRouteImport.update({
   id: '/api/analyze-image',
   path: '/api/analyze-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthEmailRoute = ApiAuthEmailRouteImport.update({
+  id: '/api/auth-email',
+  path: '/api/auth-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
@@ -117,13 +135,16 @@ const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/privatnost': typeof PrivatnostRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/uvjeti': typeof UvjetiRoute
   '/analiza': typeof AuthenticatedAnalizaRoute
   '/beta-admin': typeof AuthenticatedBetaAdminRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/kalendar': typeof AuthenticatedKalendarRoute
   '/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
+  '/api/auth-email': typeof ApiAuthEmailRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/beta-invite/$token': typeof BetaInviteTokenRoute
   '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
@@ -134,13 +155,16 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/privatnost': typeof PrivatnostRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/uvjeti': typeof UvjetiRoute
   '/analiza': typeof AuthenticatedAnalizaRoute
   '/beta-admin': typeof AuthenticatedBetaAdminRoute
   '/inbox': typeof AuthenticatedInboxRoute
   '/kalendar': typeof AuthenticatedKalendarRoute
   '/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
+  '/api/auth-email': typeof ApiAuthEmailRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/beta-invite/$token': typeof BetaInviteTokenRoute
   '/': typeof AuthenticatedIndexRoute
@@ -154,13 +178,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/privatnost': typeof PrivatnostRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/uvjeti': typeof UvjetiRoute
   '/_authenticated/analiza': typeof AuthenticatedAnalizaRoute
   '/_authenticated/beta-admin': typeof AuthenticatedBetaAdminRoute
   '/_authenticated/inbox': typeof AuthenticatedInboxRoute
   '/_authenticated/kalendar': typeof AuthenticatedKalendarRoute
   '/_authenticated/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
+  '/api/auth-email': typeof ApiAuthEmailRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/beta-invite/$token': typeof BetaInviteTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -175,13 +202,16 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/privatnost'
     | '/reset-password'
+    | '/uvjeti'
     | '/analiza'
     | '/beta-admin'
     | '/inbox'
     | '/kalendar'
     | '/obitelj'
     | '/api/analyze-image'
+    | '/api/auth-email'
     | '/api/transcribe'
     | '/beta-invite/$token'
     | '/api/public/vapid-key'
@@ -192,13 +222,16 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/privatnost'
     | '/reset-password'
+    | '/uvjeti'
     | '/analiza'
     | '/beta-admin'
     | '/inbox'
     | '/kalendar'
     | '/obitelj'
     | '/api/analyze-image'
+    | '/api/auth-email'
     | '/api/transcribe'
     | '/beta-invite/$token'
     | '/'
@@ -211,13 +244,16 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/privatnost'
     | '/reset-password'
+    | '/uvjeti'
     | '/_authenticated/analiza'
     | '/_authenticated/beta-admin'
     | '/_authenticated/inbox'
     | '/_authenticated/kalendar'
     | '/_authenticated/obitelj'
     | '/api/analyze-image'
+    | '/api/auth-email'
     | '/api/transcribe'
     | '/beta-invite/$token'
     | '/_authenticated/'
@@ -231,8 +267,11 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PrivatnostRoute: typeof PrivatnostRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  UvjetiRoute: typeof UvjetiRoute
   ApiAnalyzeImageRoute: typeof ApiAnalyzeImageRoute
+  ApiAuthEmailRoute: typeof ApiAuthEmailRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   BetaInviteTokenRoute: typeof BetaInviteTokenRoute
   ApiPublicVapidKeyRoute: typeof ApiPublicVapidKeyRoute
@@ -258,11 +297,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privatnost': {
+      id: '/privatnost'
+      path: '/privatnost'
+      fullPath: '/privatnost'
+      preLoaderRoute: typeof PrivatnostRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/uvjeti': {
+      id: '/uvjeti'
+      path: '/uvjeti'
+      fullPath: '/uvjeti'
+      preLoaderRoute: typeof UvjetiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -312,6 +365,13 @@ declare module '@tanstack/react-router' {
       path: '/api/analyze-image'
       fullPath: '/api/analyze-image'
       preLoaderRoute: typeof ApiAnalyzeImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth-email': {
+      id: '/api/auth-email'
+      path: '/api/auth-email'
+      fullPath: '/api/auth-email'
+      preLoaderRoute: typeof ApiAuthEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/transcribe': {
@@ -390,8 +450,11 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  PrivatnostRoute: PrivatnostRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  UvjetiRoute: UvjetiRoute,
   ApiAnalyzeImageRoute: ApiAnalyzeImageRoute,
+  ApiAuthEmailRoute: ApiAuthEmailRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   BetaInviteTokenRoute: BetaInviteTokenRoute,
   ApiPublicVapidKeyRoute: ApiPublicVapidKeyRoute,

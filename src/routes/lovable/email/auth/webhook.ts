@@ -17,7 +17,10 @@ const SITE_URL = `https://${ROOT_DOMAIN}`
 
 // The SDK handler owns verification, dispatch, and retry semantics; this file
 // owns only the email decisions: subjects, templates, and per-type props.
-const handler = createAuthEmailHandler({
+// Created lazily: the SDK throws without LOVABLE_API_KEY, which exists only
+// on Lovable hosting; off-platform (Vercel, local dev) this route is dead
+// weight until cutover removes it, and must not break SSR at import time.
+const createHandler = () => createAuthEmailHandler({
   apiKey: process.env['LOVABLE_API_KEY']!,
   from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
   senderDomain: SENDER_DOMAIN,
@@ -80,7 +83,12 @@ const handler = createAuthEmailHandler({
 export const Route = createFileRoute("/lovable/email/auth/webhook")({
   server: {
     handlers: {
-      POST: ({ request }) => handler(request),
+      POST: ({ request }) => {
+        if (!process.env['LOVABLE_API_KEY']) {
+          return Response.json({ error: 'Not available on this deployment' }, { status: 404 })
+        }
+        return createHandler()(request)
+      },
     },
   },
 })

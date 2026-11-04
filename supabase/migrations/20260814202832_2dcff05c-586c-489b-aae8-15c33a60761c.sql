@@ -12,7 +12,10 @@ RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS
   SELECT EXISTS (SELECT 1 FROM public.app_admins WHERE user_id = auth.uid())
 $$;
 
-INSERT INTO public.app_admins (user_id) VALUES ('5f128c14-afaa-4a84-9039-a5ed4625230d') ON CONFLICT DO NOTHING;
+-- Napomena (selidba 2026-10): hardkodirani seed admina iz stare Lovable produkcije
+-- je uklonjen jer taj UUID ne postoji u auth.users novog projekta (FK bi srusio
+-- migraciju). Admin se dodaje rucno nakon registracije prvog korisnika:
+--   INSERT INTO public.app_admins (user_id) VALUES ('<uuid>') ON CONFLICT DO NOTHING;
 
 CREATE TABLE public.beta_invites (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

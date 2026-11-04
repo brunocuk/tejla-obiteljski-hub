@@ -96,8 +96,9 @@ export const Route = createFileRoute("/api/analyze-image")({
           return Response.json({ error: "Ulaz je prevelik" }, { status: 413 });
         }
 
-        const key = process.env["LOVABLE_API_KEY"];
-        if (!key) return Response.json({ error: "Missing LOVABLE_API_KEY" }, { status: 500 });
+        const { chatCompletionsTarget } = await import("@/lib/ai-provider.server");
+        const target = chatCompletionsTarget();
+        if (!target) return Response.json({ error: "AI provider not configured" }, { status: 500 });
 
         const body = (await request.json()) as Body;
         const pastedText = typeof body.text === "string" ? body.text.trim() : "";
@@ -198,15 +199,14 @@ export const Route = createFileRoute("/api/analyze-image")({
               ];
 
 
-        const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const res = await fetch(target.url, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Lovable-API-Key": key,
-            "X-Lovable-AIG-SDK": "fetch",
+            ...target.headers,
           },
           body: JSON.stringify({
-            model: "google/gemini-3.6-flash",
+            model: target.model,
             messages: [
               {
                 role: "system",
