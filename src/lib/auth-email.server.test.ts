@@ -165,6 +165,28 @@ describe("buildAuthEmail", () => {
   it("returns null for unknown action types", async () => {
     expect(await buildAuthEmail(payloadFor("nepoznato"))).toBeNull();
   });
+
+  it("personalizes the invite from user_metadata and sets replyTo", async () => {
+    process.env["SUPABASE_URL"] = "https://x.supabase.co";
+    const payload = payloadFor("invite");
+    payload.user.user_metadata = {
+      invited_by_name: "Mateja",
+      invited_by_email: "mateja@example.com",
+      family_name: "Obitelj Hajdinjak",
+    };
+    const email = await buildAuthEmail(payload);
+    expect(email?.subject).toBe("Mateja te poziva u Tejlu");
+    expect(email?.replyTo).toBe("mateja@example.com");
+  });
+
+  it("keeps the generic invite when metadata is missing or malformed", async () => {
+    process.env["SUPABASE_URL"] = "https://x.supabase.co";
+    const payload = payloadFor("invite");
+    payload.user.user_metadata = { invited_by_name: 42, invited_by_email: "nije-mail" };
+    const email = await buildAuthEmail(payload);
+    expect(email?.subject).toBe("Pozvan/a si u Tejlu");
+    expect(email?.replyTo).toBeUndefined();
+  });
 });
 
 describe("handleAuthEmailRequest", () => {
@@ -226,6 +248,40 @@ describe("handleAuthEmailRequest", () => {
     expect(sent.subject).toBe("Postavi novu lozinku");
     expect(sent.html).toContain("x.supabase.co/auth/v1/verify");
     expect(sent.text).toContain("auth/v1/verify");
+  });
+
+  it("passes reply_to to Resend for personalized invites", async () => {
+    clearEnv();
+    process.env["SEND_EMAIL_HOOK_SECRET"] = SECRET;
+    process.env["RESEND_API_KEY"] = "re_test";
+    process.env["SUPABASE_URL"] = "https://x.supabase.co";
+
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(JSON.stringify({ id: "mail_2" }), { status: 200 }));
+
+    const payload = payloadFor("invite");
+    payload.user.user_metadata = {
+      invited_by_name: "Mateja",
+      invited_by_email: "mateja@example.com",
+      family_name: "Obitelj Hajdinjak",
+    };
+    const body = JSON.stringify(payload);
+    const ts = String(Math.floor(Date.now() / 1000));
+    const res = await handleAuthEmailRequest(
+      requestFor(body, {
+        "webhook-id": "msg_inv",
+        "webhook-timestamp": ts,
+        "webhook-signature": await sign("msg_inv", ts, body),
+      }),
+    );
+
+    expect(res.status).toBe(200);
+    const sent = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(sent.subject).toBe("Mateja te poziva u Tejlu");
+    expect(sent.reply_to).toBe("mateja@example.com");
+    expect(sent.html).toContain("Obitelj Hajdinjak");
+    expect(sent.text).toContain("Mateja te poziva");
   });
 
   it("returns 400 for unknown action types after a valid signature", async () => {

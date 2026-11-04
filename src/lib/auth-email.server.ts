@@ -32,7 +32,11 @@ export type AuthEmailData = {
 };
 
 export type AuthEmailPayload = {
-  user: { email: string; new_email?: string | null };
+  user: {
+    email: string;
+    new_email?: string | null;
+    user_metadata?: Record<string, unknown> | null;
+  };
   email_data: AuthEmailData;
 };
 
@@ -140,7 +144,15 @@ export type RenderedAuthEmail = {
   to: string;
   subject: string;
   element: React.ReactElement;
+  /** Reply-To header; za pozivnice adresa pozivatelja (osobniji mail, bolji dojam kod Gmaila). */
+  replyTo?: string;
 };
+
+/** Izvuče string iz user_metadata, prazan string ako ga nema. */
+function metaString(meta: Record<string, unknown> | null | undefined, key: string): string {
+  const value = meta?.[key];
+  return typeof value === "string" ? value.trim() : "";
+}
 
 /**
  * Maps a hook payload to recipient, subject and template element.
@@ -169,10 +181,21 @@ export async function buildAuthEmail(payload: AuthEmailPayload): Promise<Rendere
     }
     case "invite": {
       const { InviteEmail } = await import("@/lib/email-templates/invite");
+      const meta = payload.user.user_metadata;
+      const inviterName = metaString(meta, "invited_by_name");
+      const inviterEmail = metaString(meta, "invited_by_email");
+      const familyName = metaString(meta, "family_name");
       return {
         to,
-        subject: "Pozvan/a si u Tejlu",
-        element: React.createElement(InviteEmail, { siteName: SITE_NAME, siteUrl, confirmationUrl }),
+        subject: inviterName ? `${inviterName} te poziva u Tejlu` : "Pozvan/a si u Tejlu",
+        element: React.createElement(InviteEmail, {
+          siteName: SITE_NAME,
+          siteUrl,
+          confirmationUrl,
+          inviterName,
+          familyName,
+        }),
+        ...(inviterEmail.includes("@") ? { replyTo: inviterEmail } : {}),
       };
     }
     case "magiclink": {
@@ -225,6 +248,7 @@ export async function sendViaResend(args: {
   subject: string;
   html: string;
   text: string;
+  replyTo?: string;
 }): Promise<void> {
   const apiKey = (process.env["RESEND_API_KEY"] ?? "").trim();
   if (!apiKey) throw new Error("RESEND_API_KEY is not set");
@@ -233,7 +257,14 @@ export async function sendViaResend(args: {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from, to: [args.to], subject: args.subject, html: args.html, text: args.text }),
+    body: JSON.stringify({
+      from,
+      to: [args.to],
+      subject: args.subject,
+      html: args.html,
+      text: args.text,
+      ...(args.replyTo ? { reply_to: args.replyTo } : {}),
+    }),
   });
   if (!res.ok) {
     const body = (await res.text()).slice(0, 300);
@@ -279,7 +310,13 @@ export async function handleAuthEmailRequest(request: Request): Promise<Response
     const { render } = await import("@react-email/render");
     const html = await render(email.element);
     const text = await render(email.element, { plainText: true });
-    await sendViaResend({ to: email.to, subject: email.subject, html, text });
+    await sendViaResend({
+      to: email.to,
+      subject: email.subject,
+      html,
+      text,
+      ...(email.replyTo ? { replyTo: email.replyTo } : {}),
+    });
   } catch (error) {
     console.error("[auth-email] send failed:", error);
     return Response.json({ error: "Failed to send email" }, { status: 500 });

@@ -79,9 +79,21 @@ export const sendFamilyInvite = createServerFn({ method: "POST" })
     });
     if (insertError) throw new Error("Spremanje poziva nije uspjelo.");
 
+    // Ime pozivatelja i prostora za osobniju pozivnicu (Gmail generičke pozivnice
+    // gura u Promocije); best-effort, mail radi i bez njih.
+    const [{ data: inviterProfile }, { data: family }] = await Promise.all([
+      supabase.from("profiles").select("name").eq("id", userId).maybeSingle(),
+      supabase.from("families").select("name").eq("id", membership.family_id).maybeSingle(),
+    ]);
+
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, {
       ...(data.redirectTo ? { redirectTo: data.redirectTo } : {}),
+      data: {
+        invited_by_name: inviterProfile?.name?.trim() ?? "",
+        invited_by_email: callerEmail,
+        family_name: family?.name?.trim() ?? "",
+      },
     });
 
     if (inviteError) {
