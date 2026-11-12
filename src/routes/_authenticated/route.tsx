@@ -1,6 +1,8 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { FamilyGate } from "@/components/FamilyGate";
+import { LegalGate } from "@/components/LegalGate";
+import { BillingGate } from "@/components/BillingGate";
 import { OnboardingGate } from "@/components/Onboarding";
 import { finishPendingAccountDeletion } from "@/lib/account.functions";
 import { clearTejlaLocalData } from "@/lib/account-local";
@@ -27,10 +29,14 @@ export const Route = createFileRoute("/_authenticated")({
     return { user: data.user };
   },
   component: () => (
-    <FamilyGate>
-      <OnboardingGate>
-        <Outlet />
-      </OnboardingGate>
-    </FamilyGate>
+    <LegalGate>
+      <FamilyGate>
+        <BillingGate>
+          <OnboardingGate>
+            <Outlet />
+          </OnboardingGate>
+        </BillingGate>
+      </FamilyGate>
+    </LegalGate>
   ),
 });

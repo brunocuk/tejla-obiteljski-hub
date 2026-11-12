@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { apiAuthHeaders } from "@/lib/api-auth";
+import { startBillingFlow } from "@/lib/billing-client";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Aktivna",
@@ -23,18 +23,6 @@ function formatDate(iso: string | null): string | null {
   } catch {
     return null;
   }
-}
-
-async function postBilling(path: string, familyId: string): Promise<string> {
-  const headers = { "Content-Type": "application/json", ...(await apiAuthHeaders()) };
-  const res = await fetch(path, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ familyId }),
-  });
-  const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
-  if (!res.ok || !data.url) throw new Error(data.error ?? "Nešto je pošlo po zlu. Pokušaj ponovno.");
-  return data.url;
 }
 
 /**
@@ -82,11 +70,11 @@ export function SubscriptionCard({
   const hasLiveSubscription = ["active", "trialing", "past_due"].includes(status);
   const periodEnd = formatDate(subscription?.current_period_end ?? null);
 
-  async function open(path: string) {
+  async function open(path: "/api/billing/checkout" | "/api/billing/portal") {
     setBusy(true);
     setError("");
     try {
-      window.location.assign(await postBilling(path, familyId!));
+      window.location.assign(await startBillingFlow(path, familyId!));
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);

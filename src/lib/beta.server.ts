@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { LEGAL_VERSION } from "@/lib/legal";
 
 export type BetaInviteState = "valid" | "used" | "revoked" | "expired" | "invalid";
 
@@ -85,6 +86,16 @@ export async function redeemBetaInviteServer(input: {
     await supabaseAdmin.auth.admin.deleteUser(created.user.id);
     return { ok: false as const, state: "used" as BetaInviteState };
   }
+
+  // Evidencija prihvata Uvjeta/Pravila (recenica iznad gumba na formi).
+  // Neuspjeh ne rusi registraciju: LegalGate u aplikaciji trazi potvrdu
+  // ponovno ako zapis za trenutnu verziju ne postoji.
+  const { error: acceptError } = await supabaseAdmin.from("legal_acceptances").insert({
+    user_id: created.user.id,
+    doc_version: LEGAL_VERSION,
+    method: "beta-pozivnica-registracija",
+  });
+  if (acceptError) console.error("[beta-redeem] LEGAL_ACCEPT_STORE_FAILED", acceptError.code);
 
   return { ok: true as const, state: "valid" as BetaInviteState };
 }

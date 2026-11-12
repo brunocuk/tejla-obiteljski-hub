@@ -21,6 +21,7 @@ import { TejlaMessagesToggle } from "@/components/TejlaMessagesToggle";
 import { SubscriptionCard } from "@/components/SubscriptionCard";
 
 import { removeFamilyMember } from "@/lib/member-data";
+import { clearTejlaLocalData } from "@/lib/account-local";
 import { supabase } from "@/integrations/supabase/client";
 import { memberStyle } from "@/lib/family";
 
@@ -248,6 +249,9 @@ function ClanoviPage() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+    // Nalaz Faze 0: lokalna pohrana (cache obveza, nedavni unosi, onboarding)
+    // ne smije nadzivjeti odjavu na dijeljenom uredjaju.
+    clearTejlaLocalData();
     navigate({ to: "/auth", replace: true });
   }
 

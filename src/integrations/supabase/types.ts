@@ -359,6 +359,30 @@ export type Database = {
           },
         ]
       }
+      legal_acceptances: {
+        Row: {
+          accepted_at: string
+          doc_version: string
+          id: string
+          method: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          doc_version: string
+          id?: string
+          method: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          doc_version?: string
+          id?: string
+          method?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invoice_jobs: {
         Row: {
           amount_total: number

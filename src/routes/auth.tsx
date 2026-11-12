@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { recordLegalAcceptance } from "@/lib/legal.functions";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -26,6 +28,7 @@ const inputClass =
 
 function AuthPage() {
   const navigate = useNavigate();
+  const recordAcceptance = useServerFn(recordLegalAcceptance);
   const mode = "login" as const;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -70,6 +73,13 @@ function AuthPage() {
       if (err) {
         setError("Postavljanje lozinke nije uspjelo. Otvori poziv ponovno iz e-maila.");
         return;
+      }
+      // Evidencija prihvata (recenica iznad gumba); neuspjeh ne blokira,
+      // LegalGate trazi potvrdu ponovno ako zapis ne postoji.
+      try {
+        await recordAcceptance({ data: { method: "obiteljska-pozivnica-registracija" } });
+      } catch {
+        // namjerno progutano
       }
       navigate({ to: "/", replace: true });
     } finally {
