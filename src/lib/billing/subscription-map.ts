@@ -21,6 +21,7 @@ export type StripeSubscriptionLike = {
   status: string;
   customer: string | { id: string };
   cancel_at_period_end?: boolean | null;
+  cancel_at?: number | null;
   metadata?: Record<string, string> | null;
   current_period_end?: number | null;
   items?: {
@@ -52,7 +53,11 @@ export function mapSubscriptionToRow(sub: StripeSubscriptionLike): SubscriptionR
     stripe_customer_id: typeof sub.customer === "string" ? sub.customer : sub.customer.id,
     status: normalizeStatus(sub.status),
     price_id: item?.price?.id ?? null,
-    cancel_at_period_end: sub.cancel_at_period_end === true,
+    // Basil API: portal-otkaz postavlja cancel_at (timestamp), a legacy
+    // boolean ostaje false; oba oblika znace "otkaz zakazan".
+    cancel_at_period_end:
+      sub.cancel_at_period_end === true ||
+      (typeof sub.cancel_at === "number" && Number.isFinite(sub.cancel_at)),
     current_period_end:
       typeof periodEndUnix === "number" && Number.isFinite(periodEndUnix)
         ? new Date(periodEndUnix * 1000).toISOString()

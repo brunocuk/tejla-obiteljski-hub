@@ -44,6 +44,18 @@ describe("mapSubscriptionToRow", () => {
     expect(row.cancel_at_period_end).toBe(false);
   });
 
+  it("treats a basil portal cancel (cancel_at set, legacy flag false) as scheduled cancel", () => {
+    const row = mapSubscriptionToRow({
+      id: "sub_4",
+      status: "active",
+      customer: "cus_4",
+      cancel_at_period_end: false,
+      cancel_at: 1797064438,
+      items: { data: [{ current_period_end: 1797064438, price: { id: "price_1" } }] },
+    });
+    expect(row.cancel_at_period_end).toBe(true);
+  });
+
   it("normalizes unknown statuses to none (CHECK constraint ih inace rusi)", () => {
     expect(normalizeStatus("active")).toBe("active");
     expect(normalizeStatus("paused")).toBe("paused");
