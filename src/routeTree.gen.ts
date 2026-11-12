@@ -22,8 +22,11 @@ import { Route as AuthenticatedKalendarRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedObiteljRouteImport } from './routes/_authenticated/obitelj'
 import { Route as ApiAnalyzeImageRouteImport } from './routes/api/analyze-image'
 import { Route as ApiAuthEmailRouteImport } from './routes/api/auth-email'
+import { Route as ApiStripeWebhookRouteImport } from './routes/api/stripe-webhook'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as BetaInviteTokenRouteImport } from './routes/beta-invite.$token'
+import { Route as ApiBillingCheckoutRouteImport } from './routes/api/billing/checkout'
+import { Route as ApiBillingPortalRouteImport } from './routes/api/billing/portal'
 import { Route as ApiPublicVapidKeyRouteImport } from './routes/api/public/vapid-key'
 import { Route as ApiPublicHooksSendRemindersRouteImport } from './routes/api/public/hooks/send-reminders'
 import { Route as ApiPublicHooksTejlaMessagesRouteImport } from './routes/api/public/hooks/tejla-messages'
@@ -94,6 +97,11 @@ const ApiAuthEmailRoute = ApiAuthEmailRouteImport.update({
   path: '/api/auth-email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStripeWebhookRoute = ApiStripeWebhookRouteImport.update({
+  id: '/api/stripe-webhook',
+  path: '/api/stripe-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   id: '/api/transcribe',
   path: '/api/transcribe',
@@ -102,6 +110,16 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
 const BetaInviteTokenRoute = BetaInviteTokenRouteImport.update({
   id: '/beta-invite/$token',
   path: '/beta-invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBillingCheckoutRoute = ApiBillingCheckoutRouteImport.update({
+  id: '/api/billing/checkout',
+  path: '/api/billing/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBillingPortalRoute = ApiBillingPortalRouteImport.update({
+  id: '/api/billing/portal',
+  path: '/api/billing/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicVapidKeyRoute = ApiPublicVapidKeyRouteImport.update({
@@ -145,8 +163,11 @@ export interface FileRoutesByFullPath {
   '/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
   '/api/auth-email': typeof ApiAuthEmailRoute
+  '/api/stripe-webhook': typeof ApiStripeWebhookRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/beta-invite/$token': typeof BetaInviteTokenRoute
+  '/api/billing/checkout': typeof ApiBillingCheckoutRoute
+  '/api/billing/portal': typeof ApiBillingPortalRoute
   '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
   '/api/public/hooks/send-reminders': typeof ApiPublicHooksSendRemindersRoute
   '/api/public/hooks/tejla-messages': typeof ApiPublicHooksTejlaMessagesRoute
@@ -165,9 +186,12 @@ export interface FileRoutesByTo {
   '/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
   '/api/auth-email': typeof ApiAuthEmailRoute
+  '/api/stripe-webhook': typeof ApiStripeWebhookRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/beta-invite/$token': typeof BetaInviteTokenRoute
   '/': typeof AuthenticatedIndexRoute
+  '/api/billing/checkout': typeof ApiBillingCheckoutRoute
+  '/api/billing/portal': typeof ApiBillingPortalRoute
   '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
   '/api/public/hooks/send-reminders': typeof ApiPublicHooksSendRemindersRoute
   '/api/public/hooks/tejla-messages': typeof ApiPublicHooksTejlaMessagesRoute
@@ -188,9 +212,12 @@ export interface FileRoutesById {
   '/_authenticated/obitelj': typeof AuthenticatedObiteljRoute
   '/api/analyze-image': typeof ApiAnalyzeImageRoute
   '/api/auth-email': typeof ApiAuthEmailRoute
+  '/api/stripe-webhook': typeof ApiStripeWebhookRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/beta-invite/$token': typeof BetaInviteTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/api/billing/checkout': typeof ApiBillingCheckoutRoute
+  '/api/billing/portal': typeof ApiBillingPortalRoute
   '/api/public/vapid-key': typeof ApiPublicVapidKeyRoute
   '/api/public/hooks/send-reminders': typeof ApiPublicHooksSendRemindersRoute
   '/api/public/hooks/tejla-messages': typeof ApiPublicHooksTejlaMessagesRoute
@@ -212,8 +239,11 @@ export interface FileRouteTypes {
     | '/obitelj'
     | '/api/analyze-image'
     | '/api/auth-email'
+    | '/api/stripe-webhook'
     | '/api/transcribe'
     | '/beta-invite/$token'
+    | '/api/billing/checkout'
+    | '/api/billing/portal'
     | '/api/public/vapid-key'
     | '/api/public/hooks/send-reminders'
     | '/api/public/hooks/tejla-messages'
@@ -232,9 +262,12 @@ export interface FileRouteTypes {
     | '/obitelj'
     | '/api/analyze-image'
     | '/api/auth-email'
+    | '/api/stripe-webhook'
     | '/api/transcribe'
     | '/beta-invite/$token'
     | '/'
+    | '/api/billing/checkout'
+    | '/api/billing/portal'
     | '/api/public/vapid-key'
     | '/api/public/hooks/send-reminders'
     | '/api/public/hooks/tejla-messages'
@@ -254,9 +287,12 @@ export interface FileRouteTypes {
     | '/_authenticated/obitelj'
     | '/api/analyze-image'
     | '/api/auth-email'
+    | '/api/stripe-webhook'
     | '/api/transcribe'
     | '/beta-invite/$token'
     | '/_authenticated/'
+    | '/api/billing/checkout'
+    | '/api/billing/portal'
     | '/api/public/vapid-key'
     | '/api/public/hooks/send-reminders'
     | '/api/public/hooks/tejla-messages'
@@ -272,8 +308,11 @@ export interface RootRouteChildren {
   UvjetiRoute: typeof UvjetiRoute
   ApiAnalyzeImageRoute: typeof ApiAnalyzeImageRoute
   ApiAuthEmailRoute: typeof ApiAuthEmailRoute
+  ApiStripeWebhookRoute: typeof ApiStripeWebhookRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   BetaInviteTokenRoute: typeof BetaInviteTokenRoute
+  ApiBillingCheckoutRoute: typeof ApiBillingCheckoutRoute
+  ApiBillingPortalRoute: typeof ApiBillingPortalRoute
   ApiPublicVapidKeyRoute: typeof ApiPublicVapidKeyRoute
   ApiPublicHooksSendRemindersRoute: typeof ApiPublicHooksSendRemindersRoute
   ApiPublicHooksTejlaMessagesRoute: typeof ApiPublicHooksTejlaMessagesRoute
@@ -374,6 +413,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stripe-webhook': {
+      id: '/api/stripe-webhook'
+      path: '/api/stripe-webhook'
+      fullPath: '/api/stripe-webhook'
+      preLoaderRoute: typeof ApiStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/transcribe': {
       id: '/api/transcribe'
       path: '/api/transcribe'
@@ -386,6 +432,20 @@ declare module '@tanstack/react-router' {
       path: '/beta-invite/$token'
       fullPath: '/beta-invite/$token'
       preLoaderRoute: typeof BetaInviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/billing/checkout': {
+      id: '/api/billing/checkout'
+      path: '/api/billing/checkout'
+      fullPath: '/api/billing/checkout'
+      preLoaderRoute: typeof ApiBillingCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/billing/portal': {
+      id: '/api/billing/portal'
+      path: '/api/billing/portal'
+      fullPath: '/api/billing/portal'
+      preLoaderRoute: typeof ApiBillingPortalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/vapid-key': {
@@ -455,8 +515,11 @@ const rootRouteChildren: RootRouteChildren = {
   UvjetiRoute: UvjetiRoute,
   ApiAnalyzeImageRoute: ApiAnalyzeImageRoute,
   ApiAuthEmailRoute: ApiAuthEmailRoute,
+  ApiStripeWebhookRoute: ApiStripeWebhookRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   BetaInviteTokenRoute: BetaInviteTokenRoute,
+  ApiBillingCheckoutRoute: ApiBillingCheckoutRoute,
+  ApiBillingPortalRoute: ApiBillingPortalRoute,
   ApiPublicVapidKeyRoute: ApiPublicVapidKeyRoute,
   ApiPublicHooksSendRemindersRoute: ApiPublicHooksSendRemindersRoute,
   ApiPublicHooksTejlaMessagesRoute: ApiPublicHooksTejlaMessagesRoute,

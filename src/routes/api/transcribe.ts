@@ -9,6 +9,13 @@ export const Route = createFileRoute("/api/transcribe")({
         const userId = await getRequestUserId(request);
         if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
+        const { userHasAccess, PAYMENT_REQUIRED_MESSAGE } = await import(
+          "@/lib/billing/entitlement.server"
+        );
+        if (!(await userHasAccess(userId))) {
+          return Response.json({ error: PAYMENT_REQUIRED_MESSAGE }, { status: 402 });
+        }
+
         const { transcriptionsTarget } = await import("@/lib/ai-provider.server");
         const target = transcriptionsTarget();
         if (!target) return Response.json({ error: "AI provider not configured" }, { status: 500 });

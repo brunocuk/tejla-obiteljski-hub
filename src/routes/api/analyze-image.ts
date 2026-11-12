@@ -91,6 +91,13 @@ export const Route = createFileRoute("/api/analyze-image")({
         const userId = await getRequestUserId(request);
         if (!userId) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
+        const { userHasAccess, PAYMENT_REQUIRED_MESSAGE } = await import(
+          "@/lib/billing/entitlement.server"
+        );
+        if (!(await userHasAccess(userId))) {
+          return Response.json({ error: PAYMENT_REQUIRED_MESSAGE }, { status: 402 });
+        }
+
         const contentLength = Number(request.headers.get("content-length") ?? 0);
         if (contentLength > 24 * 1024 * 1024) {
           return Response.json({ error: "Ulaz je prevelik" }, { status: 413 });

@@ -291,6 +291,151 @@ export type Database = {
           },
         ]
       }
+      billing_settings: {
+        Row: {
+          enforced: boolean
+          id: boolean
+          updated_at: string
+        }
+        Insert: {
+          enforced?: boolean
+          id?: boolean
+          updated_at?: string
+        }
+        Update: {
+          enforced?: boolean
+          id?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      family_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          family_id: string
+          price_id: string | null
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string | null
+          tos_accepted_at: string | null
+          tos_version: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          family_id: string
+          price_id?: string | null
+          status?: string
+          stripe_customer_id: string
+          stripe_subscription_id?: string | null
+          tos_accepted_at?: string | null
+          tos_version?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          family_id?: string
+          price_id?: string | null
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string | null
+          tos_accepted_at?: string | null
+          tos_version?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_subscriptions_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: true
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoice_jobs: {
+        Row: {
+          amount_total: number
+          attempts: number
+          created_at: string
+          currency: string
+          customer_email: string | null
+          family_id: string | null
+          fira_document_id: string | null
+          id: string
+          kind: string
+          last_error: string | null
+          status: string
+          stripe_invoice_id: string
+          stripe_refund_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_total: number
+          attempts?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          family_id?: string | null
+          fira_document_id?: string | null
+          id?: string
+          kind?: string
+          last_error?: string | null
+          status?: string
+          stripe_invoice_id: string
+          stripe_refund_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_total?: number
+          attempts?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          family_id?: string | null
+          fira_document_id?: string | null
+          id?: string
+          kind?: string
+          last_error?: string | null
+          status?: string
+          stripe_invoice_id?: string
+          stripe_refund_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_jobs_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_events: {
+        Row: {
+          id: string
+          received_at: string
+          type: string
+        }
+        Insert: {
+          id: string
+          received_at?: string
+          type: string
+        }
+        Update: {
+          id?: string
+          received_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
       families: {
         Row: {
           created_at: string
@@ -870,7 +1015,10 @@ export type Database = {
         | { Args: never; Returns: string }
         | { Args: { _invitation_id?: string }; Returns: string }
       account_deletion_preview: { Args: never; Returns: Json }
+      billing_enforced: { Args: never; Returns: boolean }
       can_access_event: { Args: { _event_id: string }; Returns: boolean }
+      family_has_access: { Args: { _family_id: string }; Returns: boolean }
+      user_has_access: { Args: { _user_id: string }; Returns: boolean }
       can_edit_event: { Args: { _event_id: string }; Returns: boolean }
       can_edit_event_row: {
         Args: { _event_id: string; _family_id: string }

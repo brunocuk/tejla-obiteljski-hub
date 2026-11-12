@@ -18,6 +18,7 @@ import { AppShell, PageHeader } from "@/components/AppShell";
 import { MemberDataSheet } from "@/components/MemberDataSheet";
 import { DeleteAccountSheet } from "@/components/DeleteAccountSheet";
 import { TejlaMessagesToggle } from "@/components/TejlaMessagesToggle";
+import { SubscriptionCard } from "@/components/SubscriptionCard";
 
 import { removeFamilyMember } from "@/lib/member-data";
 import { supabase } from "@/integrations/supabase/client";
@@ -471,6 +472,8 @@ function ClanoviPage() {
           ) : null}
         </>
       ) : null}
+
+      <SubscriptionCard familyId={familyId ?? undefined} isOwner={isOwner} />
 
       <TejlaMessagesToggle />
 
