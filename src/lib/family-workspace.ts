@@ -10,6 +10,10 @@ export type FamilyMemberRow = {
   created_at: string;
   /** Set when the person deleted their account: the row is a read-only history trace. */
   archived_at?: string | null;
+  /** Dobna skupina djecjeg racuna (varijanta A, bez datuma rodjenja). */
+  age_group?: string | null;
+  /** Samoizjava "Navrsio/la sam 16 godina". */
+  sixteen_confirmed_at?: string | null;
 };
 
 /** A GDPR tombstone kept only so past events keep their participants. */

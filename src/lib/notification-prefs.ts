@@ -26,7 +26,7 @@ export function useTejlaMessagesEnabled() {
   });
 }
 
-export function useSetTejlaMessages() {
+export function useSetTejlaMessages(via: "onboarding" | "postavke" = "postavke") {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (enabled: boolean) => {
@@ -37,6 +37,14 @@ export function useSetTejlaMessages() {
         .from("user_notification_prefs")
         .upsert({ user_id: uid, tejla_messages_enabled: enabled }, { onConflict: "user_id" });
       if (error) throw error;
+      // Evidencija privole (tko/kada/verzija teksta; mail "PRIVOLE" 16.11.):
+      // best-effort, prekidac radi i ako zapis trenutno ne prodje.
+      try {
+        const { recordTejlaMessagesConsent } = await import("@/lib/consents.functions");
+        await recordTejlaMessagesConsent({ data: { enabled, via } });
+      } catch {
+        // namjerno progutano
+      }
       return enabled;
     },
     onSuccess: (enabled) => qc.setQueryData(["notification-prefs"], enabled),

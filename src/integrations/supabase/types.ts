@@ -494,6 +494,7 @@ export type Database = {
           end_time: string | null
           family_id: string
           id: string
+          is_health: boolean
           linked_event_id: string | null
           location: string | null
           notes: string | null
@@ -521,6 +522,7 @@ export type Database = {
           end_time?: string | null
           family_id: string
           id?: string
+          is_health?: boolean
           linked_event_id?: string | null
           location?: string | null
           notes?: string | null
@@ -548,6 +550,7 @@ export type Database = {
           end_time?: string | null
           family_id?: string
           id?: string
+          is_health?: boolean
           linked_event_id?: string | null
           location?: string | null
           notes?: string | null
@@ -583,6 +586,7 @@ export type Database = {
       family_invitations: {
         Row: {
           accepted_at: string | null
+          age_group: string | null
           created_at: string
           email: string
           family_id: string
@@ -594,6 +598,7 @@ export type Database = {
         }
         Insert: {
           accepted_at?: string | null
+          age_group?: string | null
           created_at?: string
           email: string
           family_id: string
@@ -605,6 +610,7 @@ export type Database = {
         }
         Update: {
           accepted_at?: string | null
+          age_group?: string | null
           created_at?: string
           email?: string
           family_id?: string
@@ -633,6 +639,7 @@ export type Database = {
       }
       family_members: {
         Row: {
+          age_group: string | null
           archived_at: string | null
           created_at: string
           family_id: string
@@ -640,8 +647,10 @@ export type Database = {
           linked_user_id: string | null
           member_type: string
           name: string
+          sixteen_confirmed_at: string | null
         }
         Insert: {
+          age_group?: string | null
           archived_at?: string | null
           created_at?: string
           family_id: string
@@ -649,8 +658,10 @@ export type Database = {
           linked_user_id?: string | null
           member_type?: string
           name?: string
+          sixteen_confirmed_at?: string | null
         }
         Update: {
+          age_group?: string | null
           archived_at?: string | null
           created_at?: string
           family_id?: string
@@ -658,6 +669,7 @@ export type Database = {
           linked_user_id?: string | null
           member_type?: string
           name?: string
+          sixteen_confirmed_at?: string | null
         }
         Relationships: [
           {
@@ -697,6 +709,63 @@ export type Database = {
             columns: ["family_id"]
             isOneToOne: false
             referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      member_consents: {
+        Row: {
+          family_id: string | null
+          family_member_id: string | null
+          granted_at: string
+          granted_by: string | null
+          granted_via: string
+          id: string
+          purpose: string
+          revoked_at: string | null
+          revoked_by: string | null
+          subject_user_id: string | null
+          text_version: string
+        }
+        Insert: {
+          family_id?: string | null
+          family_member_id?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          granted_via: string
+          id?: string
+          purpose: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          subject_user_id?: string | null
+          text_version: string
+        }
+        Update: {
+          family_id?: string | null
+          family_member_id?: string | null
+          granted_at?: string
+          granted_by?: string | null
+          granted_via?: string
+          id?: string
+          purpose?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          subject_user_id?: string | null
+          text_version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "member_consents_family_id_fkey"
+            columns: ["family_id"]
+            isOneToOne: false
+            referencedRelation: "families"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "member_consents_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
             referencedColumns: ["id"]
           },
         ]
@@ -1042,6 +1111,10 @@ export type Database = {
       billing_enforced: { Args: never; Returns: boolean }
       can_access_event: { Args: { _event_id: string }; Returns: boolean }
       family_has_access: { Args: { _family_id: string }; Returns: boolean }
+      has_active_consent: {
+        Args: { _family_member_id: string; _purpose: string }
+        Returns: boolean
+      }
       user_has_access: { Args: { _user_id: string }; Returns: boolean }
       can_edit_event: { Args: { _event_id: string }; Returns: boolean }
       can_edit_event_row: {

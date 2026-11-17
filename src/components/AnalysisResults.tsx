@@ -27,6 +27,7 @@ import {
 } from "@/lib/reminders";
 import { draftsFromPattern, type ReminderPattern } from "@/lib/reminder-engine";
 import { isRecurring, type EventRecurrence } from "@/lib/recurrence";
+import { useMemberConsents } from "@/lib/consents";
 import { RecurrenceSummary } from "@/components/RecurrenceSummary";
 import { RecurrencePicker } from "@/components/RecurrencePicker";
 
@@ -94,6 +95,7 @@ export function AnalysisResults({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const { data: familyId } = useMyFamilyId();
+  const { data: memberConsents = {} } = useMemberConsents(familyId);
   const { data: allMembers } = useFamilyMembers(familyId);
   const { data: userId } = useMyUserId();
   const { data: myRole } = useMyFamilyRole();
@@ -297,6 +299,22 @@ export function AnalysisResults({
     }
     if (chosen.some((c) => isRecurring(c.recurrence) && !isIsoDate(c.date))) {
       setError("Odaberi početak ponavljanja za obveze koje se ponavljaju.");
+      return;
+    }
+    // Zdravstveni termin smije u bazu samo uz aktivnu privolu zdravstveno-
+    // spremanje svake dodijeljene osobe (RLS to dodatno brani na serveru).
+    const missingHealthConsent = chosen
+      .filter((c) => c.is_health)
+      .flatMap((c) => idsFor(c))
+      .filter((id, idx, all) => all.indexOf(id) === idx)
+      .filter((id) => !memberConsents[id]?.save);
+    if (missingHealthConsent.length > 0) {
+      const names = missingHealthConsent
+        .map((id) => members.find((m) => m.id === id)?.name || "član")
+        .join(", ");
+      setError(
+        `Za spremanje zdravstvenog termina potrebna je uključena privola: ${names}. Uključi je pod Članovi.`,
+      );
       return;
     }
 

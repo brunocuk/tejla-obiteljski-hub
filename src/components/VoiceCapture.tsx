@@ -6,9 +6,12 @@ import { apiAuthHeaders } from "@/lib/api-auth";
 export function VoiceCapture({
   onTranscript,
   onCancel,
+  healthMemberId,
 }: {
   onTranscript: (text: string) => void;
   onCancel: () => void;
+  /** Zdravstveni unos: clan s privolom zdravstveno-ai; server provjerava prije obrade. */
+  healthMemberId?: string | null;
 }) {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -65,12 +68,18 @@ export function VoiceCapture({
       const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
       const form = new FormData();
       form.append("file", new File([blob], `glas.${ext}`, { type }));
+      if (healthMemberId) form.append("healthMemberId", healthMemberId);
       const res = await fetch("/api/transcribe", {
         method: "POST",
         headers: await apiAuthHeaders(),
         body: form,
       });
-      if (!res.ok) throw new Error(String(res.status));
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+        setError(payload?.error || "Prepoznavanje govora nije uspjelo. Pokušaj ponovno.");
+        setState("idle");
+        return;
+      }
       const data = (await res.json()) as { text?: string };
       const text = (data.text ?? "").trim();
       if (!text) {

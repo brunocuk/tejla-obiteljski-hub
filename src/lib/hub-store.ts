@@ -101,6 +101,8 @@ export type ExtractedItem = {
   recurrence: EventRecurrence;
   /** Exception Tejla could not resolve, e.g. "osim školskih praznika". */
   exception_note: string;
+  /** Zdravstveni termin (iz zdravstvenog AI toka); spremanje trazi privolu clana. */
+  is_health?: boolean;
 };
 
 export type ConfirmedItem = ExtractedItem & { id: string };
@@ -219,6 +221,7 @@ export function normalizeItem(raw: Partial<ExtractedItem>): ExtractedItem {
     link_to: Number.isInteger(raw.link_to) ? Number(raw.link_to) : -1,
     recurrence: recurrenceWithException,
     exception_note: recurrenceWithException.note,
+    is_health: Boolean(raw.is_health),
   };
 }
 

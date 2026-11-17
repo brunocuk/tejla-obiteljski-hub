@@ -1,6 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Camera, ClipboardPaste, FileText, Image, Keyboard, Mic, Plus, X } from "lucide-react";
+import {
+  Camera,
+  ClipboardPaste,
+  FileText,
+  HeartPulse,
+  Image,
+  Keyboard,
+  Mic,
+  Plus,
+  X,
+} from "lucide-react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { AnalysisResults } from "@/components/AnalysisResults";
 import { ManualEventForm } from "@/components/ManualEventForm";
@@ -15,6 +25,7 @@ import {
   useMyFamilyId,
   useMyUserId,
 } from "@/lib/family-workspace";
+import { useMemberConsents } from "@/lib/consents";
 
 export const Route = createFileRoute("/_authenticated/inbox")({
   head: () => ({
@@ -102,8 +113,17 @@ function InboxPage() {
   const { data: familyId } = useMyFamilyId();
   const { data: userId } = useMyUserId();
   const { data: familyMembers } = useFamilyMembers(familyId);
+  const { data: memberConsents = {} } = useMemberConsents(familyId);
   const speaker = (familyMembers ?? []).find((m) => m.linked_user_id === userId)?.name ?? "";
   const memberNames = assignableMembers(familyMembers ?? []).map((m) => m.name);
+  // Zdravstveni tok (mail "PRIVOLE" 16.11.): prije slanja uputnice/slike/glasa
+  // korisnik oznaci cija je; bez aktivne privole zdravstveno-ai sadrzaj ne ide
+  // na obradu (server to dodatno provjerava).
+  const [healthMode, setHealthMode] = useState(false);
+  const [healthFor, setHealthFor] = useState<string | null>(null);
+  const healthCandidates = assignableMembers(familyMembers ?? []);
+  const healthMemberId = healthMode && healthFor ? healthFor : null;
+  const healthReady = !healthMode || Boolean(healthMemberId);
 
   useEffect(() => setRecent(readRecent()), []);
 
@@ -123,6 +143,10 @@ function InboxPage() {
       | { text: string },
     label: string,
   ) => {
+    if (healthMode && !healthFor) {
+      setError("Odaberi čiji je zdravstveni dokument prije slanja.");
+      return;
+    }
     setLoading(true);
     setError(null);
     setInfo(null);
@@ -136,6 +160,7 @@ function InboxPage() {
           nowTime: new Date().toTimeString().slice(0, 5),
           speaker,
           members: memberNames,
+          ...(healthMemberId ? { healthMemberId } : {}),
         }),
       });
       if (!res.ok) {
@@ -145,11 +170,20 @@ function InboxPage() {
       }
       const data = (await res.json()) as { items?: Partial<ExtractedItem>[] };
       const spoken = "text" in payload ? payload.text : "";
-      const items = applyRelativeReminders(
+      let items = applyRelativeReminders(
         applySpokenDate((data.items ?? []).map(normalizeItem), spoken),
         spoken,
         new Date(),
       );
+      if (healthMemberId) {
+        // Zdravstveni tok: termini pripadaju odabranoj osobi i nose oznaku;
+        // spremanje dodatno trazi privolu zdravstveno-spremanje te osobe.
+        items = items.map((it) => ({
+          ...it,
+          is_health: true,
+          assignee_ids: it.assignee_ids.length ? it.assignee_ids : [healthMemberId],
+        }));
+      }
       setAnalysis(items);
       setMode("results");
       logRecent(label, items.length);
@@ -193,12 +227,18 @@ function InboxPage() {
     setText("");
     setError(null);
     setMode("idle");
+    setHealthMode(false);
+    setHealthFor(null);
   };
 
   const openOption = (key: string) => {
     setSheetOpen(false);
     setError(null);
     setInfo(null);
+    if (healthMode && !healthFor && key !== "manual") {
+      setError("Odaberi čiji je zdravstveni dokument prije slanja.");
+      return;
+    }
     if (key === "camera") cameraRef.current?.click();
     else if (key === "gallery") galleryRef.current?.click();
     else if (key === "pdf") pdfRef.current?.click();
@@ -263,6 +303,74 @@ function InboxPage() {
           Prije slanja provjeri sadržaj. Ne šalji i ne izgovaraj nepotrebne osobne ili osjetljive
           podatke drugih osoba.
         </p>
+      ) : null}
+
+      {(mode === "idle" || mode === "text" || mode === "voice") && !loading ? (
+        <section className="card-soft mt-4 p-4">
+          <label className="flex items-center justify-between gap-3 text-sm font-semibold">
+            <span className="flex items-center gap-2">
+              <HeartPulse className="size-4 text-accent-foreground" strokeWidth={2.2} />
+              Uputnica ili drugi zdravstveni sadržaj
+            </span>
+            <input
+              type="checkbox"
+              checked={healthMode}
+              onChange={(e) => {
+                setHealthMode(e.target.checked);
+                setHealthFor(null);
+                setError(null);
+              }}
+              className="size-5 shrink-0 accent-[var(--color-primary)]"
+            />
+          </label>
+          {healthMode ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Čiji je sadržaj?
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {healthCandidates.map((m) => {
+                  const hasAi = Boolean(memberConsents[m.id]?.ai);
+                  const selected = healthFor === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => {
+                        if (!hasAi) {
+                          setHealthFor(null);
+                          setError(
+                            `${m.name || "Ta osoba"} nema uključeno AI izdvajanje zdravstvenih termina. Uključi ga pod Članovi.`,
+                          );
+                          return;
+                        }
+                        setError(null);
+                        setHealthFor(m.id);
+                      }}
+                      className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                        selected
+                          ? "bg-primary text-primary-foreground"
+                          : hasAi
+                            ? "bg-primary-soft text-accent-foreground"
+                            : "bg-primary-soft text-muted-foreground opacity-60"
+                      }`}
+                    >
+                      {m.name || "Bez imena"}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Sadržaj se šalje na AI obradu samo uz uključenu privolu za odabranu osobu.
+                Privole se uključuju pod{" "}
+                <Link to="/obitelj" className="font-semibold underline underline-offset-2">
+                  Članovi
+                </Link>
+                .
+              </p>
+            </div>
+          ) : null}
+        </section>
       ) : null}
 
       {info ? (
@@ -341,6 +449,7 @@ function InboxPage() {
         <VoiceCapture
           onTranscript={(transcript) => runAnalysis({ text: transcript }, "Glasovni unos")}
           onCancel={reset}
+          healthMemberId={healthMemberId}
         />
       ) : null}
 

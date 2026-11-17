@@ -64,6 +64,11 @@ type Body = {
   nowTime?: string;
   speaker?: string;
   members?: string[];
+  /**
+   * Zdravstveni tok (mail "PRIVOLE" 16.11.): id clana cija je uputnica/slika.
+   * Sadrzaj ide Azureu tek ako taj clan ima aktivnu privolu zdravstveno-ai.
+   */
+  healthMemberId?: string;
 };
 
 /** Max decoded PDF size we accept (bytes). Base64 is ~1.37x larger. */
@@ -108,6 +113,16 @@ export const Route = createFileRoute("/api/analyze-image")({
         if (!target) return Response.json({ error: "AI provider not configured" }, { status: 500 });
 
         const body = (await request.json()) as Body;
+
+        // Privola prije slanja zdravstvenog sadrzaja Azureu; fail-closed.
+        const healthMemberId =
+          typeof body.healthMemberId === "string" ? body.healthMemberId.trim() : "";
+        if (healthMemberId) {
+          const { assertHealthAiAllowed } = await import("@/lib/health-ai-gate.server");
+          const denied = await assertHealthAiAllowed(userId, healthMemberId);
+          if (denied) return Response.json({ error: denied }, { status: 403 });
+        }
+
         const pastedText = typeof body.text === "string" ? body.text.trim() : "";
         if (pastedText.length > 20000) {
           return Response.json({ error: "Tekst je predug" }, { status: 413 });

@@ -3,6 +3,18 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { recordLegalAcceptance } from "@/lib/legal.functions";
+import {
+  getPendingInviteContext,
+  recordChildAccountSelfConsent,
+} from "@/lib/consents.functions";
+import { childAccountConsentText, type AgeGroup } from "@/lib/consents";
+
+type InviteContext = {
+  role: "parent" | "child";
+  ageGroup: AgeGroup | null;
+  childName: string;
+  familyName: string;
+} | null;
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -40,18 +52,51 @@ function AuthPage() {
   const [forgotMode, setForgotMode] = useState(false);
   // Invitation links arrive with #type=invite (or recovery) and an active session.
   const [inviteMode, setInviteMode] = useState(false);
+  const loadInviteContext = useServerFn(getPendingInviteContext);
+  const recordChildConsent = useServerFn(recordChildAccountSelfConsent);
+  const [inviteContext, setInviteContext] = useState<InviteContext>(null);
+  const [childConsentChecked, setChildConsentChecked] = useState(false);
 
   useEffect(() => {
     const hash = window.location.hash;
     const isInvite = hash.includes("type=invite") || hash.includes("type=recovery");
     if (isInvite) {
       setInviteMode(true);
+      // Dobna skupina i imena za tekst privole djeteta (mail "PRIVOLE" 16.11.).
+      // Sesija nastaje tek kad klijent obradi hash tokene, pa se kontekst
+      // dohvaca nakon sto je sesija stvarno tu; bez konteksta ekran radi kao
+      // obicna pozivnica.
+      const waitForSession = async () => {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) return true;
+        return new Promise<boolean>((resolve) => {
+          const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session) {
+              sub.subscription.unsubscribe();
+              resolve(true);
+            }
+          });
+          window.setTimeout(() => {
+            sub.subscription.unsubscribe();
+            resolve(false);
+          }, 8000);
+        });
+      };
+      void waitForSession()
+        .then((ready) => (ready ? loadInviteContext({ data: undefined }) : null))
+        .then((ctx) => setInviteContext(ctx as InviteContext))
+        .catch(() => setInviteContext(null));
       return;
     }
     void supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/", replace: true });
     });
+    // loadInviteContext je stabilan server fn wrapper; namjerno izvan deps-a
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
+
+  const childTeenInvite = inviteContext?.role === "child" && inviteContext.ageGroup === "16-17";
+  const childYoungInvite = inviteContext?.role === "child" && inviteContext.ageGroup === "10-15";
 
   async function onSetPassword(event: FormEvent) {
     event.preventDefault();
@@ -62,6 +107,10 @@ function AuthPage() {
     }
     if (password !== password2) {
       setError("Lozinke se ne podudaraju.");
+      return;
+    }
+    if (childTeenInvite && !childConsentChecked) {
+      setError("Za nastavak potvrdi privolu za svoj račun (kvačica iznad gumba).");
       return;
     }
     setBusy(true);
@@ -80,6 +129,15 @@ function AuthPage() {
         await recordAcceptance({ data: { method: "obiteljska-pozivnica-registracija" } });
       } catch {
         // namjerno progutano
+      }
+      if (childTeenInvite) {
+        // Privola 16-17 pri aktivaciji (tocka 1 iz maila "PRIVOLE"); evidencija
+        // na serveru, neuspjeh ne rusi aktivaciju.
+        try {
+          await recordChildConsent({ data: undefined });
+        } catch {
+          // namjerno progutano
+        }
       }
       navigate({ to: "/", replace: true });
     } finally {
@@ -190,6 +248,32 @@ function AuthPage() {
           </label>
 
           {error ? <p className="text-sm font-medium text-destructive">{error}</p> : null}
+
+          {childTeenInvite && inviteContext ? (
+            <label className="flex items-start gap-3 rounded-2xl bg-primary-soft px-4 py-3">
+              <input
+                type="checkbox"
+                checked={childConsentChecked}
+                onChange={(e) => setChildConsentChecked(e.target.checked)}
+                className="mt-1 size-4 shrink-0 accent-[var(--primary)]"
+              />
+              <span className="text-sm leading-relaxed text-accent-foreground">
+                {childAccountConsentText(
+                  "16-17",
+                  inviteContext.childName || "ja",
+                  inviteContext.familyName || "obitelji",
+                )}{" "}
+                Privolu mogu povući u postavkama.
+              </span>
+            </label>
+          ) : null}
+
+          {childYoungInvite ? (
+            <p className="rounded-2xl bg-primary-soft px-4 py-3 text-sm leading-relaxed text-accent-foreground">
+              Privolu za tvoj račun dao je tvoj roditelj ili skrbnik. Kad navršiš 16 godina, u
+              postavkama ćeš moći sam/a upravljati svojim privolama.
+            </p>
+          ) : null}
 
           <p className="pt-1 text-xs leading-relaxed text-muted-foreground">
             Nastavkom prihvaćaš{" "}

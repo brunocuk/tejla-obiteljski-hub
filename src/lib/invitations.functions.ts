@@ -1,11 +1,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { consentTextVersion, type AgeGroup } from "@/lib/consents";
+import { insertConsent } from "@/lib/consents.server";
 
 type InviteInput = {
   email: string;
   redirectTo: string;
   role?: "parent" | "child";
   familyMemberId?: string | null;
+  ageGroup?: AgeGroup;
+  parentConsent?: boolean;
 };
 
 export const sendFamilyInvite = createServerFn({ method: "POST" })
@@ -25,7 +29,19 @@ export const sendFamilyInvite = createServerFn({ method: "POST" })
     }
     const role = input?.role === "child" ? "child" : "parent";
     const familyMemberId = input?.familyMemberId ? String(input.familyMemberId) : null;
-    return { email, redirectTo, role, familyMemberId };
+    // Djecji racun na pozivnicu (mail "PRIVOLE" 16.11.): roditelj bira dobnu
+    // skupinu; za 10-15 privolu daje prije aktivacije, uz izricitu potvrdu.
+    const ageGroup =
+      input?.ageGroup === "10-15" || input?.ageGroup === "16-17" ? input.ageGroup : null;
+    const parentConsent = Boolean(input?.parentConsent);
+    if (role === "child") {
+      if (!familyMemberId) throw new Error("Dijete pozovi kroz njegov profil člana.");
+      if (!ageGroup) throw new Error("Odaberi dobnu skupinu djeteta.");
+      if (ageGroup === "10-15" && !parentConsent) {
+        throw new Error("Za dijete od 10 do 15 godina potrebna je privola roditelja ili skrbnika.");
+      }
+    }
+    return { email, redirectTo, role, familyMemberId, ageGroup, parentConsent };
   })
   .handler(async ({ data, context }) => {
     const { supabase, userId, claims } = context;
@@ -76,8 +92,22 @@ export const sendFamilyInvite = createServerFn({ method: "POST" })
       status: "pending",
       invited_by: userId,
       family_member_id: memberId,
+      age_group: data.role === "child" ? data.ageGroup : null,
     });
     if (insertError) throw new Error("Spremanje poziva nije uspjelo.");
+
+    // Privola roditelja/skrbnika za racun djeteta 10-15 daje se vec pri
+    // pozivnici (prije aktivacije); 16-17 potvrdjuje dijete pri aktivaciji.
+    if (data.role === "child" && data.ageGroup === "10-15" && memberId) {
+      await insertConsent({
+        family_id: membership.family_id,
+        family_member_id: memberId,
+        purpose: "djecji-racun",
+        text_version: consentTextVersion("djecji-racun", "10-15"),
+        granted_by: userId,
+        granted_via: "pozivnica",
+      });
+    }
 
     // Ime pozivatelja i prostora za osobniju pozivnicu (Gmail generičke pozivnice
     // gura u Promocije); best-effort, mail radi i bez njih.

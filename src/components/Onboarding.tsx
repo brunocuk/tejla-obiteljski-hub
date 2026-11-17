@@ -245,7 +245,7 @@ export function NotificationsStep({ index = 2 }: { index?: number }) {
  */
 export function TejlaMessagesStep({ index, uid }: { index: number; uid: string }) {
   const { data: enabled, isLoading } = useTejlaMessagesEnabled();
-  const setEnabled = useSetTejlaMessages();
+  const setEnabled = useSetTejlaMessages("onboarding");
   const [answered, setAnswered] = useState(false);
 
   // A device without local onboarding state must respect the stored preference.

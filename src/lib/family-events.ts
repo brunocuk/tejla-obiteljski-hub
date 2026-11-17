@@ -302,6 +302,7 @@ export async function saveManualEvent(
     type?: "event" | "task";
     linked_event_id?: string | null;
     recurrence?: EventRecurrence;
+    is_health?: boolean;
   },
   memberIds: string[],
 ) {
@@ -325,6 +326,7 @@ export async function saveManualEvent(
       type,
       linked_event_id: input.linked_event_id ?? null,
       created_by: uid,
+      is_health: Boolean(input.is_health),
       ...recurrenceColumns(input.recurrence, type),
     })
     .select("id")
@@ -380,6 +382,7 @@ export async function saveFamilyEvents(
         linked_event_id:
           item.type === "task" && item.link_to >= 0 ? (createdIds[item.link_to] || null) : null,
         created_by: uid,
+        is_health: Boolean(item.is_health),
         ...recurrenceColumns(item.recurrence, type),
       })
 

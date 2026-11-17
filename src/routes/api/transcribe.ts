@@ -21,6 +21,17 @@ export const Route = createFileRoute("/api/transcribe")({
         if (!target) return Response.json({ error: "AI provider not configured" }, { status: 500 });
 
         const inbound = await request.formData();
+
+        // Zdravstveni glasovni unos (mail "PRIVOLE" 16.11.): snimka ide Azureu
+        // tek ako odabrani clan ima aktivnu privolu zdravstveno-ai.
+        const healthMemberRaw = inbound.get("healthMemberId");
+        const healthMemberId = typeof healthMemberRaw === "string" ? healthMemberRaw.trim() : "";
+        if (healthMemberId) {
+          const { assertHealthAiAllowed } = await import("@/lib/health-ai-gate.server");
+          const denied = await assertHealthAiAllowed(userId, healthMemberId);
+          if (denied) return Response.json({ error: denied }, { status: 403 });
+        }
+
         const file = inbound.get("file");
         if (!(file instanceof File) || file.size === 0) {
           return Response.json({ error: "Missing audio" }, { status: 400 });

@@ -68,6 +68,16 @@ import {
   useMemberVisibility,
   type VisibilityMode,
 } from "@/lib/member-visibility";
+import {
+  AGE_GROUP_LABELS,
+  canManageHealthConsents,
+  childAccountConsentText,
+  useMemberConsents,
+  type AgeGroup,
+} from "@/lib/consents";
+import { ConsentSettingsCard } from "@/components/ConsentSettingsCard";
+import { HealthConsentSection } from "@/components/HealthConsentSection";
+import { revokeChildAccountConsent } from "@/lib/consents.functions";
 
 export const Route = createFileRoute("/_authenticated/obitelj")({
   head: () => ({
@@ -162,6 +172,8 @@ function ClanoviPage() {
   const [inviteError, setInviteError] = useState("");
   const [inviteInfo, setInviteInfo] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [inviteAgeGroup, setInviteAgeGroup] = useState<AgeGroup | null>(null);
+  const [inviteConsent, setInviteConsent] = useState(false);
 
   const [editingName, setEditingName] = useState<string | null>(null);
   const [nameError, setNameError] = useState("");
@@ -203,17 +215,29 @@ function ClanoviPage() {
       return;
     }
     if (inviting || !inviteFor) return;
+    const child = inviteFor !== "parent";
+    if (child && !inviteAgeGroup) {
+      setInviteError("Odaberi dobnu skupinu djeteta.");
+      return;
+    }
+    if (child && inviteAgeGroup === "10-15" && !inviteConsent) {
+      setInviteError("Za slanje poziva potrebna je tvoja privola (kvačica iznad).");
+      return;
+    }
     setInviting(true);
     try {
-      const child = inviteFor !== "parent";
       const result = await invite({
         data: {
           email: inviteEmail.trim(),
           redirectTo: window.location.origin,
           role: child ? "child" : "parent",
           familyMemberId: child ? inviteFor.id : null,
+          ...(child && inviteAgeGroup
+            ? { ageGroup: inviteAgeGroup, parentConsent: inviteConsent }
+            : {}),
         },
       });
+      await queryClient.invalidateQueries({ queryKey: ["member-consents", familyId] });
       setInviteInfo(inviteResultMessage(result));
       setInviteEmail("");
       setInviteFor(null);
@@ -462,6 +486,8 @@ function ClanoviPage() {
               setInviteEmail("");
               setInviteError("");
               setInviteInfo("");
+              setInviteAgeGroup(null);
+              setInviteConsent(false);
             }}
             className="mt-7 flex w-full items-center justify-center gap-2 rounded-3xl px-6 py-4 text-base font-bold text-primary-foreground"
             style={{ backgroundImage: "var(--gradient-primary)", boxShadow: "var(--shadow-float)" }}
@@ -476,6 +502,18 @@ function ClanoviPage() {
           ) : null}
         </>
       ) : null}
+
+      {(() => {
+        const myMember = members.find((m: FamilyMemberRow) => m.linked_user_id === myUserId);
+        return myMember && familyId ? (
+          <ConsentSettingsCard
+            member={myMember}
+            familyId={familyId}
+            familyName={family?.name?.trim() || "naš prostor"}
+            myUserId={myUserId}
+          />
+        ) : null;
+      })()}
 
       <SubscriptionCard familyId={familyId ?? undefined} isOwner={isOwner} />
 
@@ -541,6 +579,57 @@ function ClanoviPage() {
                 ? "Odrasla osoba vidi sve obveze u prostoru."
                 : "Dijete dobiva vlastiti račun i vidi samo ono što mu dopustiš."}
             </p>
+            {inviteFor !== "parent" ? (
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  Dob djeteta
+                </span>
+                <div className="mt-2 flex gap-2">
+                  {(["10-15", "16-17"] as const).map((group) => (
+                    <button
+                      key={group}
+                      type="button"
+                      onClick={() => {
+                        setInviteAgeGroup(group);
+                        setInviteConsent(false);
+                        setInviteError("");
+                      }}
+                      className={`flex-1 rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                        inviteAgeGroup === group
+                          ? "border-primary bg-primary-soft text-accent-foreground"
+                          : "border-border text-muted-foreground"
+                      }`}
+                    >
+                      {AGE_GROUP_LABELS[group]}
+                    </button>
+                  ))}
+                </div>
+                {inviteAgeGroup === "10-15" ? (
+                  <label className="mt-3 flex items-start gap-3 rounded-2xl bg-primary-soft px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={inviteConsent}
+                      onChange={(e) => setInviteConsent(e.target.checked)}
+                      className="mt-1 size-4 shrink-0 accent-[var(--primary)]"
+                    />
+                    <span className="text-sm leading-relaxed text-accent-foreground">
+                      {childAccountConsentText(
+                        "10-15",
+                        inviteFor.name?.trim() || "dijete",
+                        family?.name?.trim() || "naš prostor",
+                      )}{" "}
+                      Privolu mogu povući u postavkama.
+                    </span>
+                  </label>
+                ) : null}
+                {inviteAgeGroup === "16-17" ? (
+                  <p className="mt-3 rounded-2xl bg-primary-soft px-4 py-3 text-sm leading-relaxed text-accent-foreground">
+                    Dijete od 16 ili 17 godina privolu za svoj račun potvrđuje samo, pri aktivaciji
+                    računa.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             <label className="block">
               <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                 E-mail
@@ -573,6 +662,9 @@ function ClanoviPage() {
         <MemberManageSheet
           member={manageFor}
           familyId={familyId ?? ""}
+          familyName={family?.name?.trim() || "naš prostor"}
+          myUserId={myUserId}
+          iAmFamilyAdult={Boolean(isAdult)}
           allMembers={members}
           canInvite={canInviteMemberToAccount(manageFor, Boolean(isOwner))}
           onInvite={() => {
@@ -582,6 +674,8 @@ function ClanoviPage() {
             setInviteEmail("");
             setInviteError("");
             setInviteInfo("");
+            setInviteAgeGroup(null);
+            setInviteConsent(false);
           }}
           onOpenData={() => {
             const target = manageFor;
@@ -609,6 +703,9 @@ function ClanoviPage() {
 function MemberManageSheet({
   member,
   familyId,
+  familyName,
+  myUserId,
+  iAmFamilyAdult,
   allMembers,
   canInvite,
   onInvite,
@@ -619,6 +716,9 @@ function MemberManageSheet({
 }: {
   member: FamilyMemberRow;
   familyId: string;
+  familyName: string;
+  myUserId: string | null | undefined;
+  iAmFamilyAdult: boolean;
   allMembers: FamilyMemberRow[];
   canInvite: boolean;
   onInvite: () => void;
@@ -629,6 +729,11 @@ function MemberManageSheet({
 }) {
   const queryClient = useQueryClient();
   const { data: visibility = {} } = useMemberVisibility(familyId);
+  const { data: memberConsents = {} } = useMemberConsents(familyId);
+  const revokeAccount = useServerFn(revokeChildAccountConsent);
+  const [accountRevokeStep, setAccountRevokeStep] = useState(false);
+  const [accountRevoking, setAccountRevoking] = useState(false);
+  const [accountRevokeError, setAccountRevokeError] = useState("");
   const current = visibility[member.id];
   const [mode, setMode] = useState<VisibilityMode>(
     (current?.mode ?? "own_shared") as VisibilityMode,
@@ -798,6 +903,87 @@ function MemberManageSheet({
           {saving ? "Spremam…" : "Spremi pravila"}
         </button>
           </>
+        ) : null}
+
+        {isArchived ? null : (
+          <div className="pt-2">
+            <HealthConsentSection
+              member={member}
+              familyId={familyId}
+              familyName={familyName}
+              myUserId={myUserId}
+              iAmFamilyAdult={iAmFamilyAdult}
+            />
+          </div>
+        )}
+
+        {isChild && iAmFamilyAdult && memberConsents[member.id]?.account ? (
+          <div className="space-y-3">
+            <h3 className="pt-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              Privola za račun
+            </h3>
+            {accountRevokeStep ? (
+              <div className="space-y-3 rounded-2xl border border-destructive/40 bg-destructive/5 p-4">
+                <p className="text-sm font-bold text-destructive">
+                  Povući privolu za račun {displayName}?
+                </p>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {member.linked_user_id
+                    ? "Račun se zatvara i prijava više neće raditi. Profil i obveze ostaju u prostoru, njima dalje upravljaju odrasli."
+                    : "Otvorena pozivnica se poništava, račun se neće aktivirati. Profil ostaje u prostoru."}
+                </p>
+                {accountRevokeError ? (
+                  <p className="text-sm font-medium text-destructive">{accountRevokeError}</p>
+                ) : null}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={accountRevoking}
+                    onClick={() => setAccountRevokeStep(false)}
+                    className="flex-1 rounded-2xl border border-border bg-background px-4 py-2.5 text-sm font-semibold text-muted-foreground"
+                  >
+                    Odustani
+                  </button>
+                  <button
+                    type="button"
+                    disabled={accountRevoking}
+                    onClick={async () => {
+                      setAccountRevoking(true);
+                      setAccountRevokeError("");
+                      try {
+                        await revokeAccount({ data: { familyMemberId: member.id } });
+                        await queryClient.invalidateQueries({
+                          queryKey: ["member-consents", familyId],
+                        });
+                        await onRemoved();
+                      } catch (err) {
+                        setAccountRevokeError(
+                          err instanceof Error && err.message
+                            ? err.message
+                            : "Povlačenje nije uspjelo. Pokušaj ponovno.",
+                        );
+                        setAccountRevoking(false);
+                      }
+                    }}
+                    className="flex-1 rounded-2xl bg-destructive px-4 py-2.5 text-sm font-bold text-destructive-foreground disabled:opacity-60"
+                  >
+                    {accountRevoking ? "Povlačim…" : "Povuci privolu"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setAccountRevokeStep(true);
+                  setAccountRevokeError("");
+                }}
+                className="w-full rounded-2xl border border-border px-4 py-3 text-sm font-semibold text-muted-foreground"
+              >
+                Povuci privolu za račun
+              </button>
+            )}
+          </div>
         ) : null}
 
         {isArchived ? null : (

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useMemberConsents } from "@/lib/consents";
 import { useQueryClient } from "@tanstack/react-query";
 import { saveManualEvent } from "@/lib/family-events";
 import {
@@ -54,6 +55,10 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
   // V1: only events may repeat; switching to a task clears the rule.
   const [recurrence, setRecurrence] = useState<EventRecurrence>(NO_RECURRENCE);
   const [selected, setSelected] = useState<string[]>([]);
+  // Zdravstveni termin (mail "PRIVOLE" 16.11.): spremanje trazi aktivnu
+  // privolu zdravstveno-spremanje svake dodijeljene osobe.
+  const [isHealth, setIsHealth] = useState(false);
+  const { data: memberConsents = {} } = useMemberConsents(familyId);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reminders, setReminders] = useState<ReminderDraft[]>([]);
@@ -119,6 +124,18 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
       setError("Odaberi barem jednog člana.");
       return;
     }
+    if (isHealth) {
+      const missing = selected.filter((id) => !memberConsents[id]?.save);
+      if (missing.length > 0) {
+        const names = missing
+          .map((id) => members.find((m) => m.id === id)?.name || "član")
+          .join(", ");
+        setError(
+          `Za spremanje zdravstvenog termina potrebna je uključena privola: ${names}. Uključi je pod Članovi.`,
+        );
+        return;
+      }
+    }
     if (!familyId) {
       setError("Obavezu nije bilo moguće spremiti. Pokušaj ponovno.");
       return;
@@ -128,7 +145,7 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
       const eventId = await saveManualEvent(
         familyId,
         // A repeating obligation is always saved through the event recurrence path.
-        { ...form, type: recurrence.freq ? "event" : kind, recurrence },
+        { ...form, type: recurrence.freq ? "event" : kind, recurrence, is_health: isHealth },
         selected,
       );
       let skipped = 0;
@@ -246,6 +263,25 @@ export function ManualEventForm({ onClose }: { onClose: () => void }) {
         Napomena
         <textarea value={form.notes} onChange={set("notes")} rows={3} className={fieldClass} />
       </label>
+
+      <div className="rounded-2xl border border-border p-4">
+        <label className="flex items-center justify-between gap-3 text-sm font-semibold">
+          Zdravstveni termin
+          <input
+            type="checkbox"
+            checked={isHealth}
+            onChange={(e) => setIsHealth(e.target.checked)}
+            className="size-5 shrink-0 accent-[var(--color-primary)]"
+          />
+        </label>
+        {isHealth ? (
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            Spremanje zdravstvenog termina traži uključenu privolu za svaku odabranu osobu
+            (Članovi → Zdravstveni termini). Termin vide svi odrasli članovi prostora, djeca prema
+            postavkama vidljivosti.
+          </p>
+        ) : null}
+      </div>
 
       <div>
         <p className="text-sm font-semibold">Kome pripada?</p>
